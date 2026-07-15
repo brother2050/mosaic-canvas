@@ -1,5 +1,6 @@
 /**
- * Canvas — interactive node editor with drag, connect, pan, and zoom.
+ * Canvas — interactive node editor with drag, connect, pan, zoom, auto-layout,
+ * right-click context menu, and node duplication.
  *
  * Architecture:
  *  - #canvas-viewport clips the visible area.
@@ -25,7 +26,7 @@ const Canvas = (() => {
     let spacePressed = false;
 
     const NODE_W = 200;
-    const PORT_OFFSET_Y = 18; // approx center of header
+    const PORT_OFFSET_Y = 18;
 
     function init() {
         viewport = document.getElementById('canvas-viewport');
@@ -34,31 +35,154 @@ const Canvas = (() => {
         edgesLayer = document.getElementById('edges-layer');
         nodesLayer = document.getElementById('nodes-layer');
 
-        // Pan with space+drag or middle mouse
         viewport.addEventListener('mousedown', onViewportMouseDown);
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
-
-        // Zoom with wheel
         viewport.addEventListener('wheel', onWheel, { passive: false });
-
-        // Keyboard
+        viewport.addEventListener('contextmenu', onContextMenu);
         document.addEventListener('keydown', onKeyDown);
         document.addEventListener('keyup', onKeyUp);
 
-        // Click empty canvas to deselect
         viewport.addEventListener('click', (e) => {
             if (e.target === viewport || e.target === svg || e.target === gridBg) {
                 Store.clearSelection();
+                hideContextMenu();
             }
         });
 
-        // Zoom buttons
         document.getElementById('btn-zoom-in').addEventListener('click', () => zoomBy(1.2));
         document.getElementById('btn-zoom-out').addEventListener('click', () => zoomBy(1 / 1.2));
         document.getElementById('btn-zoom-fit').addEventListener('click', fitToView);
 
+        // Context menu items
+        document.getElementById('ctx-duplicate').addEventListener('click', () => {
+            const id = Store.getSelectedNodeId();
+            if (id) {
+                const newId = Store.duplicateNode(id);
+                renderAll();
+                Store.selectNode(newId);
+            }
+            hideContextMenu();
+        });
+        document.getElementById('ctx-copy').addEventListener('click', () => {
+            const id = Store.getSelectedNodeId();
+            if (id) Store.copyToClipboard(id);
+            hideContextMenu();
+        });
+        document.getElementById('ctx-delete').addEventListener('click', () => {
+            const id = Store.getSelectedNodeId();
+            if (id) {
+                Store.removeNode(id);
+                renderAll();
+            }
+            hideContextMenu();
+        });
+
         updateTransform();
+    }
+
+    // ---- Auto layout ----
+    function autoLayout() {
+        const nodes = Store.getNodes();
+        if (nodes.length === 0) return;
+
+        const order = (() => {
+            try {
+                // Simple topological sort
+                const graph = Store.toGraph();
+                const inDeg = {};
+                const adj = {};
+                nodes.forEach(n => { inDeg[n.id] = 0; adj[n.id] = []; });
+                Store.getEdges().forEach(e => {
+                    inDeg[e.target] = (inDeg[e.target] || 0) + 1;
+                    adj[e.source] = adj[e.source] || [];
+                    adj[e.source].push(e.target);
+                });
+                const queue = nodes.filter(n => (inDeg[n.id] || 0) === 0).map(n => n.id);
+                const result = [];
+                while (queue.length) {
+                    const u = queue.shift();
+                    result.push(u);
+                    (adj[u] || []).forEach(v => {
+                        inDeg[v]--;
+                        if (inDeg[v] === 0) queue.push(v);
+                    });
+                }
+                return result.length === nodes.length ? result : nodes.map(n => n.id);
+            } catch (_) {
+                return nodes.map(n => n.id);
+            }
+        })();
+
+        // Arrange in left-to-right layers
+        const layers = {};
+        const nodeLayer = {};
+        function getLayer(id) {
+            if (nodeLayer[id] !== undefined) return nodeLayer[id];
+            const preds = Store.predecessors ? [] : [];
+            const edges = Store.getEdges().filter(e => e.target === id);
+            if (edges.length === 0) {
+                nodeLayer[id] = 0;
+            } else {
+                nodeLayer[id] = Math.max(...edges.map(e => getLayer(e.source))) + 1;
+            }
+            return nodeLayer[id];
+        }
+        order.forEach(id => getLayer(id));
+
+        // Group by layer
+        const layerGroups = {};
+        order.forEach(id => {
+            const l = nodeLayer[id];
+            if (!layerGroups[l]) layerGroups[l] = [];
+            layerGroups[l].push(id);
+        });
+
+        // Position nodes
+        const SPACING_X = 280;
+        const SPACING_Y = 140;
+        const START_X = 40;
+        const START_Y = 40;
+        Object.keys(layerGroups).sort((a, b) => a - b).forEach(layerIdx => {
+            const ids = layerGroups[layerIdx];
+            ids.forEach((id, i) => {
+                Store.updateNode(id, {
+                    x: START_X + parseInt(layerIdx) * SPACING_X,
+                    y: START_Y + i * SPACING_Y,
+                });
+            });
+        });
+
+        renderAll();
+        setTimeout(fitToView, 50);
+    }
+
+    // ---- Context menu ----
+    function onContextMenu(e) {
+        e.preventDefault();
+        const nodeId = findNodeIdFromEvent(e);
+        if (nodeId) {
+            Store.selectNode(nodeId);
+            showContextMenu(e.clientX, e.clientY);
+        } else {
+            hideContextMenu();
+        }
+    }
+
+    function showContextMenu(x, y) {
+        const menu = document.getElementById('context-menu');
+        menu.style.display = 'block';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+    }
+
+    function hideContextMenu() {
+        document.getElementById('context-menu').style.display = 'none';
+    }
+
+    function findNodeIdFromEvent(e) {
+        const el = e.target.closest('[data-node-id]') || e.target.closest('.canvas-node');
+        return el ? el.dataset.nodeId : null;
     }
 
     // ---- Coordinate conversion ----
@@ -87,7 +211,6 @@ const Canvas = (() => {
         const cx = rect.width / 2;
         const cy = rect.height / 2;
         const newScale = Math.max(0.2, Math.min(3, scale * factor));
-        // Zoom toward center
         panX = cx - (cx - panX) * (newScale / scale);
         panY = cy - (cy - panY) * (newScale / scale);
         scale = newScale;
@@ -122,6 +245,7 @@ const Canvas = (() => {
     function renderNode(node) {
         const info = Store.getNodeInfo(node.type);
         const meta = info ? Store.getDomainMeta(info.domain) : { icon: '?', color: '#64748b' };
+        const displayName = node.label || I18n.nodeName(node.type);
 
         const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
         fo.setAttribute('x', node.x);
@@ -135,30 +259,31 @@ const Canvas = (() => {
         div.className = 'canvas-node';
         div.dataset.nodeId = node.id;
 
+        const inTypes = info && info.input_types && info.input_types.length
+            ? info.input_types.map(t => `<span class="node-type-tag">${escapeHtml(t)}</span>`).join('')
+            : `<span class="node-source-tag">${I18n.t('canvas.source')}</span>`;
+        const outTypes = info && info.output_types && info.output_types.length
+            ? info.output_types.map(t => `<span class="node-type-tag">${escapeHtml(t)}</span>`).join('')
+            : '';
+
         div.innerHTML = `
             <div class="node-header">
                 <div class="node-header-icon" style="background:${meta.color}">${meta.icon}</div>
-                <span class="node-title">${node.label || (info ? info.name : node.type)}</span>
+                <span class="node-title">${escapeHtml(displayName)}</span>
                 <span class="node-status-badge" data-status-badge style="display:none"></span>
             </div>
             <div class="node-body">
-                ${info && info.input_types && info.input_types.length ? `
-                    <div class="node-io-label">In</div>
-                    <div class="node-io-types">${info.input_types.map(t => `<span class="node-type-tag">${t}</span>`).join('')}</div>
-                ` : '<div class="node-io-label">Source</div>'}
-                ${info && info.output_types && info.output_types.length ? `
-                    <div class="node-io-label">Out</div>
-                    <div class="node-io-types">${info.output_types.map(t => `<span class="node-type-tag">${t}</span>`).join('')}</div>
-                ` : ''}
+                <div class="node-io-label">${I18n.t('canvas.in')}</div>
+                <div class="node-io-types">${inTypes}</div>
+                ${outTypes ? `<div class="node-io-label">${I18n.t('canvas.out')}</div><div class="node-io-types">${outTypes}</div>` : ''}
             </div>
-            <div class="node-port input-port" data-port="input" data-node="${node.id}" title="Input"></div>
-            <div class="node-port output-port" data-port="output" data-node="${node.id}" title="Output"></div>
+            <div class="node-port input-port" data-port="input" data-node="${node.id}" title="${I18n.t('canvas.in')}"></div>
+            <div class="node-port output-port" data-port="output" data-node="${node.id}" title="${I18n.t('canvas.out')}"></div>
         `;
 
         fo.appendChild(div);
         nodesLayer.appendChild(fo);
 
-        // Auto-size the foreignObject height
         requestAnimationFrame(() => {
             const h = div.offsetHeight;
             fo.setAttribute('height', h);
@@ -166,7 +291,6 @@ const Canvas = (() => {
 
         nodeElements[node.id] = { el: fo, div };
 
-        // Node drag (on header)
         const header = div.querySelector('.node-header');
         header.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
@@ -175,7 +299,6 @@ const Canvas = (() => {
             startNodeDrag(node.id, e);
         });
 
-        // Port connections
         const outPort = div.querySelector('.output-port');
         outPort.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
@@ -187,15 +310,17 @@ const Canvas = (() => {
         inPort.addEventListener('mouseup', (e) => {
             if (mode === 'connecting' && connectSourceId && connectSourceId !== node.id) {
                 e.stopPropagation();
-                const edgeId = Store.addEdge(connectSourceId, node.id);
-                if (edgeId) {
+                const result = Store.addEdge(connectSourceId, node.id);
+                if (result.id) {
                     renderAll();
+                } else if (result.error) {
+                    const toastKey = 'toast.edge_' + result.error;
+                    App.toast(I18n.t(toastKey), 'warning');
                 }
                 endConnect();
             }
         });
 
-        // Click to select
         div.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('node-port') || e.target.closest('.node-port')) return;
             if (e.button !== 0) return;
@@ -214,13 +339,9 @@ const Canvas = (() => {
         updateEdgesForNode(nodeId);
     }
 
-    // ---- Port positions ----
     function getPortPos(nodeId, type) {
         const node = Store.getNode(nodeId);
         if (!node) return null;
-        const entry = nodeElements[nodeId];
-        if (!entry) return null;
-        const h = parseFloat(entry.el.getAttribute('height')) || 100;
         if (type === 'input') {
             return { x: node.x, y: node.y + PORT_OFFSET_Y };
         } else {
@@ -228,7 +349,6 @@ const Canvas = (() => {
         }
     }
 
-    // ---- Edge rendering ----
     function makeEdgePath(x1, y1, x2, y2) {
         const dx = Math.abs(x2 - x1) * 0.5;
         const cp1x = x1 + dx;
@@ -248,7 +368,6 @@ const Canvas = (() => {
         path.setAttribute('class', 'edge-path');
         path.dataset.edgeId = edge.id;
 
-        // Selection & deletion
         path.addEventListener('click', (e) => {
             e.stopPropagation();
             Store.selectEdge(edge.id);
@@ -256,18 +375,15 @@ const Canvas = (() => {
         path.addEventListener('dblclick', (e) => {
             e.stopPropagation();
             Store.removeEdge(edge.id);
+            App.toast(I18n.t('toast.edge_deleted'), '');
             renderAll();
         });
 
-        // Status styling
         const srcStatus = Store.getNodeStatus(edge.source);
         const tgtStatus = Store.getNodeStatus(edge.target);
         if (srcStatus === 'running') path.classList.add('running');
         if (srcStatus === 'success' && tgtStatus === 'success') path.classList.add('success');
-
-        if (Store.getSelectedEdgeId() === edge.id) {
-            path.classList.add('selected');
-        }
+        if (Store.getSelectedEdgeId() === edge.id) path.classList.add('selected');
 
         edgesLayer.appendChild(path);
         edgeElements[edge.id] = path;
@@ -303,8 +419,6 @@ const Canvas = (() => {
         mode = 'connecting';
         connectSourceId = nodeId;
         viewport.classList.add('connecting');
-
-        // Create temp edge
         tempEdge = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         tempEdge.setAttribute('class', 'edge-path');
         tempEdge.setAttribute('stroke', 'var(--accent)');
@@ -314,6 +428,7 @@ const Canvas = (() => {
     }
 
     function onViewportMouseDown(e) {
+        hideContextMenu();
         if (mode === 'connecting') {
             endConnect();
             return;
@@ -354,11 +469,8 @@ const Canvas = (() => {
             mode = 'idle';
             dragNodeId = null;
         } else if (mode === 'connecting') {
-            // If not released on a port, cancel
             const onPort = e.target && e.target.classList && e.target.classList.contains('input-port');
-            if (!onPort) {
-                endConnect();
-            }
+            if (!onPort) endConnect();
         } else if (mode === 'panning') {
             mode = 'idle';
             viewport.classList.remove('panning');
@@ -369,10 +481,7 @@ const Canvas = (() => {
         mode = 'idle';
         connectSourceId = null;
         viewport.classList.remove('connecting');
-        if (tempEdge) {
-            tempEdge.remove();
-            tempEdge = null;
-        }
+        if (tempEdge) { tempEdge.remove(); tempEdge = null; }
     }
 
     function onWheel(e) {
@@ -394,21 +503,49 @@ const Canvas = (() => {
             viewport.style.cursor = 'grab';
             e.preventDefault();
         }
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            if (isInputFocused()) return;
+        if ((e.key === 'Delete' || e.key === 'Backspace') && !isInputFocused()) {
             const nodeId = Store.getSelectedNodeId();
             const edgeId = Store.getSelectedEdgeId();
             if (nodeId) {
                 Store.removeNode(nodeId);
                 renderAll();
+                App.toast(I18n.t('toast.node_deleted'), '');
             } else if (edgeId) {
                 Store.removeEdge(edgeId);
                 renderAll();
+                App.toast(I18n.t('toast.edge_deleted'), '');
+            }
+        }
+        // Ctrl+D = duplicate
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !isInputFocused()) {
+            e.preventDefault();
+            const nodeId = Store.getSelectedNodeId();
+            if (nodeId) {
+                const newId = Store.duplicateNode(nodeId);
+                renderAll();
+                Store.selectNode(newId);
+                App.toast(I18n.t('toast.node_duplicated'), '');
+            }
+        }
+        // Ctrl+C / Ctrl+V = copy/paste
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isInputFocused()) {
+            const nodeId = Store.getSelectedNodeId();
+            if (nodeId) Store.copyToClipboard(nodeId);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isInputFocused()) {
+            if (Store.hasClipboard()) {
+                const rect = viewport.getBoundingClientRect();
+                const pos = screenToCanvas(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                const newId = Store.pasteFromClipboard(pos.x - NODE_W / 2, pos.y - 50);
+                renderAll();
+                Store.selectNode(newId);
+                App.toast(I18n.t('toast.node_duplicated'), '');
             }
         }
         if (e.key === 'Escape') {
             Store.clearSelection();
             endConnect();
+            hideContextMenu();
         }
     }
 
@@ -426,22 +563,13 @@ const Canvas = (() => {
 
     // ---- Full render ----
     function renderAll() {
-        // Clear
         edgesLayer.innerHTML = '';
         nodesLayer.innerHTML = '';
         nodeElements = {};
         edgeElements = {};
-
-        // Render nodes
         Store.getNodes().forEach(node => renderNode(node));
-
-        // Render edges
         Store.getEdges().forEach(edge => renderEdge(edge));
-
-        // Update selection styling
         updateSelection();
-
-        // Empty state
         const empty = document.getElementById('canvas-empty');
         if (empty) empty.classList.toggle('hidden', Store.getNodes().length > 0);
     }
@@ -453,8 +581,6 @@ const Canvas = (() => {
             entry.div.classList.toggle('running', status === 'running');
             entry.div.classList.toggle('success', status === 'success');
             entry.div.classList.toggle('error', status === 'error');
-
-            // Status badge
             const badge = entry.div.querySelector('[data-status-badge]');
             if (badge) {
                 if (status) {
@@ -479,5 +605,10 @@ const Canvas = (() => {
         Store.selectNode(id);
     }
 
-    return { init, renderAll, updateSelection, addNodeAtCenter, fitToView };
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    return { init, renderAll, updateSelection, addNodeAtCenter, fitToView, autoLayout };
 })();

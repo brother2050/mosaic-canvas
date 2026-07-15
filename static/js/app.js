@@ -1,14 +1,16 @@
 /**
  * App — main controller wiring together all modules.
  *
- * Handles toolbar actions (new, save, load, validate, run, export),
- * sidebar tab switching, input panel, and toast notifications.
+ * Handles: toolbar actions, sidebar tabs, input panel, templates, language
+ * switching, keyboard shortcuts help, auto-layout, and toast notifications.
+ * Exposes App.toast() globally for cross-module access.
  */
-(function () {
+const App = (function () {
     'use strict';
 
-    // ---- Toast notifications ----
-    function toast(message, type = '') {
+    // ---- Toast notifications (exposed globally) ----
+    function toast(message, type) {
+        type = type || '';
         const container = document.getElementById('toast-container');
         const el = document.createElement('div');
         el.className = `toast ${type}`;
@@ -27,31 +29,55 @@
     }
 
     function updateCounts() {
-        document.getElementById('node-count').textContent =
-            `${Store.getNodes().length} nodes`;
-        document.getElementById('edge-count').textContent =
-            `${Store.getEdges().length} edges`;
+        const nc = Store.getNodes().length;
+        const ec = Store.getEdges().length;
+        document.getElementById('node-count').textContent = `${nc} ${I18n.t('status.nodes_count')}`;
+        document.getElementById('edge-count').textContent = `${ec} ${I18n.t('status.edges_count')}`;
     }
 
     // ---- Input panel ----
-    function renderInputPanel() {
-        const container = document.getElementById('input-fields');
-        const input = Store.getInput();
-        const keys = Object.keys(input);
+    const COMMON_INPUT_KEYS = [
+        'prompt', 'negative_prompt', 'text', 'image', 'video', 'audio',
+        'width', 'height', 'seed', 'documents',
+    ];
 
+    function renderInputPanel() {
+        // Common keys suggestions
+        const commonKeysEl = document.getElementById('input-common-keys');
+        const input = Store.getInput();
+        let keysHtml = `<div class="input-common-keys-label">${I18n.t('input.common_keys')}:</div>`;
+        COMMON_INPUT_KEYS.forEach(key => {
+            if (!(key in input)) {
+                const label = I18n.t('input_key.' + key) !== ('input_key.' + key)
+                    ? I18n.t('input_key.' + key) : key;
+                keysHtml += `<button class="common-key-chip" data-key="${escapeAttr(key)}" title="${escapeAttr(label)}">${escapeHtml(key)}</button>`;
+            }
+        });
+        commonKeysEl.innerHTML = keysHtml;
+
+        commonKeysEl.querySelectorAll('.common-key-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const data = { ...Store.getInput() };
+                data[chip.dataset.key] = '';
+                Store.setInput(data);
+                renderInputPanel();
+            });
+        });
+
+        // Existing fields
+        const container = document.getElementById('input-fields');
+        const keys = Object.keys(input);
         let html = '';
         keys.forEach(key => {
             const val = typeof input[key] === 'object' ? JSON.stringify(input[key]) : input[key];
             html += `<div class="input-field-row">
-                <input type="text" class="input-field-key" value="${escapeAttr(key)}" placeholder="key">
-                <input type="text" class="input-field-val" value="${escapeAttr(String(val))}" placeholder="value">
+                <input type="text" class="input-field-key" value="${escapeAttr(key)}" placeholder="${I18n.t('input.key_placeholder')}">
+                <input type="text" class="input-field-val" value="${escapeAttr(String(val))}" placeholder="${I18n.t('input.value_placeholder')}">
                 <button class="input-field-remove" data-key="${escapeAttr(key)}">×</button>
             </div>`;
         });
-
         container.innerHTML = html;
 
-        // Wire up
         container.querySelectorAll('.input-field-row').forEach((row, idx) => {
             const keyInput = row.querySelector('.input-field-key');
             const valInput = row.querySelector('.input-field-val');
@@ -82,6 +108,9 @@
     function escapeAttr(str) {
         return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
     // ---- Tabs ----
     function initTabs() {
@@ -95,24 +124,124 @@
         });
     }
 
-    // ---- Toolbar actions ----
-    function initToolbar() {
-        // Pipeline name
-        const nameInput = document.getElementById('pipeline-name');
-        nameInput.addEventListener('input', () => Store.setPipelineName(nameInput.value));
-        Store.on('change', () => { nameInput.value = Store.getPipelineName(); });
+    // ---- Language switcher ----
+    function initLanguageSwitcher() {
+        const btn = document.getElementById('btn-lang');
+        const dropdown = document.getElementById('lang-dropdown');
+        const label = document.getElementById('lang-label');
 
-        // New
+        label.textContent = I18n.getLang().toUpperCase();
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('active');
+        });
+
+        dropdown.querySelectorAll('.lang-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const lang = opt.dataset.lang;
+                I18n.setLang(lang);
+                dropdown.classList.remove('active');
+                label.textContent = lang.toUpperCase();
+                const langName = lang === 'zh' ? '中文' : 'English';
+                toast(I18n.t('toast.lang_changed', { lang: langName }), '');
+            });
+        });
+
+        // Re-apply translations on language change
+        I18n.on(() => {
+            I18n.applyToDOM();
+            Palette.render();
+            Properties.render();
+            updateCounts();
+            renderInputPanel();
+            setStatus(I18n.t('status.ready'));
+        });
+    }
+
+    // ---- Templates ----
+    function renderTemplates() {
+        const list = document.getElementById('templates-list');
+        const templates = Templates.getAll();
+        let html = '';
+        templates.forEach(t => {
+            html += `<div class="template-card" data-template-id="${escapeAttr(t.id)}">
+                <div class="template-icon">${t.icon}</div>
+                <div class="template-info">
+                    <div class="template-name">${escapeHtml(t.name)}</div>
+                    <div class="template-desc">${escapeHtml(t.description)}</div>
+                    <div class="template-meta">${t.node_count} ${I18n.t('status.nodes_count')} · ${t.edge_count} ${I18n.t('status.edges_count')}</div>
+                </div>
+            </div>`;
+        });
+        list.innerHTML = html;
+
+        list.querySelectorAll('.template-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const id = card.dataset.templateId;
+                const graph = Templates.getGraph(id);
+                if (graph) {
+                    if (Store.getNodes().length > 0 && !confirm(I18n.t('toast.clear_confirm'))) return;
+                    Store.fromGraph(graph);
+                    document.getElementById('pipeline-name').value = Store.getPipelineName();
+                    Canvas.renderAll();
+                    renderInputPanel();
+                    hideModal('templates-modal');
+                    const tmpl = Templates.getAll().find(t => t.id === id);
+                    toast(I18n.t('toast.template_loaded', { name: tmpl ? tmpl.name : id }), 'success');
+                    setTimeout(() => Canvas.autoLayout(), 100);
+                }
+            });
+        });
+    }
+
+    // ---- Shortcuts help ----
+    function renderShortcuts() {
+        const content = document.getElementById('shortcuts-content');
+        const shortcuts = [
+            { key: 'Del / Backspace', desc: I18n.t('shortcut.delete') },
+            { key: 'Esc', desc: I18n.t('shortcut.escape') },
+            { key: 'Space + Drag', desc: I18n.t('shortcut.space_drag') },
+            { key: 'Wheel', desc: I18n.t('shortcut.wheel') },
+            { key: 'Ctrl+D', desc: I18n.t('shortcut.ctrl_d') },
+            { key: 'Ctrl+C', desc: I18n.t('shortcut.ctrl_c') },
+            { key: 'Ctrl+V', desc: I18n.t('shortcut.ctrl_v') },
+        ];
+        let html = '<table class="shortcuts-table">';
+        shortcuts.forEach(s => {
+            html += `<tr><td class="shortcut-key"><kbd>${escapeHtml(s.key)}</kbd></td><td class="shortcut-desc">${escapeHtml(s.desc)}</td></tr>`;
+        });
+        html += '</table>';
+        content.innerHTML = html;
+    }
+
+    // ---- Toolbar ----
+    function initToolbar() {
+        const nameInput = document.getElementById('pipeline-name');
+        nameInput.value = I18n.t('pipeline.untitled');
+        Store.setPipelineName(nameInput.value);
+        nameInput.addEventListener('input', () => Store.setPipelineName(nameInput.value));
+        Store.on('change', () => {
+            if (nameInput !== document.activeElement) {
+                nameInput.value = Store.getPipelineName() || I18n.t('pipeline.untitled');
+            }
+        });
+
         document.getElementById('btn-new').addEventListener('click', () => {
-            if (Store.getNodes().length > 0 && !confirm('Clear the current pipeline?')) return;
+            if (Store.getNodes().length > 0 && !confirm(I18n.t('toast.clear_confirm'))) return;
             Store.clear();
             Canvas.renderAll();
             Results.render(null);
             renderInputPanel();
-            toast('New pipeline created');
+            nameInput.value = I18n.t('pipeline.untitled');
+            toast(I18n.t('toast.new_created'), '');
         });
 
-        // Save
         document.getElementById('btn-save').addEventListener('click', () => {
             const graph = Store.toGraph();
             const json = JSON.stringify(graph, null, 2);
@@ -123,10 +252,9 @@
             a.download = (Store.getPipelineName() || 'pipeline').replace(/\s+/g, '_') + '.json';
             a.click();
             URL.revokeObjectURL(url);
-            toast('Pipeline saved', 'success');
+            toast(I18n.t('toast.saved'), 'success');
         });
 
-        // Load
         document.getElementById('btn-load').addEventListener('click', () => {
             showModal('load-modal');
         });
@@ -134,20 +262,19 @@
         document.getElementById('btn-load-confirm').addEventListener('click', () => {
             const textarea = document.getElementById('load-textarea');
             const fileInput = document.getElementById('load-file-input');
-
             if (fileInput.files.length > 0) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const graph = JSON.parse(e.target.result);
                         Store.fromGraph(graph);
-                        document.getElementById('pipeline-name').value = Store.getPipelineName();
+                        nameInput.value = Store.getPipelineName();
                         Canvas.renderAll();
                         renderInputPanel();
                         hideModal('load-modal');
-                        toast('Pipeline loaded', 'success');
+                        toast(I18n.t('toast.loaded'), 'success');
                     } catch (err) {
-                        toast('Failed to parse JSON: ' + err.message, 'error');
+                        toast(I18n.t('toast.load_failed') + err.message, 'error');
                     }
                 };
                 reader.readAsText(fileInput.files[0]);
@@ -155,74 +282,92 @@
                 try {
                     const graph = JSON.parse(textarea.value);
                     Store.fromGraph(graph);
-                    document.getElementById('pipeline-name').value = Store.getPipelineName();
+                    nameInput.value = Store.getPipelineName();
                     Canvas.renderAll();
                     renderInputPanel();
                     hideModal('load-modal');
-                    toast('Pipeline loaded', 'success');
+                    toast(I18n.t('toast.loaded'), 'success');
                 } catch (err) {
-                    toast('Failed to parse JSON: ' + err.message, 'error');
+                    toast(I18n.t('toast.load_failed') + err.message, 'error');
                 }
             } else {
-                toast('Please select a file or paste JSON', 'warning');
+                toast(I18n.t('toast.select_file'), 'warning');
             }
         });
 
-        // Validate
         document.getElementById('btn-validate').addEventListener('click', async () => {
-            setStatus('Validating…');
+            setStatus(I18n.t('status.validating'));
             try {
                 const result = await API.validate(Store.toGraph());
                 const content = document.getElementById('validate-content');
                 let html = '';
                 if (result.valid) {
-                    html += '<div class="validate-ok">✓ Pipeline is valid!</div>';
+                    html += `<div class="validate-ok">${I18n.t('validate.valid')}</div>`;
                 } else {
                     result.issues.forEach(issue => {
                         html += `<div class="validate-issue">⚠ ${escapeHtml(issue)}</div>`;
                     });
                 }
-                html += `<div class="validate-info">Nodes: ${result.node_count} · Edges: ${result.edge_count}</div>`;
+                html += `<div class="validate-info">${I18n.t('validate.nodes_label')}: ${result.node_count} · ${I18n.t('validate.edges_label')}: ${result.edge_count}</div>`;
                 if (result.topological_order && result.topological_order.length > 0) {
-                    html += `<div class="validate-info">Execution order: ${result.topological_order.join(' → ')}</div>`;
+                    html += `<div class="validate-info">${I18n.t('validate.exec_order')}: ${result.topological_order.join(' → ')}</div>`;
                 }
                 content.innerHTML = html;
                 showModal('validate-modal');
-                setStatus(result.valid ? 'Validation passed' : 'Validation failed');
+                setStatus(result.valid ? I18n.t('status.validation_passed') : I18n.t('status.validation_failed'));
             } catch (err) {
-                toast('Validation error: ' + err.message, 'error');
-                setStatus('Validation error');
+                toast(I18n.t('toast.validation_error') + err.message, 'error');
+                setStatus(I18n.t('status.validation_failed'));
             }
         });
 
-        // Export
+        document.getElementById('btn-auto-layout').addEventListener('click', () => {
+            Canvas.autoLayout();
+        });
+
         document.getElementById('btn-export').addEventListener('click', async () => {
-            setStatus('Generating code…');
+            setStatus(I18n.t('status.generating_code'));
             try {
                 const code = await API.exportPython(Store.toGraph());
                 document.getElementById('export-code').textContent = code;
                 showModal('export-modal');
-                setStatus('Code generated');
+                setStatus(I18n.t('status.code_generated'));
             } catch (err) {
-                toast('Export error: ' + err.message, 'error');
-                setStatus('Export error');
+                toast(I18n.t('toast.export_error') + err.message, 'error');
+                setStatus(I18n.t('status.export_error'));
             }
         });
 
-        // Copy code
         document.getElementById('btn-copy-code').addEventListener('click', () => {
             const code = document.getElementById('export-code').textContent;
             navigator.clipboard.writeText(code).then(() => {
-                toast('Copied to clipboard', 'success');
+                toast(I18n.t('toast.copied'), 'success');
             }).catch(() => {
-                toast('Failed to copy', 'error');
+                toast(I18n.t('toast.copy_failed'), 'error');
             });
         });
 
-        // Run
         document.getElementById('btn-run').addEventListener('click', runPipeline);
         document.getElementById('btn-stop').addEventListener('click', () => {
-            toast('Stop is not yet supported. Execution runs to completion.', 'warning');
+            toast(I18n.t('toast.stop_unsupported'), 'warning');
+        });
+
+        // Templates button
+        document.getElementById('btn-templates').addEventListener('click', () => {
+            renderTemplates();
+            showModal('templates-modal');
+        });
+
+        // Shortcuts button
+        document.getElementById('btn-shortcuts').addEventListener('click', () => {
+            renderShortcuts();
+            showModal('shortcuts-modal');
+        });
+
+        // Listen for palette's openTemplates event
+        document.addEventListener('openTemplates', () => {
+            renderTemplates();
+            showModal('templates-modal');
         });
 
         // Modal close buttons
@@ -230,14 +375,12 @@
             btn.addEventListener('click', () => hideModal(btn.dataset.close));
         });
 
-        // Close modal on overlay click
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) hideModal(overlay.id);
             });
         });
 
-        // Add input field
         document.getElementById('btn-add-input').addEventListener('click', () => {
             const data = { ...Store.getInput() };
             const key = `field_${Object.keys(data).length + 1}`;
@@ -247,35 +390,25 @@
         });
     }
 
-    function showModal(id) {
-        document.getElementById(id).classList.add('active');
-    }
-    function hideModal(id) {
-        document.getElementById(id).classList.remove('active');
-    }
+    function showModal(id) { document.getElementById(id).classList.add('active'); }
+    function hideModal(id) { document.getElementById(id).classList.remove('active'); }
 
     // ---- Pipeline execution ----
     async function runPipeline() {
         const graph = Store.toGraph();
-
         if (Store.getNodes().length === 0) {
-            toast('Add at least one node before running', 'warning');
+            toast(I18n.t('toast.add_node_first'), 'warning');
             return;
         }
-
-        // Switch to results tab
         document.querySelector('[data-tab="results"]').click();
-
-        // UI: running state
         Store.setRunning(true);
         Store.clearNodeStatus();
         document.getElementById('btn-run').classList.add('btn-hidden');
         document.getElementById('btn-stop').classList.remove('btn-hidden');
-        setStatus('Running pipeline…');
+        setStatus(I18n.t('status.running'));
 
-        // Show progress in results panel
         document.getElementById('results-panel').innerHTML =
-            '<div class="results-empty"><p>Running…</p>' +
+            `<div class="results-empty"><p>${I18n.t('results.running')}</p>` +
             '<div class="progress-bar-container"><div class="progress-bar-fill" id="run-progress" style="width:0%"></div></div></div>';
 
         const totalNodes = Store.getNodes().length;
@@ -284,11 +417,11 @@
         try {
             const result = await API.runWebSocket(graph, (event, payload) => {
                 if (event === 'pipeline_start') {
-                    setStatus(`Running: ${payload.node_count} nodes queued`);
+                    setStatus(I18n.t('run.queued', { count: payload.node_count }));
                 } else if (event === 'node_start') {
                     Store.setNodeStatus(payload.node_id, 'running');
                     Canvas.updateSelection();
-                    setStatus(`Running: ${payload.node_name}`);
+                    setStatus(I18n.t('run.node_start', { name: payload.node_name }));
                 } else if (event === 'node_complete') {
                     Store.setNodeStatus(payload.node_id, 'success');
                     Canvas.updateSelection();
@@ -296,41 +429,33 @@
                     const pct = Math.round((completedNodes / totalNodes) * 100);
                     const bar = document.getElementById('run-progress');
                     if (bar) bar.style.width = pct + '%';
-                    setStatus(`Completed: ${payload.node_name} (${payload.duration}s)`);
+                    setStatus(I18n.t('run.node_done', { name: payload.node_name, duration: payload.duration }));
                 } else if (event === 'node_error') {
                     Store.setNodeStatus(payload.node_id, 'error');
                     Canvas.updateSelection();
-                    setStatus(`Error in: ${payload.node_name}`);
-                    toast(`Error in ${payload.node_name}: ${payload.error}`, 'error');
+                    setStatus(I18n.t('run.node_error', { name: payload.node_name }));
+                    toast(I18n.t('run.node_error', { name: payload.node_name }) + ': ' + payload.error, 'error');
                 } else if (event === 'pipeline_complete') {
-                    setStatus(`Pipeline ${payload.success ? 'completed' : 'failed'} in ${payload.duration}s`);
+                    const status = payload.success ? I18n.t('run.complete_status_ok') : I18n.t('run.complete_status_fail');
+                    setStatus(I18n.t('run.complete', { status, duration: payload.duration }));
                 }
             });
 
             Results.render(result);
             if (result.success) {
-                toast('Pipeline completed successfully', 'success');
+                toast(I18n.t('toast.run_success'), 'success');
             } else {
-                toast('Pipeline execution failed', 'error');
+                toast(I18n.t('toast.run_failed'), 'error');
             }
         } catch (err) {
-            Results.render({
-                success: false,
-                error: err.message,
-                node_results: [],
-                duration: 0,
-            });
-            toast('Execution error: ' + err.message, 'error');
-            setStatus('Execution failed');
+            Results.render({ success: false, error: err.message, node_results: [], duration: 0 });
+            toast(I18n.t('toast.exec_error') + err.message, 'error');
+            setStatus(I18n.t('status.execution_failed'));
         } finally {
             Store.setRunning(false);
             document.getElementById('btn-run').classList.remove('btn-hidden');
             document.getElementById('btn-stop').classList.add('btn-hidden');
         }
-    }
-
-    function escapeHtml(str) {
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     // ---- Init ----
@@ -341,22 +466,18 @@
         Results.init();
         initTabs();
         initToolbar();
+        initLanguageSwitcher();
 
         // Store subscriptions
-        Store.on('change', () => {
-            updateCounts();
-            Canvas.renderAll();
-        });
-        Store.on('select', () => {
-            Properties.render();
-            Canvas.updateSelection();
-        });
-        Store.on('status', () => {
-            Canvas.updateSelection();
-        });
+        Store.on('change', () => { updateCounts(); Canvas.renderAll(); });
+        Store.on('select', () => { Properties.render(); Canvas.updateSelection(); });
+        Store.on('status', () => { Canvas.updateSelection(); });
 
-        // Load node catalog from backend
-        setStatus('Loading node catalog…');
+        // Apply initial translations
+        I18n.applyToDOM();
+
+        // Load node catalog
+        setStatus(I18n.t('status.loading_catalog'));
         try {
             const [nodesResp, domainsResp] = await Promise.all([
                 API.getNodes(),
@@ -364,15 +485,13 @@
             ]);
             Store.setCatalog(nodesResp.nodes, domainsResp.domains);
             Palette.render();
-            setStatus('Ready');
-            toast(`Loaded ${nodesResp.count} nodes across ${domainsResp.domains.length} domains`, 'success');
+            setStatus(I18n.t('status.ready'));
+            toast(I18n.t('toast.loaded_nodes', { count: nodesResp.count, domains: domainsResp.domains.length }), 'success');
         } catch (err) {
-            setStatus('Failed to load nodes');
-            toast('Failed to load node catalog: ' + err.message, 'error');
-            console.error(err);
+            setStatus(I18n.t('status.failed_load'));
+            toast(I18n.t('toast.load_catalog_failed') + err.message, 'error');
         }
 
-        // Initial render
         renderInputPanel();
         updateCounts();
         Canvas.renderAll();
@@ -384,4 +503,7 @@
     } else {
         init();
     }
+
+    // Expose toast globally
+    return { toast };
 })();

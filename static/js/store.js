@@ -1,6 +1,7 @@
 /**
  * Central state store for the canvas application.
- * Holds the graph (nodes, edges, input), UI state, and node catalog metadata.
+ * Holds the graph (nodes, edges, input), UI state, node catalog metadata,
+ * clipboard for copy/paste, and language preference.
  */
 const Store = (() => {
     let _nodeCatalog = [];       // [{name, domain, description, ...}]
@@ -8,13 +9,14 @@ const Store = (() => {
     let _nodes = [];             // [{id, type, x, y, params, label}]
     let _edges = [];             // [{id, source, target}]
     let _input = {};             // {key: value}
-    let _pipelineName = 'Untitled Pipeline';
+    let _pipelineName = '';
     let _selectedNodeId = null;
     let _selectedEdgeId = null;
     let _running = false;
     let _nodeStatus = {};        // {nodeId: 'running'|'success'|'error'|'skipped'}
+    let _clipboard = null;       // {type, params} — for copy/paste
 
-    const listeners = { change: [], select: [], status: [] };
+    const listeners = { change: [], select: [], status: [], lang: [] };
 
     function emit(event) {
         (listeners[event] || []).forEach(fn => fn());
@@ -34,19 +36,19 @@ const Store = (() => {
         // -- Graph: nodes --
         getNodes() { return _nodes; },
         getNode(id) { return _nodes.find(n => n.id === id); },
-        addNode(type, x, y) {
+        addNode(type, x, y, params) {
             const id = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
             const info = _nodeCatalog.find(n => n.name === type);
             // Pre-fill default params
-            const params = {};
-            if (info && info.params) {
+            const nodeParams = params ? { ...params } : {};
+            if (!params && info && info.params) {
                 info.params.forEach(p => {
                     if (p.default !== null && p.default !== undefined && p.default !== '') {
-                        params[p.name] = p.default;
+                        nodeParams[p.name] = p.default;
                     }
                 });
             }
-            _nodes.push({ id, type, x, y, params, label: info ? info.name : type });
+            _nodes.push({ id, type, x, y, params: nodeParams, label: '' });
             emit('change');
             return id;
         },
@@ -71,19 +73,55 @@ const Store = (() => {
             emit('change');
             emit('select');
         },
+        duplicateNode(id) {
+            const node = _nodes.find(n => n.id === id);
+            if (!node) return null;
+            const newId = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            _nodes.push({
+                id: newId,
+                type: node.type,
+                x: node.x + 40,
+                y: node.y + 40,
+                params: { ...node.params },
+                label: node.label,
+            });
+            emit('change');
+            return newId;
+        },
+
+        // -- Clipboard --
+        copyToClipboard(nodeId) {
+            const node = _nodes.find(n => n.id === nodeId);
+            if (node) {
+                _clipboard = { type: node.type, params: { ...node.params }, label: node.label };
+            }
+        },
+        pasteFromClipboard(x, y) {
+            if (!_clipboard) return null;
+            const newId = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            _nodes.push({
+                id: newId,
+                type: _clipboard.type,
+                x: x !== undefined ? x : 200,
+                y: y !== undefined ? y : 200,
+                params: { ..._clipboard.params },
+                label: _clipboard.label,
+            });
+            emit('change');
+            return newId;
+        },
+        hasClipboard() { return _clipboard !== null; },
 
         // -- Graph: edges --
         getEdges() { return _edges; },
         addEdge(source, target) {
-            // Prevent duplicates and self-loops
-            if (source === target) return null;
-            if (_edges.some(e => e.source === source && e.target === target)) return null;
-            // Prevent cycles (basic check)
-            if (Store.wouldCreateCycle(source, target)) return null;
+            if (source === target) return { error: 'self' };
+            if (_edges.some(e => e.source === source && e.target === target)) return { error: 'duplicate' };
+            if (Store.wouldCreateCycle(source, target)) return { error: 'cycle' };
             const id = `e${Date.now()}${Math.floor(Math.random() * 1000)}`;
             _edges.push({ id, source, target });
             emit('change');
-            return id;
+            return { id };
         },
         removeEdge(id) {
             _edges = _edges.filter(e => e.id !== id);
@@ -92,7 +130,6 @@ const Store = (() => {
             emit('select');
         },
         wouldCreateCycle(source, target) {
-            // Check if target can reach source (which would create a cycle)
             const visited = new Set();
             function dfs(node) {
                 if (node === source) return true;
@@ -159,7 +196,7 @@ const Store = (() => {
             };
         },
         fromGraph(graph) {
-            _pipelineName = graph.name || 'Untitled Pipeline';
+            _pipelineName = graph.name || '';
             _nodes = (graph.nodes || []).map(n => ({ ...n }));
             _edges = (graph.edges || []).map(e => ({ ...e }));
             _input = (graph.input && graph.input.data) ? { ...graph.input.data } : {};
@@ -177,7 +214,7 @@ const Store = (() => {
             _selectedNodeId = null;
             _selectedEdgeId = null;
             _nodeStatus = {};
-            _pipelineName = 'Untitled Pipeline';
+            _pipelineName = '';
             emit('change');
             emit('select');
             emit('status');
