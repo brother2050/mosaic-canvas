@@ -178,13 +178,18 @@ def export_python(graph: Graph) -> str:
             lines.append(f'{var} = {cls_name}()')
     lines.append("")
 
-    # Build pipeline input
-    if graph.input.data:
+    # Build pipeline input (include source node input_params)
+    source_input_params: dict[str, Any] = {}
+    for gnode in graph.nodes:
+        if not graph.predecessors(gnode.id) and gnode.input_params:
+            source_input_params.update(gnode.input_params)
+    all_input = {**graph.input.data, **source_input_params}
+    if all_input:
         lines.append("# ---------------------------------------------------------------------------")
         lines.append("# Pipeline input")
         lines.append("# ---------------------------------------------------------------------------")
         input_parts: list[str] = []
-        for k, v in graph.input.data.items():
+        for k, v in all_input.items():
             if isinstance(v, str):
                 input_parts.append(f"{k}={v!r}")
             elif isinstance(v, (int, float, bool)):
@@ -208,7 +213,7 @@ def export_python(graph: Graph) -> str:
             lines.append(f"    {ev},")
         lines.append("])")
         lines.append("")
-        if graph.input.data:
+        if all_input:
             lines.append("result = pipeline.execute_result(input_data)")
         else:
             lines.append("result = pipeline.execute_result(MosaicData())")
@@ -235,16 +240,25 @@ def export_python(graph: Graph) -> str:
 
             lines.append(f"# {gnode.type} ({gnode.label or gnode.id})")
             if not preds:
-                if graph.input.data:
+                if all_input:
                     lines.append(f"_input = input_data")
                 else:
                     lines.append(f"_input = MosaicData()")
             else:
                 lines.append(f"_input = MosaicData()")
                 for pid in preds:
-                    pvar = var_map[pid]
-                    lines.append(f"for _k, _v in outputs[{pvar!r}].items():")
+                    lines.append(f"for _k, _v in outputs[{pid!r}].items():")
                     lines.append(f"    _input[_k] = _v")
+
+            # Merge per-node runtime input params
+            if gnode.input_params:
+                for k, v in gnode.input_params.items():
+                    if isinstance(v, str):
+                        lines.append(f"_input[{k!r}] = {v!r}")
+                    elif isinstance(v, (int, float, bool)):
+                        lines.append(f"_input[{k!r}] = {v!r}")
+                    else:
+                        lines.append(f"_input[{k!r}] = {v!r}")
 
             lines.append(f"t0 = time.perf_counter()")
             lines.append(f"outputs[{nid!r}] = {var}(_input)")

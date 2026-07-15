@@ -210,6 +210,15 @@ class GraphExecutor:
                 )
         return errors
 
+    def _cleanup(self) -> None:
+        """Unload all instantiated nodes to free GPU memory and resources."""
+        for nid, instance in self._instances.items():
+            try:
+                if hasattr(instance, "is_loaded") and instance.is_loaded():
+                    instance.unload()
+            except Exception:  # noqa: BLE001
+                logger.debug("Failed to unload node %s", nid, exc_info=True)
+
     # -- Execution ---------------------------------------------------------
 
     def execute(
@@ -301,6 +310,12 @@ class GraphExecutor:
                     if k not in node_input:
                         node_input[k] = v
 
+            # Merge per-node runtime input params (highest priority — overrides
+            # pipeline input and predecessor output for the same key).
+            if gnode.input_params:
+                for k, v in gnode.input_params.items():
+                    node_input[k] = v
+
             # Execute
             t0 = time.perf_counter()
             try:
@@ -367,6 +382,9 @@ class GraphExecutor:
 
         duration = time.perf_counter() - t_start
         success = not failed
+
+        # 5. Cleanup — unload all instantiated nodes to free resources
+        self._cleanup()
 
         if progress:
             progress("pipeline_complete", {

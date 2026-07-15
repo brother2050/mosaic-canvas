@@ -48,7 +48,7 @@ const Store = (() => {
                     }
                 });
             }
-            _nodes.push({ id, type, x, y, params: nodeParams, label: '' });
+            _nodes.push({ id, type, x, y, params: nodeParams, input_params: {}, label: '' });
             emit('change');
             return id;
         },
@@ -63,6 +63,13 @@ const Store = (() => {
             const node = _nodes.find(n => n.id === id);
             if (node) {
                 node.params = { ...params };
+                emit('change');
+            }
+        },
+        updateNodeInputParams(id, inputParams) {
+            const node = _nodes.find(n => n.id === id);
+            if (node) {
+                node.input_params = { ...inputParams };
                 emit('change');
             }
         },
@@ -83,6 +90,7 @@ const Store = (() => {
                 x: node.x + 40,
                 y: node.y + 40,
                 params: { ...node.params },
+                input_params: { ...(node.input_params || {}) },
                 label: node.label,
             });
             emit('change');
@@ -93,7 +101,7 @@ const Store = (() => {
         copyToClipboard(nodeId) {
             const node = _nodes.find(n => n.id === nodeId);
             if (node) {
-                _clipboard = { type: node.type, params: { ...node.params }, label: node.label };
+                _clipboard = { type: node.type, params: { ...node.params }, input_params: { ...(node.input_params || {}) }, label: node.label };
             }
         },
         pasteFromClipboard(x, y) {
@@ -105,6 +113,7 @@ const Store = (() => {
                 x: x !== undefined ? x : 200,
                 y: y !== undefined ? y : 200,
                 params: { ..._clipboard.params },
+                input_params: { ...(_clipboard.input_params || {}) },
                 label: _clipboard.label,
             });
             emit('change');
@@ -189,7 +198,8 @@ const Store = (() => {
                 name: _pipelineName,
                 nodes: _nodes.map(n => ({
                     id: n.id, type: n.type, x: n.x, y: n.y,
-                    params: n.params, label: n.label || '',
+                    params: n.params, input_params: n.input_params || {},
+                    label: n.label || '',
                 })),
                 edges: _edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
                 input: { data: _input },
@@ -197,7 +207,10 @@ const Store = (() => {
         },
         fromGraph(graph) {
             _pipelineName = graph.name || '';
-            _nodes = (graph.nodes || []).map(n => ({ ...n }));
+            _nodes = (graph.nodes || []).map(n => ({
+                ...n,
+                input_params: n.input_params || {},
+            }));
             _edges = (graph.edges || []).map(e => ({ ...e }));
             _input = (graph.input && graph.input.data) ? { ...graph.input.data } : {};
             _selectedNodeId = null;

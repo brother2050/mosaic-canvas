@@ -1090,6 +1090,22 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
 .prop-field { margin-bottom: 12px; }
 .prop-field-modified .prop-field-label { color: var(--warning); }
 
+/* Input fields (runtime params) — subtle visual distinction */
+.prop-field-input {
+    border-left: 2px solid var(--border);
+    padding-left: 8px;
+    margin-left: -4px;
+}
+.prop-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    margin-top: 4px;
+}
+
 .prop-field-header {
     display: flex;
     align-items: center;

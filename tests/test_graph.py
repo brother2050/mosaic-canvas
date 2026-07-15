@@ -151,3 +151,61 @@ class TestGraph:
         d = pi.to_dict()
         pi2 = PipelineInput.from_dict(d)
         assert pi2.data["prompt"] == "a cat"
+
+
+class TestGraphNodeInputParams:
+    """Tests for the input_params field (runtime input parameters)."""
+
+    def test_default_input_params(self):
+        node = GraphNode(id="n1", type="text-to-image")
+        assert node.input_params == {}
+
+    def test_input_params_serialization(self):
+        node = GraphNode(id="n1", type="text-to-image",
+                         params={"model": "sdxl"},
+                         input_params={"prompt": "a cat", "num_inference_steps": 30})
+        d = node.to_dict()
+        assert "input_params" in d
+        assert d["input_params"]["prompt"] == "a cat"
+        assert d["input_params"]["num_inference_steps"] == 30
+
+    def test_input_params_deserialization(self):
+        d = {"id": "n1", "type": "text-to-image",
+             "params": {"model": "sdxl"},
+             "input_params": {"prompt": "a cat", "width": 1024}}
+        node = GraphNode.from_dict(d)
+        assert node.input_params["prompt"] == "a cat"
+        assert node.input_params["width"] == 1024
+
+    def test_input_params_roundtrip(self):
+        node = GraphNode(id="n1", type="text-to-image",
+                         params={"model": "sdxl"},
+                         input_params={"prompt": "hello", "seed": 42})
+        d = node.to_dict()
+        node2 = GraphNode.from_dict(d)
+        assert node2.input_params == {"prompt": "hello", "seed": 42}
+
+    def test_backward_compat_no_input_params(self):
+        """Nodes serialized without input_params should still load."""
+        d = {"id": "n1", "type": "text-to-image",
+             "params": {"model": "sdxl"}}
+        node = GraphNode.from_dict(d)
+        assert node.input_params == {}
+
+    def test_graph_roundtrip_with_input_params(self):
+        g = Graph(
+            name="test",
+            nodes=[
+                GraphNode(id="a", type="text-to-image",
+                          params={"model": "sdxl"},
+                          input_params={"prompt": "cat", "num_inference_steps": 25}),
+                GraphNode(id="b", type="upscaler",
+                          input_params={"prompt": "enhance"}),
+            ],
+            edges=[GraphEdge(id="e1", source="a", target="b")],
+        )
+        d = g.to_dict()
+        g2 = Graph.from_dict(d)
+        assert g2.get_node("a").input_params["prompt"] == "cat"
+        assert g2.get_node("a").input_params["num_inference_steps"] == 25
+        assert g2.get_node("b").input_params["prompt"] == "enhance"

@@ -161,6 +161,88 @@ const Properties = (() => {
             </div>`;
         }
 
+        // Input Fields (runtime parameters passed via MosaicData to run())
+        if (info && info.input_fields && info.input_fields.length > 0) {
+            html += `<div class="prop-section">
+                <div class="prop-section-title">${I18n.t('prop.input_fields')}</div>
+                <p class="panel-hint">${I18n.t('prop.input_fields_hint')}</p>`;
+
+            info.input_fields.forEach(field => {
+                const friendlyName = I18n.paramLabel(field.name);
+                const helpText = I18n.paramHelp(field.name) || field.description || '';
+                const currentValue = (node.input_params || {})[field.name];
+                const hasValue = currentValue !== undefined && currentValue !== '';
+                const defaultValue = field.default;
+                const hasDefault = defaultValue !== null && defaultValue !== undefined && defaultValue !== '';
+                const isModified = hasValue && hasDefault && String(currentValue) !== String(defaultValue);
+
+                const requiredMark = field.required
+                    ? `<span class="prop-required-mark" title="${I18n.t('param.required')}">*</span>`
+                    : '';
+                const typeBadge = `<span class="param-type-badge">${escapeHtml(field.type)}</span>`;
+                const modifiedBadge = isModified
+                    ? `<span class="param-modified-badge" title="${I18n.t('param.changed')}">●</span>`
+                    : '';
+                const defaultBadge = hasDefault
+                    ? `<span class="param-default-badge" title="${I18n.t('prop.default_value')}: ${escapeAttr(String(defaultValue))}">${I18n.t('prop.default_value')}: ${escapeHtml(String(defaultValue))}</span>`
+                    : '';
+
+                html += `<div class="prop-field prop-field-input ${isModified ? 'prop-field-modified' : ''}">
+                    <div class="prop-field-header">
+                        <label class="prop-field-label">${escapeHtml(friendlyName)}${requiredMark}</label>
+                        <div class="prop-field-badges">${typeBadge}${modifiedBadge}</div>
+                    </div>
+                    <div class="prop-field-internal-name">${escapeHtml(field.name)}</div>`;
+
+                // Input control
+                if (field.type === 'choice' && field.choices) {
+                    html += `<select class="prop-input" data-input-param="${escapeAttr(field.name)}">`;
+                    html += `<option value="">${I18n.t('param.default_option')}${hasDefault ? ' (' + escapeHtml(String(defaultValue)) + ')' : ''}</option>`;
+                    field.choices.forEach(c => {
+                        const selected = hasValue && String(currentValue) === String(c) ? 'selected' : '';
+                        html += `<option value="${escapeAttr(c)}" ${selected}>${escapeHtml(c)}</option>`;
+                    });
+                    html += `</select>`;
+                } else if (field.type === 'bool') {
+                    const checked = hasValue && (currentValue === true || currentValue === 'true') ? 'checked' : '';
+                    html += `<label class="prop-checkbox-label">
+                        <input type="checkbox" class="prop-checkbox" data-input-param="${escapeAttr(field.name)}" ${checked}>
+                        <span>${hasValue ? (currentValue === true || currentValue === 'true' ? '✓ True' : '✗ False') : I18n.t('param.default_option')}</span>
+                    </label>`;
+                } else if (field.type === 'int') {
+                    html += `<input type="number" class="prop-input" data-input-param="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" step="1" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
+                } else if (field.type === 'float') {
+                    html += `<input type="number" class="prop-input" data-input-param="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" step="any" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
+                } else {
+                    html += `<input type="text" class="prop-input" data-input-param="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
+                }
+
+                // Default badge and reset button
+                if (hasDefault) {
+                    html += `<div class="prop-field-footer">
+                        <span class="param-default-text">${defaultBadge}</span>`;
+                    if (isModified) {
+                        html += `<button class="prop-reset-btn" data-input-reset="${escapeAttr(field.name)}" data-default="${escapeAttr(String(defaultValue))}" title="${I18n.t('prop.reset_default')}">↺</button>`;
+                    }
+                    html += `</div>`;
+                }
+
+                // Help text (expandable)
+                if (helpText) {
+                    html += `<div class="prop-help-toggle" data-input-help-toggle="${escapeAttr(field.name)}">
+                        <span class="prop-help-icon">ⓘ</span> <span class="prop-help-text">${I18n.t('param.show_help')}</span>
+                    </div>
+                    <div class="prop-help-content" data-input-help-content="${escapeAttr(field.name)}" style="display:none">
+                        ${escapeHtml(helpText)}
+                    </div>`;
+                }
+
+                html += `</div>`;
+            });
+
+            html += `</div>`;
+        }
+
         // Delete button
         html += `<button class="btn btn-danger prop-delete-btn" id="prop-delete-node">${I18n.t('prop.delete_node')}</button>`;
 
@@ -168,6 +250,7 @@ const Properties = (() => {
 
         // Wire up inputs
         const params = { ...node.params };
+        const inputParams = { ...(node.input_params || {}) };
 
         panelEl.querySelectorAll('[data-param]').forEach(input => {
             const paramName = input.dataset.param;
@@ -199,6 +282,44 @@ const Properties = (() => {
             toggle.addEventListener('click', () => {
                 const paramName = toggle.dataset.helpToggle;
                 const content = panelEl.querySelector(`[data-help-content="${CSS.escape(paramName)}"]`);
+                if (content) {
+                    const isVisible = content.style.display !== 'none';
+                    content.style.display = isVisible ? 'none' : 'block';
+                    toggle.querySelector('.prop-help-text').textContent = isVisible ? I18n.t('param.show_help') : I18n.t('param.hide_help');
+                }
+            });
+        });
+
+        // Input fields — wire up runtime input params
+        panelEl.querySelectorAll('[data-input-param]').forEach(input => {
+            const fieldName = input.dataset.inputParam;
+            input.addEventListener('input', () => {
+                updateParam(inputParams, fieldName, input);
+                Store.updateNodeInputParams(nodeId, inputParams);
+                render();
+            });
+            input.addEventListener('change', () => {
+                updateParam(inputParams, fieldName, input);
+                Store.updateNodeInputParams(nodeId, inputParams);
+                render();
+            });
+        });
+
+        // Input field reset buttons
+        panelEl.querySelectorAll('[data-input-reset]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fieldName = btn.dataset.inputReset;
+                delete inputParams[fieldName];
+                Store.updateNodeInputParams(nodeId, inputParams);
+                render();
+            });
+        });
+
+        // Input field help toggles
+        panelEl.querySelectorAll('[data-input-help-toggle]').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const fieldName = toggle.dataset.inputHelpToggle;
+                const content = panelEl.querySelector(`[data-input-help-content="${CSS.escape(fieldName)}"]`);
                 if (content) {
                     const isVisible = content.style.display !== 'none';
                     content.style.display = isVisible ? 'none' : 'block';

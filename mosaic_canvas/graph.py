@@ -30,6 +30,9 @@ class GraphNode:
     x: float = 0.0
     y: float = 0.0
     params: dict[str, Any] = field(default_factory=dict)
+    # Per-node runtime input parameters (merged into MosaicData at execution).
+    # Unlike ``params`` (constructor args), these are passed via input_data to run().
+    input_params: dict[str, Any] = field(default_factory=dict)
     # Optional user-facing label
     label: str = ""
 
@@ -40,6 +43,7 @@ class GraphNode:
             "x": self.x,
             "y": self.y,
             "params": self.params,
+            "input_params": self.input_params,
             "label": self.label,
         }
 
@@ -51,6 +55,7 @@ class GraphNode:
             x=float(d.get("x", 0)),
             y=float(d.get("y", 0)),
             params=dict(d.get("params", {})),
+            input_params=dict(d.get("input_params", {})),
             label=d.get("label", ""),
         )
 

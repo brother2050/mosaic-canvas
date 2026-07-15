@@ -164,6 +164,71 @@ class TestGraphExecutor:
         assert any(r.status == "skipped" for r in result.node_results)
         mock_b.assert_not_called()
 
+    def test_input_params_merged(self):
+        """Test that per-node input_params are merged into the node's input MosaicData."""
+        from mosaic_canvas.executor import GraphExecutor
+        from mosaic.core.types import MosaicData
+
+        graph = Graph(
+            name="test-input-params",
+            nodes=[
+                GraphNode(id="a", type="mock-a",
+                          input_params={"prompt": "custom prompt", "seed": 42}),
+            ],
+            edges=[],
+            input=PipelineInput(data={"prompt": "default prompt", "width": 1024}),
+        )
+
+        executor = GraphExecutor(graph)
+
+        mock_a = MagicMock()
+        mock_a.name = "mock-a"
+        mock_a.return_value = MosaicData(image="result")
+
+        executor._instances = {"a": mock_a}
+        executor.instantiate_nodes = lambda: {}
+
+        result = executor.execute()
+
+        assert result.success is True
+        # Node a should have received input_params values
+        a_input = mock_a.call_args[0][0]
+        # input_params should override pipeline input
+        assert a_input["prompt"] == "custom prompt"
+        assert a_input["seed"] == 42
+        # pipeline input should still be present
+        assert a_input["width"] == 1024
+
+    def test_cleanup_called_after_execution(self):
+        """Test that _cleanup() unloads all instantiated nodes after execution."""
+        from mosaic_canvas.executor import GraphExecutor
+        from mosaic.core.types import MosaicData
+
+        graph = Graph(
+            name="test-cleanup",
+            nodes=[
+                GraphNode(id="a", type="mock-a"),
+            ],
+            edges=[],
+        )
+
+        executor = GraphExecutor(graph)
+
+        mock_a = MagicMock()
+        mock_a.name = "mock-a"
+        mock_a.is_loaded.return_value = True
+        mock_a.return_value = MosaicData(result="done")
+
+        executor._instances = {"a": mock_a}
+        executor.instantiate_nodes = lambda: {}
+
+        result = executor.execute()
+
+        assert result.success is True
+        # _cleanup() should have called is_loaded() and unload()
+        mock_a.is_loaded.assert_called()
+        mock_a.unload.assert_called_once()
+
     def test_diamond_execution(self):
         """Test diamond: A → B, A → C, B → D, C → D."""
         from mosaic_canvas.executor import GraphExecutor

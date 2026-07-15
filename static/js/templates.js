@@ -4,6 +4,11 @@
  * Each template defines nodes, edges, suggested input data, and a description
  * in both English and Chinese. Templates are loaded into the canvas with a
  * single click, giving users a quick starting point.
+ *
+ * IMPORTANT: `params` are constructor arguments passed to Node.__init__().
+ * `input_params` are runtime values merged into MosaicData and passed to run().
+ * Mixing them up causes TypeError at node instantiation or missing values at
+ * execution time.
  */
 const Templates = (() => {
     const SPACING_X = 280;
@@ -23,7 +28,12 @@ const Templates = (() => {
                 zh: '使用扩散模型从文本提示词生成图片。',
             },
             nodes: [
-                { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo', num_inference_steps: '25', guidance_scale: '7.5' }, ...pos(0, 0) },
+                {
+                    id: 'n1', type: 'text-to-image', label: '',
+                    params: { model: 'stabilityai/sdxl-turbo' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5' },
+                    ...pos(0, 0),
+                },
             ],
             edges: [],
             input: { prompt: 'a cute cat sitting on a windowsill, warm sunlight, detailed fur' },
@@ -37,9 +47,24 @@ const Templates = (() => {
                 zh: '生成图片后放大至更高分辨率，然后导出。',
             },
             nodes: [
-                { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo', num_inference_steps: '25' }, ...pos(0, 0) },
-                { id: 'n2', type: 'upscaler', label: '', params: { scale: '2' }, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: { format: 'png' }, ...pos(2, 0) },
+                {
+                    id: 'n1', type: 'text-to-image', label: '',
+                    params: { model: 'stabilityai/sdxl-turbo' },
+                    input_params: { num_inference_steps: '25' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'upscaler', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(2, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -56,9 +81,24 @@ const Templates = (() => {
                 zh: '对已有图片进行风格迁移，然后导出。',
             },
             nodes: [
-                { id: 'n1', type: 'image-to-image', label: '', params: { strength: '0.65' }, ...pos(0, 0) },
-                { id: 'n2', type: 'stylizer', label: '', params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: { format: 'png' }, ...pos(2, 0) },
+                {
+                    id: 'n1', type: 'image-to-image', label: '',
+                    params: {},
+                    input_params: { strength: '0.65' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'stylizer', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(2, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -75,8 +115,18 @@ const Templates = (() => {
                 zh: '从文本提示词生成短视频。',
             },
             nodes: [
-                { id: 'n1', type: 'text-to-video', label: '', params: { num_frames: '24', fps: '8' }, ...pos(0, 0) },
-                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, ...pos(1, 0) },
+                {
+                    id: 'n1', type: 'text-to-video', label: '',
+                    params: {},
+                    input_params: { num_frames: '24', fps: '8' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'video-encoder', label: '',
+                    params: { format: 'mp4' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -92,53 +142,98 @@ const Templates = (() => {
                 zh: '从文本生成语音，进行唇形同步，然后渲染数字人视频。',
             },
             nodes: [
-                { id: 'n1', type: 'text-to-speech', label: '', params: { language: 'zh' }, ...pos(0, 0) },
-                { id: 'n2', type: 'lip-syncer', label: '', params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'realtime-renderer', label: '', params: {}, ...pos(2, 0) },
-                { id: 'n4', type: 'video-encoder', label: '', params: { format: 'mp4' }, ...pos(3, 0) },
+                {
+                    id: 'n1', type: 'tts', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'lip-syncer', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'realtime-renderer', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(2, 0),
+                },
+                {
+                    id: 'n4', type: 'video-encoder', label: '',
+                    params: { format: 'mp4' },
+                    input_params: {},
+                    ...pos(3, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
                 { id: 'e2', source: 'n2', target: 'n3' },
                 { id: 'e3', source: 'n3', target: 'n4' },
             ],
-            input: { text: '你好，欢迎使用 Mosaic 数字人系统。', image: '/path/to/face.jpg' },
+            input: { text: '你好，欢迎使用 Mosaic 数字人系统。', video: '/path/to/face.jpg' },
         },
         {
             id: 'video-subtitle-export',
-            name: { en: 'Video → Subtitles → Export', zh: '视频 → 字幕 → 导出' },
+            name: { en: 'Audio → Subtitles → Export', zh: '音频 → 字幕 → 导出' },
             icon: '📝',
             description: {
-                en: 'Extract subtitles from a video, then export both.',
-                zh: '从视频中提取字幕，然后导出视频和字幕。',
+                en: 'Transcribe audio to text, generate subtitles, then export.',
+                zh: '将音频转录为文本，生成字幕，然后导出。',
             },
             nodes: [
-                { id: 'n1', type: 'speech-to-text', label: '', params: { language: 'auto' }, ...pos(0, 0) },
-                { id: 'n2', type: 'subtitle-generator', label: '', params: { format: 'srt' }, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: { format: 'srt' }, ...pos(2, 0) },
+                {
+                    id: 'n1', type: 'asr', label: '',
+                    params: {},
+                    input_params: { language: 'auto' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'subtitle-generator', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'subtitle', formats: '["srt"]' },
+                    ...pos(2, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
                 { id: 'e2', source: 'n2', target: 'n3' },
             ],
-            input: { video: '/path/to/video.mp4' },
+            input: { audio: '/path/to/audio.wav' },
         },
         {
             id: 'rag-qa',
-            name: { en: 'RAG Q&A Pipeline', zh: 'RAG 问答流水线' },
+            name: { en: 'Document → Retrieve', zh: '文档解析 → 检索' },
             icon: '📚',
             description: {
-                en: 'Load documents and answer questions using retrieval-augmented generation.',
-                zh: '加载文档并使用检索增强生成回答问题。',
+                en: 'Parse a document and answer questions using retrieval.',
+                zh: '解析文档并使用检索回答问题。',
             },
             nodes: [
-                { id: 'n1', type: 'document-loader', label: '', params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'rag-qa', label: '', params: {}, ...pos(1, 0) },
+                {
+                    id: 'n1', type: 'document-parser', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'retriever', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(1, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
             ],
-            input: { text: 'What is the capital of France?', documents: '/path/to/docs/' },
+            input: { file_path: '/path/to/doc.pdf', query: 'What is the capital of France?' },
         },
         {
             id: 'image-inpainting-export',
@@ -149,8 +244,18 @@ const Templates = (() => {
                 zh: '使用局部重绘编辑图片的特定区域，然后导出。',
             },
             nodes: [
-                { id: 'n1', type: 'inpainting', label: '', params: { strength: '0.85' }, ...pos(0, 0) },
-                { id: 'n2', type: 'multi-format-exporter', label: '', params: { format: 'png' }, ...pos(1, 0) },
+                {
+                    id: 'n1', type: 'inpainting', label: '',
+                    params: {},
+                    input_params: { strength: '0.85' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(1, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -166,8 +271,18 @@ const Templates = (() => {
                 zh: '从文本描述生成音乐。',
             },
             nodes: [
-                { id: 'n1', type: 'music-generator', label: '', params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'multi-format-exporter', label: '', params: { format: 'json' }, ...pos(1, 0) },
+                {
+                    id: 'n1', type: 'music-generator', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'audio', formats: '["wav"]' },
+                    ...pos(1, 0),
+                },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -203,6 +318,7 @@ const Templates = (() => {
             x: n.x,
             y: n.y,
             params: { ...n.params },
+            input_params: { ...(n.input_params || {}) },
             label: I18n.nodeName(n.type),
         }));
 
