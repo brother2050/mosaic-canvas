@@ -14,6 +14,7 @@ that a WebSocket can stream progress to the UI in real time.
 
 from __future__ import annotations
 
+import base64
 import logging
 import time
 import traceback
@@ -124,42 +125,232 @@ def _coerce_params(
 
 
 def _serialize_output(data: Any) -> dict[str, Any]:
-    """Best-effort serialisation of a MosaicData output for the UI."""
+    """Best-effort serialisation of a MosaicData output for the UI.
+
+    Converts Mosaic's internal serialization format (``__pil_image__``,
+    ``__ndarray__``) into UI-friendly display descriptors with base64
+    data URIs that can be directly rendered by ``<img>``, ``<audio>``,
+    etc.
+    """
     if data is None:
         return {}
     # MosaicData or dict-like
     to_dict = getattr(data, "to_dict", None)
     if callable(to_dict):
         try:
-            return _make_json_safe(to_dict())
+            raw = to_dict()
         except Exception:  # noqa: BLE001
-            pass
+            raw = None
+        if raw is not None:
+            return _transform_for_ui(raw)
     if isinstance(data, dict):
-        return _make_json_safe(data)
-    return {"value": str(data)}
+        return _transform_for_ui(data)
+    return {"__display_type__": "text", "value": str(data)}
 
 
-def _make_json_safe(obj: Any, depth: int = 0) -> Any:
-    """Recursively convert an object to JSON-safe primitives."""
-    if depth > 10:
+# Maximum number of video frames to send as thumbnails.
+_MAX_VIDEO_THUMBNAILS = 6
+# Maximum audio duration (seconds) to encode as playable base64 WAV.
+_MAX_AUDIO_SECONDS = 60
+
+
+def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
+    """Recursively transform Mosaic-serialized data into UI-friendly format.
+
+    * ``{"__pil_image__": True, "encoded": "b64:PNG:..."}`` → ``{"__display_type__": "image", "src": "data:image/png;base64,..."}``
+    * ``{"__ndarray__": True, ...}`` under ``waveform`` key → ``{"__display_type__": "audio", "src": "data:audio/wav;base64,..."}``
+    * Lists of ``__pil_image__`` under ``frames`` key → ``{"__display_type__": "video", "thumbnails": [...], "frame_count": N, "fps": N}``
+    * Primitive values are kept as-is.
+    """
+    if depth > 12:
         return "<truncated>"
     if obj is None or isinstance(obj, (bool, int, float, str)):
         return obj
+
+    # PIL Image serialized by Mosaic
+    if isinstance(obj, dict) and obj.get("__pil_image__"):
+        encoded = obj.get("encoded", "")
+        return _make_image_display(encoded)
+
+    # numpy ndarray serialized by Mosaic
+    if isinstance(obj, dict) and obj.get("__ndarray__"):
+        # Keep metadata but mark as raw data — the caller (waveform/frames
+        # handler) will convert it to a playable format if appropriate.
+        shape = obj.get("shape", [])
+        dtype_str = obj.get("dtype", "unknown")
+        size = 1
+        for s in shape:
+            size *= s if isinstance(s, int) else 0
+        return {
+            "__display_type__": "ndarray",
+            "shape": shape,
+            "dtype": dtype_str,
+            "size": size,
+        }
+
     if isinstance(obj, dict):
         result: dict[str, Any] = {}
+        data_type = obj.get("__data_type__", "")
+
         for k, v in obj.items():
+            if k == "__data_type__":
+                result[k] = v
+                continue
+
             key = str(k)
-            # Skip large binary fields that would blow up the JSON payload.
-            if key in ("image", "frames", "waveform", "keypoints", "face_embedding"):
-                result[key] = f"<{type(v).__name__}>"
-            else:
-                result[key] = _make_json_safe(v, depth + 1)
+
+            # Audio waveform → convert to playable WAV data URI
+            if key == "waveform" and isinstance(v, dict) and v.get("__ndarray__"):
+                sample_rate = obj.get("sample_rate", 22050)
+                result[key] = _make_audio_display(v, sample_rate)
+                continue
+
+            # Video frames → convert to thumbnails
+            if key == "frames" and isinstance(v, list):
+                result[key] = _make_video_display(v, obj.get("fps", 30))
+                continue
+
+            # Keypoints / face_embedding → metadata summary only
+            if key in ("keypoints", "face_embedding") and isinstance(v, dict) and v.get("__ndarray__"):
+                shape = v.get("shape", [])
+                result[key] = {
+                    "__display_type__": "ndarray",
+                    "shape": shape,
+                    "dtype": v.get("dtype", "unknown"),
+                }
+                continue
+
+            # Single image field
+            if key == "image" and isinstance(v, dict) and v.get("__pil_image__"):
+                result[key] = _make_image_display(v.get("encoded", ""))
+                continue
+
+            result[key] = _transform_for_ui(v, depth + 1)
+
+        # Tag top-level with display type
+        if data_type and "__display_type__" not in result:
+            result["__display_type__"] = data_type
+
         return result
-    if isinstance(obj, (list, tuple)):
-        if len(obj) > 20:
-            return f"<list of {len(obj)} items>"
-        return [_make_json_safe(v, depth + 1) for v in obj]
+
+    if isinstance(obj, list):
+        if len(obj) > 50:
+            return {"__display_type__": "list_summary", "count": len(obj)}
+        return [_transform_for_ui(v, depth + 1) for v in obj]
+
     return f"<{type(obj).__name__}>"
+
+
+def _make_image_display(encoded: str) -> dict[str, Any]:
+    """Convert a Mosaic b64-encoded image into a UI display descriptor."""
+    if not encoded or not isinstance(encoded, str):
+        return {"__display_type__": "image", "src": "", "error": "empty"}
+
+    # Mosaic format: "b64:<fmt>:<data>"
+    if encoded.startswith("b64:"):
+        parts = encoded.split(":", 2)
+        if len(parts) == 3:
+            fmt = parts[1].lower()
+            data = parts[2]
+            mime = f"image/{fmt}" if fmt != "jpg" else "image/jpeg"
+            return {
+                "__display_type__": "image",
+                "src": f"data:{mime};base64,{data}",
+            }
+
+    # Already raw base64
+    return {
+        "__display_type__": "image",
+        "src": f"data:image/png;base64,{encoded}",
+    }
+
+
+def _make_audio_display(ndarray_dict: dict, sample_rate: int) -> dict[str, Any]:
+    """Convert a serialized numpy waveform into a playable WAV data URI."""
+    import io
+    import struct
+    import wave
+
+    data = ndarray_dict.get("data", [])
+    shape = ndarray_dict.get("shape", [])
+
+    # Flatten nested lists (multi-channel: [channels, samples] → mono)
+    flat_samples = _flatten_samples(data)
+
+    if not flat_samples:
+        return {"__display_type__": "audio", "src": "", "error": "empty",
+                "sample_rate": sample_rate}
+
+    # Truncate to max duration
+    max_samples = sample_rate * _MAX_AUDIO_SECONDS
+    truncated = len(flat_samples) > max_samples
+    if truncated:
+        flat_samples = flat_samples[:max_samples]
+
+    # Convert float [-1, 1] to int16 and build WAV
+    buf = io.BytesIO()
+    try:
+        with wave.open(buf, "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(sample_rate)
+            frames = bytearray()
+            for sample in flat_samples:
+                s = max(-1.0, min(1.0, float(sample)))
+                frames.extend(struct.pack("<h", int(s * 32767)))
+            wav.writeframes(bytes(frames))
+    except Exception:  # noqa: BLE001
+        return {
+            "__display_type__": "audio",
+            "src": "",
+            "error": "encoding failed",
+            "sample_rate": sample_rate,
+            "sample_count": len(flat_samples),
+        }
+
+    b64_data = base64.b64encode(buf.getvalue()).decode("ascii")
+    duration = len(flat_samples) / sample_rate if sample_rate > 0 else 0
+
+    return {
+        "__display_type__": "audio",
+        "src": f"data:audio/wav;base64,{b64_data}",
+        "sample_rate": sample_rate,
+        "duration": round(duration, 2),
+        "truncated": truncated,
+    }
+
+
+def _flatten_samples(data: Any) -> list[float]:
+    """Recursively flatten nested lists into a flat list of floats."""
+    if isinstance(data, (int, float)):
+        return [float(data)]
+    if isinstance(data, list):
+        result: list[float] = []
+        for item in data:
+            result.extend(_flatten_samples(item))
+        return result
+    return []
+
+
+def _make_video_display(frames: list, fps: int) -> dict[str, Any]:
+    """Convert a list of serialized frames into a video display descriptor."""
+    frame_count = len(frames)
+    thumbnails: list[dict] = []
+
+    # Take first N frames as thumbnails
+    for frame in frames[:_MAX_VIDEO_THUMBNAILS]:
+        if isinstance(frame, dict) and frame.get("__pil_image__"):
+            thumbnails.append(_make_image_display(frame.get("encoded", "")))
+
+    duration = frame_count / fps if fps > 0 else 0
+
+    return {
+        "__display_type__": "video",
+        "thumbnails": thumbnails,
+        "frame_count": frame_count,
+        "fps": fps,
+        "duration": round(duration, 2),
+    }
 
 
 # ---------------------------------------------------------------------------
