@@ -272,7 +272,15 @@ const Properties = (() => {
         }
 
         // Helper: update the modified badge for a field without full re-render
-        function updateFieldBadge(input, paramName, paramType, defaultVal) {
+        /**
+         * Update the modified badge for a field without full re-render.
+         * @param {HTMLElement} input - The input element
+         * @param {string} paramName - Parameter name
+         * @param {string} paramType - Field type (int, float, bool, etc.)
+         * @param {string} defaultVal - Default value as string
+         * @param {boolean} isInputParam - true for runtime input fields, false for constructor params
+         */
+        function updateFieldBadge(input, paramName, paramType, defaultVal, isInputParam) {
             const container = findFieldContainer(input);
             if (!container) return;
 
@@ -301,17 +309,28 @@ const Properties = (() => {
             // Update reset button visibility
             const footer = container.querySelector('.prop-field-footer');
             if (footer) {
-                let resetBtn = footer.querySelector('.prop-reset-btn');
+                // Use correct data attribute based on param type
+                const resetAttr = isInputParam ? 'data-input-reset' : 'data-reset';
+                let resetBtn = footer.querySelector(`.prop-reset-btn[${resetAttr}]`);
                 if (isModified && !resetBtn) {
                     resetBtn = document.createElement('button');
                     resetBtn.className = 'prop-reset-btn';
-                    resetBtn.dataset.reset = paramName;
+                    if (isInputParam) {
+                        resetBtn.dataset.inputReset = paramName;
+                    } else {
+                        resetBtn.dataset.reset = paramName;
+                    }
                     resetBtn.dataset.default = String(defaultVal);
                     resetBtn.title = I18n.t('prop.reset_default');
                     resetBtn.textContent = '↺';
                     resetBtn.addEventListener('click', () => {
-                        delete params[paramName];
-                        Store.updateNodeParams(nodeId, params);
+                        if (isInputParam) {
+                            delete inputParams[paramName];
+                            Store.updateNodeInputParams(nodeId, inputParams);
+                        } else {
+                            delete params[paramName];
+                            Store.updateNodeParams(nodeId, params);
+                        }
                         render();
                     });
                     footer.appendChild(resetBtn);
@@ -346,7 +365,7 @@ const Properties = (() => {
             input.addEventListener('input', () => {
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParamsSilent(nodeId, params);
-                updateFieldBadge(input, paramName, fieldType, defaultVal);
+                updateFieldBadge(input, paramName, fieldType, defaultVal, false);
             });
 
             // On change (blur/select): commit with emit and re-render
@@ -389,7 +408,7 @@ const Properties = (() => {
             input.addEventListener('input', () => {
                 updateParam(inputParams, fieldName, input, fieldType, defaultVal);
                 Store.updateNodeInputParamsSilent(nodeId, inputParams);
-                updateFieldBadge(input, fieldName, fieldType, defaultVal);
+                updateFieldBadge(input, fieldName, fieldType, defaultVal, true);
             });
 
             // On change: commit with emit and re-render

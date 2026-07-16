@@ -217,6 +217,9 @@ const I18n = (() => {
             'input_key.audio': 'Audio path',
             'input_key.image': 'Image path',
             'input_key.video': 'Video path',
+            'input_key.avatar': 'Avatar image path',
+            'input_key.messages': 'Conversation messages (JSON)',
+            'input_key.mask': 'Mask image path',
         },
 
         zh: {
@@ -418,6 +421,9 @@ const I18n = (() => {
             'input_key.audio': '音频路径',
             'input_key.image': '图像路径',
             'input_key.video': '视频路径',
+            'input_key.avatar': '虚拟人形象路径',
+            'input_key.messages': '对话消息 (JSON)',
+            'input_key.mask': '遮罩图像路径',
         },
     };
 
@@ -473,7 +479,6 @@ const I18n = (() => {
             'style': 'Style',
             'file_path': 'File Path',
             'query': 'Query',
-            'top_k': 'Top K',
             'avatar': 'Avatar',
             'prompt': 'Prompt',
             'text': 'Text',
@@ -534,7 +539,6 @@ const I18n = (() => {
             'overlap': '重叠',
             'temperature': '温度',
             'top_p': 'Top P',
-            'top_k': 'Top K',
             'max_tokens': '最大 Token 数',
             'max_new_tokens': '最大生成 Token 数',
             'do_sample': '采样模式',

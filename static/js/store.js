@@ -210,11 +210,12 @@ const Store = (() => {
                 name: _pipelineName,
                 nodes: _nodes.map(n => ({
                     id: n.id, type: n.type, x: n.x, y: n.y,
-                    params: n.params, input_params: n.input_params || {},
+                    params: { ...n.params },
+                    input_params: { ...(n.input_params || {}) },
                     label: n.label || '',
                 })),
                 edges: _edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
-                input: { data: _input },
+                input: { data: { ..._input } },
             };
         },
         fromGraph(graph) {

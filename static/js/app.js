@@ -36,17 +36,49 @@ const App = (function () {
     }
 
     // ---- Input panel ----
-    const COMMON_INPUT_KEYS = [
+    // Fallback common keys when no source nodes are on the canvas.
+    const FALLBACK_COMMON_KEYS = [
         'prompt', 'negative_prompt', 'text', 'image', 'video', 'audio',
-        'width', 'height', 'seed', 'documents',
+        'width', 'height', 'seed',
     ];
 
+    function getSourceInputKeys() {
+        // Collect input field names from all source nodes (nodes with no
+        // incoming edges) currently on the canvas. This gives the user
+        // relevant key suggestions based on what they've actually placed.
+        const nodes = Store.getNodes();
+        const edges = Store.getEdges();
+        const sourceNodeIds = new Set(nodes.map(n => n.id));
+        edges.forEach(e => sourceNodeIds.delete(e.target));
+        const keys = new Set();
+        sourceNodeIds.forEach(id => {
+            const node = Store.getNode(id);
+            if (!node) return;
+            const info = Store.getNodeInfo(node.type);
+            if (info && info.input_fields) {
+                info.input_fields.forEach(f => {
+                    if (f.required || f.group === 'basic') {
+                        keys.add(f.name);
+                    }
+                });
+            }
+        });
+        return Array.from(keys);
+    }
+
     function renderInputPanel() {
-        // Common keys suggestions
+        // Common keys suggestions — dynamically built from source nodes'
+        // actual input fields, falling back to a sensible default list.
         const commonKeysEl = document.getElementById('input-common-keys');
         const input = Store.getInput();
+
+        let suggestedKeys = getSourceInputKeys();
+        if (suggestedKeys.length === 0) {
+            suggestedKeys = FALLBACK_COMMON_KEYS;
+        }
+
         let keysHtml = `<div class="input-common-keys-label">${I18n.t('input.common_keys')}:</div>`;
-        COMMON_INPUT_KEYS.forEach(key => {
+        suggestedKeys.forEach(key => {
             if (!(key in input)) {
                 const label = I18n.t('input_key.' + key) !== ('input_key.' + key)
                     ? I18n.t('input_key.' + key) : key;
