@@ -11,6 +11,11 @@
  * - Internal name shown in muted text for reference
  * - Parameters grouped into "Basic" and "Advanced" sections
  * - Advanced section collapsible (collapsed by default)
+ *
+ * IMPORTANT: No re-render on every keystroke. The `input` event updates
+ * the Store silently (no emit, no DOM destruction). The `change` event
+ * (fired on blur or select change) commits the value with emit and
+ * re-renders the panel. This prevents focus loss while typing.
  */
 const Properties = (() => {
     let panelEl;
@@ -165,13 +170,16 @@ const Properties = (() => {
             : '';
 
         // Determine data attribute prefix
-        const dataParam = prefix === 'input-param' ? 'data-input-param' : 'data-param';
+        const dataParam = prefix === 'input-param' ? 'data-input-param' : 'data-prop';
         const dataReset = prefix === 'input-param' ? 'data-input-reset' : 'data-reset';
         const dataHelpToggle = prefix === 'input-param' ? 'data-input-help-toggle' : 'data-help-toggle';
         const dataHelpContent = prefix === 'input-param' ? 'data-input-help-content' : 'data-help-content';
         const fieldClass = prefix === 'input-param' ? 'prop-field prop-field-input' : 'prop-field';
 
-        let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}">
+        // Encode field type and default as data attributes for type-aware coercion
+        const defaultStr = hasDefault ? escapeAttr(String(defaultValue)) : '';
+
+        let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}" data-field-name="${escapeAttr(field.name)}" data-field-type="${escapeAttr(field.type)}" data-field-default="${defaultStr}">
             <div class="prop-field-header">
                 <label class="prop-field-label">${escapeHtml(friendlyName)}${requiredMark}</label>
                 <div class="prop-field-badges">${typeBadge}${modifiedBadge}</div>
@@ -191,9 +199,12 @@ const Properties = (() => {
             html += `</select>`;
         } else if (field.type === 'bool') {
             const checked = hasValue && (currentValue === true || currentValue === 'true') ? 'checked' : '';
+            const labelText = hasValue
+                ? (currentValue === true || currentValue === 'true' ? '✓ True' : '✗ False')
+                : (hasDefault ? `${I18n.t('param.default_option')} (${escapeHtml(String(defaultValue))})` : I18n.t('param.default_option'));
             html += `<label class="prop-checkbox-label">
                 <input type="checkbox" class="prop-checkbox" ${dataParam}="${escapeAttr(field.name)}" ${checked}>
-                <span>${hasValue ? (currentValue === true || currentValue === 'true' ? '✓ True' : '✗ False') : I18n.t('param.default_option')}</span>
+                <span class="prop-checkbox-text">${labelText}</span>
             </label>`;
         } else if (field.type === 'int') {
             html += `<input type="number" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" step="1" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
@@ -246,21 +257,104 @@ const Properties = (() => {
 
     /**
      * Wire up all event listeners after render.
+     *
+     * CRITICAL: `input` events use SILENT Store updates (no emit, no re-render)
+     * to prevent focus loss while typing. `change` events (fired on blur or
+     * select change) commit the value with emit and re-render the panel.
      */
     function wireUpEvents(nodeId, node) {
         const params = { ...node.params };
         const inputParams = { ...(node.input_params || {}) };
 
+        // Helper: find the .prop-field container for a given input element
+        function findFieldContainer(input) {
+            return input.closest('.prop-field');
+        }
+
+        // Helper: update the modified badge for a field without full re-render
+        function updateFieldBadge(input, paramName, paramType, defaultVal) {
+            const container = findFieldContainer(input);
+            if (!container) return;
+
+            const currentValue = input.type === 'checkbox' ? input.checked : input.value;
+            const hasValue = currentValue !== '' && currentValue !== undefined;
+            const hasDefault = defaultVal !== '' && defaultVal !== undefined && defaultVal !== null;
+            const isModified = hasValue && hasDefault && String(currentValue) !== String(defaultVal);
+
+            container.classList.toggle('prop-field-modified', isModified);
+
+            // Update modified badge
+            const badgesContainer = container.querySelector('.prop-field-badges');
+            if (badgesContainer) {
+                let badge = badgesContainer.querySelector('.param-modified-badge');
+                if (isModified && !badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'param-modified-badge';
+                    badge.title = I18n.t('param.changed');
+                    badge.textContent = '●';
+                    badgesContainer.appendChild(badge);
+                } else if (!isModified && badge) {
+                    badge.remove();
+                }
+            }
+
+            // Update reset button visibility
+            const footer = container.querySelector('.prop-field-footer');
+            if (footer) {
+                let resetBtn = footer.querySelector('.prop-reset-btn');
+                if (isModified && !resetBtn) {
+                    resetBtn = document.createElement('button');
+                    resetBtn.className = 'prop-reset-btn';
+                    resetBtn.dataset.reset = paramName;
+                    resetBtn.dataset.default = String(defaultVal);
+                    resetBtn.title = I18n.t('prop.reset_default');
+                    resetBtn.textContent = '↺';
+                    resetBtn.addEventListener('click', () => {
+                        delete params[paramName];
+                        Store.updateNodeParams(nodeId, params);
+                        render();
+                    });
+                    footer.appendChild(resetBtn);
+                } else if (!isModified && resetBtn) {
+                    resetBtn.remove();
+                }
+            }
+
+            // Update checkbox label text
+            if (input.type === 'checkbox') {
+                const labelSpan = container.querySelector('.prop-checkbox-text');
+                if (labelSpan) {
+                    if (hasValue) {
+                        labelSpan.textContent = input.checked ? '✓ True' : '✗ False';
+                    } else if (hasDefault) {
+                        labelSpan.textContent = `${I18n.t('param.default_option')} (${defaultVal})`;
+                    } else {
+                        labelSpan.textContent = I18n.t('param.default_option');
+                    }
+                }
+            }
+        }
+
         // Constructor params
-        panelEl.querySelectorAll('[data-param]').forEach(input => {
-            const paramName = input.dataset.param;
+        panelEl.querySelectorAll('[data-prop]').forEach(input => {
+            // Skip the label input — it has its own handler
+            if (input.dataset.prop === 'label') return;
+
+            const paramName = input.dataset.prop;
+            const container = findFieldContainer(input);
+            const fieldType = container ? container.dataset.fieldType : 'string';
+            const defaultVal = container ? container.dataset.fieldDefault : '';
+
+            // On input: update silently (no re-render, no focus loss)
             input.addEventListener('input', () => {
-                updateParam(params, paramName, input);
-                Store.updateNodeParams(nodeId, params);
-                render();
+                updateParam(params, paramName, input, fieldType, defaultVal);
+                Store.updateNodeParamsSilent(nodeId, params);
+                updateFieldBadge(input, paramName, fieldType, defaultVal);
             });
+
+            // On change (blur/select): commit with emit and re-render
             input.addEventListener('change', () => {
-                updateParam(params, paramName, input);
+                updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParams(nodeId, params);
                 render();
             });
@@ -290,13 +384,20 @@ const Properties = (() => {
         // Input fields
         panelEl.querySelectorAll('[data-input-param]').forEach(input => {
             const fieldName = input.dataset.inputParam;
+            const container = findFieldContainer(input);
+            const fieldType = container ? container.dataset.fieldType : 'string';
+            const defaultVal = container ? container.dataset.fieldDefault : '';
+
+            // On input: update silently
             input.addEventListener('input', () => {
-                updateParam(inputParams, fieldName, input);
-                Store.updateNodeInputParams(nodeId, inputParams);
-                render();
+                updateParam(inputParams, fieldName, input, fieldType, defaultVal);
+                Store.updateNodeInputParamsSilent(nodeId, inputParams);
+                updateFieldBadge(input, fieldName, fieldType, defaultVal);
             });
+
+            // On change: commit with emit and re-render
             input.addEventListener('change', () => {
-                updateParam(inputParams, fieldName, input);
+                updateParam(inputParams, fieldName, input, fieldType, defaultVal);
                 Store.updateNodeInputParams(nodeId, inputParams);
                 render();
             });
@@ -338,10 +439,14 @@ const Properties = (() => {
             });
         });
 
-        // Label input
+        // Label input — silent during typing, emit on blur
         const labelInput = panelEl.querySelector('[data-prop="label"]');
         if (labelInput) {
             labelInput.addEventListener('input', () => {
+                Store.updateNodeSilent(nodeId, { label: labelInput.value });
+                Canvas.updateSelection();
+            });
+            labelInput.addEventListener('change', () => {
                 Store.updateNode(nodeId, { label: labelInput.value });
                 Canvas.renderAll();
                 Canvas.updateSelection();
@@ -365,11 +470,39 @@ const Properties = (() => {
         toggle.querySelector('.prop-help-text').textContent = isVisible ? I18n.t('param.show_help') : I18n.t('param.hide_help');
     }
 
-    function updateParam(params, name, input) {
+    /**
+     * Update a parameter value with type-aware coercion.
+     *
+     * For booleans: if the value matches the default, delete it so the
+     * constructor's default is used. For int/float: coerce to the proper
+     * numeric type. For empty strings: delete so default is used.
+     */
+    function updateParam(params, name, input, fieldType, defaultVal) {
         if (input.type === 'checkbox') {
-            params[name] = input.checked;
+            const checked = input.checked;
+            // If value matches default, remove it so constructor default is used
+            if (defaultVal !== '' && defaultVal !== undefined && defaultVal !== null &&
+                String(checked) === String(defaultVal)) {
+                delete params[name];
+            } else {
+                params[name] = checked;
+            }
         } else if (input.value === '') {
             delete params[name];
+        } else if (fieldType === 'int') {
+            const v = parseInt(input.value, 10);
+            if (!isNaN(v)) {
+                params[name] = v;
+            } else {
+                params[name] = input.value;
+            }
+        } else if (fieldType === 'float') {
+            const v = parseFloat(input.value);
+            if (!isNaN(v)) {
+                params[name] = v;
+            } else {
+                params[name] = input.value;
+            }
         } else {
             params[name] = input.value;
         }

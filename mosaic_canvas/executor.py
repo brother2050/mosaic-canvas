@@ -187,6 +187,15 @@ class GraphExecutor:
             return {}
         return {p.name: p.type for p in info.params}
 
+    def _build_input_field_types(self, node_type: str) -> dict[str, str]:
+        """Look up the UI type for each runtime input field of *node_type*."""
+        from mosaic_canvas.introspect import get_node_info
+
+        info = get_node_info(node_type)
+        if info is None:
+            return {}
+        return {f.name: f.type for f in info.input_fields}
+
     def instantiate_nodes(self) -> dict[str, str]:
         """Instantiate all nodes in the graph.
 
@@ -312,8 +321,14 @@ class GraphExecutor:
 
             # Merge per-node runtime input params (highest priority — overrides
             # pipeline input and predecessor output for the same key).
+            # Coerce values to proper types (int/float/bool) so nodes receive
+            # typed data, not raw strings from the UI.
             if gnode.input_params:
-                for k, v in gnode.input_params.items():
+                input_field_types = self._build_input_field_types(gnode.type)
+                coerced_input_params = _coerce_params(
+                    gnode.input_params, input_field_types,
+                )
+                for k, v in coerced_input_params.items():
                     node_input[k] = v
 
             # Execute

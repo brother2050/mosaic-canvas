@@ -38,16 +38,10 @@ const Store = (() => {
         getNode(id) { return _nodes.find(n => n.id === id); },
         addNode(type, x, y, params) {
             const id = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
-            const info = _nodeCatalog.find(n => n.name === type);
-            // Pre-fill default params
+            // Don't pre-fill defaults — let the node constructor use its own
+            // defaults (including auto-resolution logic like device/dtype).
+            // The properties panel shows defaults as badges/placeholders.
             const nodeParams = params ? { ...params } : {};
-            if (!params && info && info.params) {
-                info.params.forEach(p => {
-                    if (p.default !== null && p.default !== undefined && p.default !== '') {
-                        nodeParams[p.name] = p.default;
-                    }
-                });
-            }
             _nodes.push({ id, type, x, y, params: nodeParams, input_params: {}, label: '' });
             emit('change');
             return id;
@@ -72,11 +66,23 @@ const Store = (() => {
                 emit('change');
             }
         },
+        updateNodeParamsSilent(id, params) {
+            const node = _nodes.find(n => n.id === id);
+            if (node) {
+                node.params = { ...params };
+            }
+        },
         updateNodeInputParams(id, inputParams) {
             const node = _nodes.find(n => n.id === id);
             if (node) {
                 node.input_params = { ...inputParams };
                 emit('change');
+            }
+        },
+        updateNodeInputParamsSilent(id, inputParams) {
+            const node = _nodes.find(n => n.id === id);
+            if (node) {
+                node.input_params = { ...inputParams };
             }
         },
         removeNode(id) {

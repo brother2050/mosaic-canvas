@@ -71,6 +71,16 @@ def _get_param_types(node_type: str) -> dict[str, str]:
     return {p.name: p.type for p in info.params}
 
 
+def _get_input_field_types(node_type: str) -> dict[str, str]:
+    """Look up UI types for a node's runtime input fields."""
+    from mosaic_canvas.introspect import get_node_info
+
+    info = get_node_info(node_type)
+    if info is None:
+        return {}
+    return {f.name: f.type for f in info.input_fields}
+
+
 def _node_var_name(node_id: str, index: int) -> str:
     """Generate a clean variable name for a node."""
     return f"node_{index}"
@@ -180,9 +190,14 @@ def export_python(graph: Graph) -> str:
 
     # Build pipeline input (include source node input_params)
     source_input_params: dict[str, Any] = {}
+    source_input_types: dict[str, str] = {}
     for gnode in graph.nodes:
         if not graph.predecessors(gnode.id) and gnode.input_params:
-            source_input_params.update(gnode.input_params)
+            field_types = _get_input_field_types(gnode.type)
+            for k, v in gnode.input_params.items():
+                source_input_params[k] = v
+                if k in field_types:
+                    source_input_types[k] = field_types[k]
     all_input = {**graph.input.data, **source_input_params}
     if all_input:
         lines.append("# ---------------------------------------------------------------------------")
@@ -190,7 +205,10 @@ def export_python(graph: Graph) -> str:
         lines.append("# ---------------------------------------------------------------------------")
         input_parts: list[str] = []
         for k, v in all_input.items():
-            if isinstance(v, str):
+            if k in source_input_types:
+                ui_type = source_input_types[k]
+                input_parts.append(f"{k}={_format_param_value(v, ui_type)}")
+            elif isinstance(v, str):
                 input_parts.append(f"{k}={v!r}")
             elif isinstance(v, (int, float, bool)):
                 input_parts.append(f"{k}={v!r}")
@@ -250,15 +268,14 @@ def export_python(graph: Graph) -> str:
                     lines.append(f"for _k, _v in outputs[{pid!r}].items():")
                     lines.append(f"    _input[_k] = _v")
 
-            # Merge per-node runtime input params
+            # Merge per-node runtime input params (coerced to proper types)
             if gnode.input_params:
+                field_types = _get_input_field_types(gnode.type)
                 for k, v in gnode.input_params.items():
-                    if isinstance(v, str):
-                        lines.append(f"_input[{k!r}] = {v!r}")
-                    elif isinstance(v, (int, float, bool)):
-                        lines.append(f"_input[{k!r}] = {v!r}")
-                    else:
-                        lines.append(f"_input[{k!r}] = {v!r}")
+                    if v is None or v == "":
+                        continue
+                    ui_type = field_types.get(k, "string")
+                    lines.append(f"_input[{k!r}] = {_format_param_value(v, ui_type)}")
 
             lines.append(f"t0 = time.perf_counter()")
             lines.append(f"outputs[{nid!r}] = {var}(_input)")
