@@ -170,7 +170,7 @@ const Properties = (() => {
             : '';
 
         // Determine data attribute prefix
-        const dataParam = prefix === 'input-param' ? 'data-input-param' : 'data-prop';
+        const dataParam = prefix === 'input-param' ? 'data-input-param' : 'data-param';
         const dataReset = prefix === 'input-param' ? 'data-input-reset' : 'data-reset';
         const dataHelpToggle = prefix === 'input-param' ? 'data-input-help-toggle' : 'data-help-toggle';
         const dataHelpContent = prefix === 'input-param' ? 'data-input-help-content' : 'data-help-content';
@@ -335,12 +335,9 @@ const Properties = (() => {
             }
         }
 
-        // Constructor params
-        panelEl.querySelectorAll('[data-prop]').forEach(input => {
-            // Skip the label input — it has its own handler
-            if (input.dataset.prop === 'label') return;
-
-            const paramName = input.dataset.prop;
+        // Constructor params (use [data-param], NOT [data-prop] which is for label)
+        panelEl.querySelectorAll('[data-param]').forEach(input => {
+            const paramName = input.dataset.param;
             const container = findFieldContainer(input);
             const fieldType = container ? container.dataset.fieldType : 'string';
             const defaultVal = container ? container.dataset.fieldDefault : '';

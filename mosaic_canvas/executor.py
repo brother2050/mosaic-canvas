@@ -131,21 +131,28 @@ def _serialize_output(data: Any) -> dict[str, Any]:
     ``__ndarray__``) into UI-friendly display descriptors with base64
     data URIs that can be directly rendered by ``<img>``, ``<audio>``,
     etc.
+
+    Wraps the entire transformation in a try/except so that unexpected
+    data formats never crash the execution pipeline.
     """
     if data is None:
         return {}
-    # MosaicData or dict-like
-    to_dict = getattr(data, "to_dict", None)
-    if callable(to_dict):
-        try:
-            raw = to_dict()
-        except Exception:  # noqa: BLE001
-            raw = None
-        if raw is not None:
-            return _transform_for_ui(raw)
-    if isinstance(data, dict):
-        return _transform_for_ui(data)
-    return {"__display_type__": "text", "value": str(data)}
+    try:
+        # MosaicData or dict-like
+        to_dict = getattr(data, "to_dict", None)
+        if callable(to_dict):
+            try:
+                raw = to_dict()
+            except Exception:  # noqa: BLE001
+                raw = None
+            if raw is not None:
+                return _transform_for_ui(raw)
+        if isinstance(data, dict):
+            return _transform_for_ui(data)
+        return {"__display_type__": "text", "value": str(data)}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to serialize output: %s", exc)
+        return {"__display_type__": "text", "value": str(data)}
 
 
 # Maximum number of video frames to send as thumbnails.

@@ -239,28 +239,50 @@ def create_app() -> FastAPI:
 
             def progress(event_type: str, payload: dict[str, Any]) -> None:
                 # Schedule the send on the event loop (we're in a worker thread)
-                asyncio.run_coroutine_threadsafe(
-                    websocket.send_json({"event": event_type, "payload": payload}),
-                    loop,
-                )
+                try:
+                    asyncio.run_coroutine_threadsafe(
+                        websocket.send_json({"event": event_type, "payload": payload}),
+                        loop,
+                    )
+                except Exception:  # noqa: BLE001
+                    pass  # Connection may have been closed
 
             # Run execution in a background thread
             result_holder: dict[str, Any] = {}
 
             def run() -> None:
-                result_holder["result"] = execute_graph(graph, progress=progress)
+                try:
+                    result_holder["result"] = execute_graph(graph, progress=progress)
+                except Exception as exc:  # noqa: BLE001
+                    result_holder["error"] = exc
+                    logger.exception("Worker thread execution error: %s", exc)
 
             worker = threading.Thread(target=run, daemon=True)
             worker.start()
 
-            # Wait for completion while keeping the connection alive
+            # Wait for completion while sending keepalive pings to prevent
+            # the WebSocket connection from timing out during long model loads.
+            keepalive_counter = 0
             while worker.is_alive():
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.5)
+                keepalive_counter += 1
+                # Send a keepalive ping every 5 seconds
+                if keepalive_counter % 10 == 0:
+                    try:
+                        await websocket.send_json({"event": "keepalive", "payload": {}})
+                    except Exception:  # noqa: BLE001
+                        break  # Connection closed
 
             worker.join(timeout=5)
 
-            result = result_holder.get("result")
-            if result is not None:
+            # Check for errors from the worker thread
+            if "error" in result_holder:
+                exc = result_holder["error"]
+                await websocket.send_json({"event": "error", "payload": {
+                    "error": f"{type(exc).__name__}: {exc}",
+                }})
+            elif "result" in result_holder:
+                result = result_holder["result"]
                 await websocket.send_json({"event": "done", "payload": result.to_dict()})
             else:
                 await websocket.send_json({"event": "error", "payload": {

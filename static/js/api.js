@@ -59,6 +59,7 @@ const API = (() => {
             return new Promise((resolve, reject) => {
                 const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const ws = new WebSocket(`${proto}//${location.host}/ws/run`);
+                let settled = false;
 
                 ws.onopen = () => {
                     ws.send(JSON.stringify(graph));
@@ -67,22 +68,34 @@ const API = (() => {
                 ws.onmessage = (event) => {
                     const msg = JSON.parse(event.data);
                     if (msg.event === 'done') {
+                        settled = true;
                         resolve(msg.payload);
                         ws.close();
                     } else if (msg.event === 'error') {
+                        settled = true;
                         reject(new Error(msg.payload.error || 'Execution failed'));
                         ws.close();
+                    } else if (msg.event === 'keepalive') {
+                        // Server keepalive ping — ignore
                     } else {
                         onEvent(msg.event, msg.payload);
                     }
                 };
 
                 ws.onerror = (err) => {
-                    reject(new Error('WebSocket connection error'));
+                    if (!settled) {
+                        settled = true;
+                        reject(new Error('WebSocket connection error'));
+                    }
                 };
 
                 ws.onclose = () => {
-                    // Connection closed
+                    // If the connection closes without a done/error event,
+                    // reject the Promise so the UI doesn't hang forever.
+                    if (!settled) {
+                        settled = true;
+                        reject(new Error('Connection closed by server (execution may have crashed)'));
+                    }
                 };
             });
         },
