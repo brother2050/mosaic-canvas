@@ -1217,6 +1217,42 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     line-height: 1.5;
 }
 
+/* ---- Collapsible advanced parameters ---- */
+.prop-collapsible-group {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.prop-collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--bg-0);
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: background var(--transition);
+}
+.prop-collapsible-header:hover {
+    background: var(--bg-1);
+    color: var(--text);
+}
+.prop-collapsible-arrow {
+    font-size: 10px;
+    transition: transform var(--transition);
+    color: var(--text-faint);
+}
+.prop-collapsible-title {
+    flex: 1;
+}
+.prop-collapsible-content {
+    padding: 4px 10px 10px;
+}
+
 .prop-checkbox-label {
     display: flex;
     align-items: center;
