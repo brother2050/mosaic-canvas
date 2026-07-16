@@ -172,7 +172,7 @@ const Templates = (() => {
                 { id: 'e2', source: 'n2', target: 'n3' },
                 { id: 'e3', source: 'n3', target: 'n4' },
             ],
-            input: { text: '你好，欢迎使用 Mosaic 数字人系统。', avatar: '/path/to/avatar.png' },
+            input: { text: '你好，欢迎使用 Mosaic 数字人系统。', source_image: '/path/to/avatar.png' },
         },
         {
             id: 'video-subtitle-export',
