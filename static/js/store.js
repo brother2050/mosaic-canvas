@@ -59,6 +59,12 @@ const Store = (() => {
                 emit('change');
             }
         },
+        updateNodeSilent(id, updates) {
+            const node = _nodes.find(n => n.id === id);
+            if (node) {
+                Object.assign(node, updates);
+            }
+        },
         updateNodeParams(id, params) {
             const node = _nodes.find(n => n.id === id);
             if (node) {

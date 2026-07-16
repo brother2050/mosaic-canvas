@@ -8,6 +8,11 @@
  *  - Nodes are HTML divs rendered via <foreignObject> for rich styling.
  *  - Edges are SVG <path> bezier curves.
  *  - Pan/zoom is applied via a single transform on the <g> element.
+ *
+ * Critical design decision: during node drag, we update the Store silently
+ * (without emitting 'change') and update the DOM directly. This prevents
+ * renderAll() from destroying the DOM element being dragged, which was the
+ * root cause of the "nodes can't be dragged" bug.
  */
 const Canvas = (() => {
     let viewport, svg, gridBg, edgesLayer, nodesLayer;
@@ -20,6 +25,7 @@ const Canvas = (() => {
     let mode = 'idle';       // 'idle' | 'dragging-node' | 'connecting' | 'panning'
     let dragNodeId = null;
     let dragOffsetX = 0, dragOffsetY = 0;
+    let dragMoved = false;   // whether the node actually moved (for click vs drag detection)
     let connectSourceId = null;
     let tempEdge = null;
     let panStartX = 0, panStartY = 0, panOrigX = 0, panOrigY = 0;
@@ -88,8 +94,6 @@ const Canvas = (() => {
 
         const order = (() => {
             try {
-                // Simple topological sort
-                const graph = Store.toGraph();
                 const inDeg = {};
                 const adj = {};
                 nodes.forEach(n => { inDeg[n.id] = 0; adj[n.id] = []; });
@@ -114,12 +118,10 @@ const Canvas = (() => {
             }
         })();
 
-        // Arrange in left-to-right layers
         const layers = {};
         const nodeLayer = {};
         function getLayer(id) {
             if (nodeLayer[id] !== undefined) return nodeLayer[id];
-            const preds = Store.predecessors ? [] : [];
             const edges = Store.getEdges().filter(e => e.target === id);
             if (edges.length === 0) {
                 nodeLayer[id] = 0;
@@ -130,7 +132,6 @@ const Canvas = (() => {
         }
         order.forEach(id => getLayer(id));
 
-        // Group by layer
         const layerGroups = {};
         order.forEach(id => {
             const l = nodeLayer[id];
@@ -138,7 +139,6 @@ const Canvas = (() => {
             layerGroups[l].push(id);
         });
 
-        // Position nodes
         const SPACING_X = 280;
         const SPACING_Y = 140;
         const START_X = 40;
@@ -254,8 +254,10 @@ const Canvas = (() => {
         fo.setAttribute('height', 200);
         fo.setAttribute('overflow', 'visible');
         fo.dataset.nodeId = node.id;
+        fo.style.pointerEvents = 'all';
 
-        const div = document.createElement('div');
+        // Use XHTML namespace so HTML elements render correctly inside foreignObject
+        const div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
         div.className = 'canvas-node';
         div.dataset.nodeId = node.id;
 
@@ -284,32 +286,42 @@ const Canvas = (() => {
         fo.appendChild(div);
         nodesLayer.appendChild(fo);
 
+        // Measure actual height and adjust foreignObject
         requestAnimationFrame(() => {
-            const h = div.offsetHeight;
-            fo.setAttribute('height', h);
+            if (nodeElements[node.id] && nodeElements[node.id].el === fo) {
+                const h = div.offsetHeight || 80;
+                fo.setAttribute('height', h);
+            }
         });
 
         nodeElements[node.id] = { el: fo, div };
 
-        const header = div.querySelector('.node-header');
-        header.addEventListener('mousedown', (e) => {
+        // --- Drag: mousedown on node body (not ports) ---
+        div.addEventListener('mousedown', (e) => {
+            // Ignore clicks on ports — they have their own handlers
+            if (e.target.closest('.node-port')) return;
             if (e.button !== 0) return;
-            if (spacePressed) return;
+            if (spacePressed) return; // Space = pan mode
             e.stopPropagation();
+            e.preventDefault();
             startNodeDrag(node.id, e);
         });
 
+        // --- Connect: mousedown on output port ---
         const outPort = div.querySelector('.output-port');
         outPort.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
             e.stopPropagation();
+            e.preventDefault();
             startConnect(node.id, e);
         });
 
+        // --- Connect drop: mouseup on input port ---
         const inPort = div.querySelector('.input-port');
         inPort.addEventListener('mouseup', (e) => {
             if (mode === 'connecting' && connectSourceId && connectSourceId !== node.id) {
                 e.stopPropagation();
+                e.preventDefault();
                 const result = Store.addEdge(connectSourceId, node.id);
                 if (result.id) {
                     renderAll();
@@ -321,9 +333,10 @@ const Canvas = (() => {
             }
         });
 
-        div.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('node-port') || e.target.closest('.node-port')) return;
-            if (e.button !== 0) return;
+        // --- Click to select (handled in mouseup if no drag occurred) ---
+        div.addEventListener('click', (e) => {
+            if (e.target.closest('.node-port')) return;
+            if (dragMoved) return; // suppress click after drag
             Store.selectNode(node.id);
         });
 
@@ -408,6 +421,7 @@ const Canvas = (() => {
     function startNodeDrag(nodeId, e) {
         mode = 'dragging-node';
         dragNodeId = nodeId;
+        dragMoved = false;
         const node = Store.getNode(nodeId);
         const pos = screenToCanvas(e.clientX, e.clientY);
         dragOffsetX = pos.x - node.x;
@@ -424,6 +438,7 @@ const Canvas = (() => {
         tempEdge.setAttribute('stroke', 'var(--accent)');
         tempEdge.setAttribute('stroke-dasharray', '5 3');
         tempEdge.setAttribute('opacity', '0.6');
+        tempEdge.setAttribute('fill', 'none');
         edgesLayer.appendChild(tempEdge);
     }
 
@@ -446,10 +461,13 @@ const Canvas = (() => {
 
     function onMouseMove(e) {
         if (mode === 'dragging-node' && dragNodeId) {
+            dragMoved = true;
             const pos = screenToCanvas(e.clientX, e.clientY);
             const x = pos.x - dragOffsetX;
             const y = pos.y - dragOffsetY;
-            Store.updateNode(dragNodeId, { x, y });
+            // Silent update — do NOT emit 'change', which would trigger renderAll
+            // and destroy the DOM element being dragged.
+            Store.updateNodeSilent(dragNodeId, { x, y });
             updateNodePosition(dragNodeId, x, y);
         } else if (mode === 'connecting' && connectSourceId) {
             const src = getPortPos(connectSourceId, 'output');
@@ -467,9 +485,17 @@ const Canvas = (() => {
     function onMouseUp(e) {
         if (mode === 'dragging-node') {
             mode = 'idle';
+            // If the node was actually moved, commit the position to Store
+            // and emit 'change' so other components (properties panel, etc.) sync.
+            if (dragMoved && dragNodeId) {
+                Store.updateNode(dragNodeId, {});
+            }
+            // Reset dragMoved after a tick so the click handler sees it
+            setTimeout(() => { dragMoved = false; }, 0);
             dragNodeId = null;
         } else if (mode === 'connecting') {
-            const onPort = e.target && e.target.classList && e.target.classList.contains('input-port');
+            // Use closest() to handle mouseup on port children or SVG overlaps
+            const onPort = e.target && e.target.closest && e.target.closest('.input-port');
             if (!onPort) endConnect();
         } else if (mode === 'panning') {
             mode = 'idle';
@@ -516,7 +542,6 @@ const Canvas = (() => {
                 App.toast(I18n.t('toast.edge_deleted'), '');
             }
         }
-        // Ctrl+D = duplicate
         if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !isInputFocused()) {
             e.preventDefault();
             const nodeId = Store.getSelectedNodeId();
@@ -527,7 +552,6 @@ const Canvas = (() => {
                 App.toast(I18n.t('toast.node_duplicated'), '');
             }
         }
-        // Ctrl+C / Ctrl+V = copy/paste
         if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isInputFocused()) {
             const nodeId = Store.getSelectedNodeId();
             if (nodeId) Store.copyToClipboard(nodeId);
@@ -600,7 +624,11 @@ const Canvas = (() => {
     function addNodeAtCenter(type) {
         const rect = viewport.getBoundingClientRect();
         const pos = screenToCanvas(rect.left + rect.width / 2, rect.top + rect.height / 2);
-        const id = Store.addNode(type, pos.x - NODE_W / 2, pos.y - 50);
+        // Cascade: offset each new node so they don't stack on top of each other
+        const existing = Store.getNodes().length;
+        const offsetX = (existing % 4) * 30;
+        const offsetY = (existing % 4) * 30;
+        const id = Store.addNode(type, pos.x - NODE_W / 2 + offsetX, pos.y - 50 + offsetY);
         renderAll();
         Store.selectNode(id);
     }

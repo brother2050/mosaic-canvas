@@ -315,16 +315,22 @@ html, body {
     display: block;
 }
 
+/* Ensure foreignObject content is not clipped */
+#nodes-layer foreignObject {
+    overflow: visible !important;
+}
+
 /* Canvas nodes (SVG foreignObject wraps HTML) */
 .canvas-node {
-    position: absolute;
-    min-width: 180px;
+    position: relative;
+    width: 200px;
     background: var(--bg-2);
     border: 1px solid var(--border-light);
     border-radius: var(--radius);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     transition: border-color var(--transition), box-shadow var(--transition);
     cursor: move;
+    user-select: none;
 }
 .canvas-node:hover { border-color: var(--accent-dim); }
 .canvas-node.selected {
@@ -412,7 +418,8 @@ html, body {
     border: 2px solid var(--text-dim);
     cursor: crosshair;
     transition: all var(--transition);
-    z-index: 10;
+    z-index: 100;
+    pointer-events: all;
 }
 .node-port:hover {
     background: var(--accent);
