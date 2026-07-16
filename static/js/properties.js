@@ -1,21 +1,22 @@
 /**
- * Properties — dynamic form for editing the selected node's parameters.
+ * Properties — unified parameter panel for the selected node.
  *
- * Key improvements:
- * - Parameter friendly names via I18n.paramLabel()
- * - Default values shown as visible badges, not just placeholders
- * - Expandable help/usage text per parameter (info icon toggle)
- * - "Modified" badge when current value differs from default
- * - "Reset to default" button per parameter
- * - Parameter type and required indicator shown
- * - Internal name shown in muted text for reference
- * - Parameters grouped into "Basic" and "Advanced" sections
- * - Advanced section collapsible (collapsed by default)
+ * Design:
+ *  - ALL parameters (constructor + runtime inputs) are shown in a SINGLE
+ *    "Parameters" section, sorted by importance:
+ *    1. Required runtime fields first
+ *    2. Optional runtime fields
+ *    3. Constructor-only params (model, device, etc.)
+ *    4. Advanced params (collapsible)
  *
- * IMPORTANT: No re-render on every keystroke. The `input` event updates
- * the Store silently (no emit, no DOM destruction). The `change` event
- * (fired on blur or select change) commits the value with emit and
- * re-renders the panel. This prevents focus loss while typing.
+ *  - Smart routing: when a field name exists in both constructor params
+ *    and runtime input_fields, the value is saved to input_params (runtime
+ *    override), since that takes precedence at execution time.
+ *
+ *  - For list/dict fields like 'messages' or 'formats': use a <textarea>
+ *    with JSON validation and a format hint.
+ *
+ *  - Each field shows badges: Required/Optional, type, source (init/runtime).
  */
 const Properties = (() => {
     let panelEl;
@@ -79,67 +80,43 @@ const Properties = (() => {
             </div>
         </div>`;
 
-        // --- Constructor Parameters ---
-        // Skip params that also appear in input_fields to avoid duplication.
-        // If a param is both a constructor arg and a runtime input, the user
-        // should only see it once — in the input fields section where it's
-        // most useful (runtime override).
-        if (info && info.params && info.params.length > 0) {
-            const inputFieldNames = new Set(
-                (info.input_fields || []).map(f => f.name)
-            );
-            const visibleParams = info.params.filter(p => !inputFieldNames.has(p.name));
-            const basicParams = visibleParams.filter(p => p.group !== 'advanced');
-            const advancedParams = visibleParams.filter(p => p.group === 'advanced');
+        // --- Unified Parameters Section ---
+        if (info) {
+            const mergedFields = buildUnifiedFields(info, node);
 
-            html += `<div class="prop-section">
-                <div class="prop-section-title">${I18n.t('prop.parameters')}</div>`;
+            if (mergedFields.basic.length > 0 || mergedFields.advanced.length > 0) {
+                html += `<div class="prop-section">
+                    <div class="prop-section-title">${I18n.t('prop.parameters')}</div>`;
 
-            // Basic params
-            basicParams.forEach(param => {
-                html += renderParamField(param, node.params || {}, 'param');
-            });
+                // Basic params
+                mergedFields.basic.forEach(item => {
+                    html += renderParamField(item.field, item.values, item.source);
+                });
 
-            // Advanced params (collapsible)
-            if (advancedParams.length > 0) {
-                html += renderCollapsibleGroup(
-                    'advanced-params',
-                    I18n.t('prop.advanced_params'),
-                    advancedParams.map(p => renderParamField(p, node.params || {}, 'param')).join('')
-                );
+                // Advanced params (collapsible)
+                if (mergedFields.advanced.length > 0) {
+                    html += renderCollapsibleGroup(
+                        'advanced-params',
+                        I18n.t('prop.advanced_params'),
+                        mergedFields.advanced.map(item =>
+                            renderParamField(item.field, item.values, item.source)
+                        ).join('')
+                    );
+                }
+
+                html += `</div>`;
+            } else {
+                html += `<div class="prop-section">
+                    <p class="panel-hint">${I18n.t('prop.no_params')}</p>
+                </div>`;
             }
 
-            html += `</div>`;
-        } else if (info && (!info.params || visibleParams.length === 0)) {
-            html += `<div class="prop-section">
-                <p class="panel-hint">${I18n.t('prop.no_params')}</p>
-            </div>`;
-        }
-
-        // --- Runtime Input Fields ---
-        if (info && info.input_fields && info.input_fields.length > 0) {
-            const basicFields = info.input_fields.filter(f => f.group !== 'advanced');
-            const advancedFields = info.input_fields.filter(f => f.group === 'advanced');
-
-            html += `<div class="prop-section">
-                <div class="prop-section-title">${I18n.t('prop.input_fields')}</div>
-                <p class="panel-hint">${I18n.t('prop.input_fields_hint')}</p>`;
-
-            // Basic input fields
-            basicFields.forEach(field => {
-                html += renderParamField(field, node.input_params || {}, 'input-param');
-            });
-
-            // Advanced input fields (collapsible)
-            if (advancedFields.length > 0) {
-                html += renderCollapsibleGroup(
-                    'advanced-inputs',
-                    I18n.t('prop.advanced_params'),
-                    advancedFields.map(f => renderParamField(f, node.input_params || {}, 'input-param')).join('')
-                );
+            // Pipeline input hint for source nodes
+            if (info.input_fields && info.input_fields.length > 0) {
+                html += `<div class="prop-section">
+                    <p class="panel-hint prop-input-hint">${I18n.t('prop.input_fields_hint')}</p>
+                </div>`;
             }
-
-            html += `</div>`;
         }
 
         // Delete button
@@ -152,12 +129,67 @@ const Properties = (() => {
     }
 
     /**
-     * Render a single parameter/input field.
-     * @param {Object} field - ParamSchema or InputField object
-     * @param {Object} currentValues - node.params or node.input_params
-     * @param {string} prefix - 'param' for constructor params, 'input-param' for input fields
+     * Build a unified list of all fields, merging constructor params and
+     * runtime input fields. When a field name appears in both, the input
+     * field definition takes precedence (it has runtime semantics).
+     *
+     * Each merged entry is: { field: InputField|ParamSchema, values: dict, source: 'init'|'runtime'|'both' }
      */
-    function renderParamField(field, currentValues, prefix) {
+    function buildUnifiedFields(info, node) {
+        const constructorParams = info.params || [];
+        const inputFields = info.input_fields || [];
+        const inputFieldNames = new Set(inputFields.map(f => f.name));
+
+        const merged = [];
+        const seen = new Set();
+
+        // 1. Runtime input fields first (they're the ones that actually
+        //    affect execution output). Read values from input_params,
+        //    falling back to params if input_params doesn't have the key.
+        inputFields.forEach(field => {
+            const values = { ...(node.params || {}), ...(node.input_params || {}) };
+            const inConstructor = constructorParams.some(p => p.name === field.name);
+            merged.push({
+                field,
+                values,
+                source: inConstructor ? 'both' : 'runtime',
+            });
+            seen.add(field.name);
+        });
+
+        // 2. Constructor-only params (not in input_fields)
+        constructorParams.forEach(field => {
+            if (seen.has(field.name)) return;
+            merged.push({
+                field,
+                values: node.params || {},
+                source: 'init',
+            });
+            seen.add(field.name);
+        });
+
+        // Split into basic and advanced
+        const basic = merged.filter(item => item.field.group !== 'advanced');
+        const advanced = merged.filter(item => item.field.group === 'advanced');
+
+        // Sort: required first, then by name
+        const sortFn = (a, b) => {
+            if (a.field.required !== b.field.required) return a.field.required ? -1 : 1;
+            return a.field.name.localeCompare(b.field.name);
+        };
+        basic.sort(sortFn);
+        advanced.sort(sortFn);
+
+        return { basic, advanced };
+    }
+
+    /**
+     * Render a single parameter field.
+     * @param {Object} field - ParamSchema or InputField object
+     * @param {Object} currentValues - merged values dict
+     * @param {string} source - 'init' | 'runtime' | 'both'
+     */
+    function renderParamField(field, currentValues, source) {
         const friendlyName = I18n.paramLabel(field.name);
         const helpText = I18n.paramHelp(field.name) || field.description || '';
         const currentValue = currentValues[field.name];
@@ -176,24 +208,36 @@ const Properties = (() => {
         const modifiedBadge = isModified
             ? `<span class="param-modified-badge" title="${I18n.t('param.changed')}">●</span>`
             : '';
-        const defaultBadge = hasDefault
-            ? `<span class="param-default-badge" title="${I18n.t('prop.default_value')}: ${escapeAttr(String(defaultValue))}">${I18n.t('prop.default_value')}: ${escapeHtml(String(defaultValue))}</span>`
-            : '';
 
-        // Determine data attribute prefix
-        const dataParam = prefix === 'input-param' ? 'data-input-param' : 'data-param';
-        const dataReset = prefix === 'input-param' ? 'data-input-reset' : 'data-reset';
-        const dataHelpToggle = prefix === 'input-param' ? 'data-input-help-toggle' : 'data-help-toggle';
-        const dataHelpContent = prefix === 'input-param' ? 'data-input-help-content' : 'data-help-content';
-        const fieldClass = prefix === 'input-param' ? 'prop-field prop-field-input' : 'prop-field';
+        // Source badge: shows where the value is routed
+        let sourceBadge = '';
+        if (source === 'runtime') {
+            sourceBadge = `<span class="param-source-badge param-source-runtime" title="${I18n.t('param.source_runtime')}">▶</span>`;
+        } else if (source === 'both') {
+            sourceBadge = `<span class="param-source-badge param-source-both" title="${I18n.t('param.source_both')}">▶◆</span>`;
+        }
+
+        // Determine data attribute prefix based on source:
+        // - 'runtime' and 'both' → save to input_params (data-input-param)
+        // - 'init' → save to params (data-param)
+        const isRuntime = source === 'runtime' || source === 'both';
+        const dataParam = isRuntime ? 'data-input-param' : 'data-param';
+        const dataReset = isRuntime ? 'data-input-reset' : 'data-reset';
+        const dataHelpToggle = isRuntime ? 'data-input-help-toggle' : 'data-help-toggle';
+        const dataHelpContent = isRuntime ? 'data-input-help-content' : 'data-help-content';
+        const fieldClass = isRuntime ? 'prop-field prop-field-input' : 'prop-field';
 
         // Encode field type and default as data attributes for type-aware coercion
         const defaultStr = hasDefault ? escapeAttr(String(defaultValue)) : '';
 
-        let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}" data-field-name="${escapeAttr(field.name)}" data-field-type="${escapeAttr(field.type)}" data-field-default="${defaultStr}">
+        // Determine if this field needs a textarea (multi-line JSON input)
+        const isJsonField = field.name === 'messages' || field.name === 'formats' ||
+            field.name === 'filter_metadata' || field.name === 'padding';
+
+        let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}" data-field-name="${escapeAttr(field.name)}" data-field-type="${escapeAttr(field.type)}" data-field-default="${defaultStr}" data-field-source="${source}">
             <div class="prop-field-header">
                 <label class="prop-field-label">${escapeHtml(friendlyName)}${requiredMark}</label>
-                <div class="prop-field-badges">${requiredBadge}${typeBadge}${modifiedBadge}</div>
+                <div class="prop-field-badges">${sourceBadge}${requiredBadge}${typeBadge}${modifiedBadge}</div>
             </div>
             <div class="prop-field-internal-name">${escapeHtml(field.name)}</div>`;
 
@@ -204,7 +248,6 @@ const Properties = (() => {
                 html += `<option value="">${I18n.t('param.default_option')}${hasDefault ? ' (' + escapeHtml(String(defaultValue)) + ')' : ''}</option>`;
             }
             // If current value is not in choices, show it as a warning option
-            // so the user can see it's set and change it.
             if (hasValue && !field.choices.includes(String(currentValue))) {
                 html += `<option value="${escapeAttr(currentValue)}" selected>⚠️ ${escapeHtml(String(currentValue))} (${I18n.t('param.not_supported')})</option>`;
             }
@@ -222,6 +265,11 @@ const Properties = (() => {
                 <input type="checkbox" class="prop-checkbox" ${dataParam}="${escapeAttr(field.name)}" ${checked}>
                 <span class="prop-checkbox-text">${labelText}</span>
             </label>`;
+        } else if (isJsonField) {
+            // Use textarea for JSON-format fields
+            const placeholder = getJsonPlaceholder(field.name);
+            const displayValue = hasValue ? (typeof currentValue === 'string' ? currentValue : JSON.stringify(currentValue, null, 2)) : '';
+            html += `<textarea class="prop-input prop-textarea" ${dataParam}="${escapeAttr(field.name)}" rows="4" placeholder="${escapeAttr(placeholder)}">${escapeHtml(displayValue)}</textarea>`;
         } else if (field.type === 'int') {
             html += `<input type="number" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" step="1" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
         } else if (field.type === 'float') {
@@ -233,7 +281,7 @@ const Properties = (() => {
         // Default badge and reset button
         if (hasDefault) {
             html += `<div class="prop-field-footer">
-                <span class="param-default-text">${defaultBadge}</span>`;
+                <span class="param-default-text">${I18n.t('prop.default_value')}: ${escapeHtml(String(defaultValue))}</span>`;
             if (isModified) {
                 html += `<button class="prop-reset-btn" ${dataReset}="${escapeAttr(field.name)}" data-default="${escapeAttr(String(defaultValue))}" title="${I18n.t('prop.reset_default')}">↺</button>`;
             }
@@ -255,8 +303,20 @@ const Properties = (() => {
     }
 
     /**
+     * Get a placeholder hint for JSON-format fields.
+     */
+    function getJsonPlaceholder(fieldName) {
+        const hints = {
+            'messages': '[{"role": "user", "content": "Hello"}]',
+            'formats': '["png", "jpg"]',
+            'filter_metadata': '{"source": "web"}',
+            'padding': '[0, 20, 0, 20]',
+        };
+        return hints[fieldName] || 'Enter JSON value';
+    }
+
+    /**
      * Render a collapsible group (for advanced parameters).
-     * Collapsed by default.
      */
     function renderCollapsibleGroup(id, title, content) {
         return `<div class="prop-collapsible-group" id="${id}">
@@ -273,28 +333,17 @@ const Properties = (() => {
 
     /**
      * Wire up all event listeners after render.
-     *
-     * CRITICAL: `input` events use SILENT Store updates (no emit, no re-render)
-     * to prevent focus loss while typing. `change` events (fired on blur or
-     * select change) commit the value with emit and re-render the panel.
      */
     function wireUpEvents(nodeId, node) {
         const params = { ...node.params };
         const inputParams = { ...(node.input_params || {}) };
 
-        // Helper: find the .prop-field container for a given input element
         function findFieldContainer(input) {
             return input.closest('.prop-field');
         }
 
-        // Helper: update the modified badge for a field without full re-render
         /**
          * Update the modified badge for a field without full re-render.
-         * @param {HTMLElement} input - The input element
-         * @param {string} paramName - Parameter name
-         * @param {string} paramType - Field type (int, float, bool, etc.)
-         * @param {string} defaultVal - Default value as string
-         * @param {boolean} isInputParam - true for runtime input fields, false for constructor params
          */
         function updateFieldBadge(input, paramName, paramType, defaultVal, isInputParam) {
             const container = findFieldContainer(input);
@@ -307,7 +356,6 @@ const Properties = (() => {
 
             container.classList.toggle('prop-field-modified', isModified);
 
-            // Update modified badge
             const badgesContainer = container.querySelector('.prop-field-badges');
             if (badgesContainer) {
                 let badge = badgesContainer.querySelector('.param-modified-badge');
@@ -322,10 +370,8 @@ const Properties = (() => {
                 }
             }
 
-            // Update reset button visibility
             const footer = container.querySelector('.prop-field-footer');
             if (footer) {
-                // Use correct data attribute based on param type
                 const resetAttr = isInputParam ? 'data-input-reset' : 'data-reset';
                 let resetBtn = footer.querySelector(`.prop-reset-btn[${resetAttr}]`);
                 if (isModified && !resetBtn) {
@@ -355,7 +401,6 @@ const Properties = (() => {
                 }
             }
 
-            // Update checkbox label text
             if (input.type === 'checkbox') {
                 const labelSpan = container.querySelector('.prop-checkbox-text');
                 if (labelSpan) {
@@ -370,21 +415,19 @@ const Properties = (() => {
             }
         }
 
-        // Constructor params (use [data-param], NOT [data-prop] which is for label)
+        // --- Constructor params (data-param) ---
         panelEl.querySelectorAll('[data-param]').forEach(input => {
             const paramName = input.dataset.param;
             const container = findFieldContainer(input);
             const fieldType = container ? container.dataset.fieldType : 'string';
             const defaultVal = container ? container.dataset.fieldDefault : '';
 
-            // On input: update silently (no re-render, no focus loss)
             input.addEventListener('input', () => {
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParamsSilent(nodeId, params);
                 updateFieldBadge(input, paramName, fieldType, defaultVal, false);
             });
 
-            // On change (blur/select): commit with emit and re-render
             input.addEventListener('change', () => {
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParams(nodeId, params);
@@ -392,7 +435,6 @@ const Properties = (() => {
             });
         });
 
-        // Constructor param resets
         panelEl.querySelectorAll('[data-reset]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const paramName = btn.dataset.reset;
@@ -402,32 +444,27 @@ const Properties = (() => {
             });
         });
 
-        // Constructor param help toggles
         panelEl.querySelectorAll('[data-help-toggle]').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const paramName = toggle.dataset.helpToggle;
                 const content = panelEl.querySelector(`[data-help-content="${CSS.escape(paramName)}"]`);
-                if (content) {
-                    toggleHelp(toggle, content);
-                }
+                if (content) toggleHelp(toggle, content);
             });
         });
 
-        // Input fields
+        // --- Runtime input fields (data-input-param) ---
         panelEl.querySelectorAll('[data-input-param]').forEach(input => {
             const fieldName = input.dataset.inputParam;
             const container = findFieldContainer(input);
             const fieldType = container ? container.dataset.fieldType : 'string';
             const defaultVal = container ? container.dataset.fieldDefault : '';
 
-            // On input: update silently
             input.addEventListener('input', () => {
                 updateParam(inputParams, fieldName, input, fieldType, defaultVal);
                 Store.updateNodeInputParamsSilent(nodeId, inputParams);
                 updateFieldBadge(input, fieldName, fieldType, defaultVal, true);
             });
 
-            // On change: commit with emit and re-render
             input.addEventListener('change', () => {
                 updateParam(inputParams, fieldName, input, fieldType, defaultVal);
                 Store.updateNodeInputParams(nodeId, inputParams);
@@ -435,7 +472,6 @@ const Properties = (() => {
             });
         });
 
-        // Input field resets
         panelEl.querySelectorAll('[data-input-reset]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const fieldName = btn.dataset.inputReset;
@@ -445,14 +481,11 @@ const Properties = (() => {
             });
         });
 
-        // Input field help toggles
         panelEl.querySelectorAll('[data-input-help-toggle]').forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const fieldName = toggle.dataset.inputHelpToggle;
                 const content = panelEl.querySelector(`[data-input-help-content="${CSS.escape(fieldName)}"]`);
-                if (content) {
-                    toggleHelp(toggle, content);
-                }
+                if (content) toggleHelp(toggle, content);
             });
         });
 
@@ -471,7 +504,7 @@ const Properties = (() => {
             });
         });
 
-        // Label input — silent during typing, emit on blur
+        // Label input
         const labelInput = panelEl.querySelector('[data-prop="label"]');
         if (labelInput) {
             labelInput.addEventListener('input', () => {
@@ -504,15 +537,10 @@ const Properties = (() => {
 
     /**
      * Update a parameter value with type-aware coercion.
-     *
-     * For booleans: if the value matches the default, delete it so the
-     * constructor's default is used. For int/float: coerce to the proper
-     * numeric type. For empty strings: delete so default is used.
      */
     function updateParam(params, name, input, fieldType, defaultVal) {
         if (input.type === 'checkbox') {
             const checked = input.checked;
-            // If value matches default, remove it so constructor default is used
             if (defaultVal !== '' && defaultVal !== undefined && defaultVal !== null &&
                 String(checked) === String(defaultVal)) {
                 delete params[name];
@@ -523,18 +551,12 @@ const Properties = (() => {
             delete params[name];
         } else if (fieldType === 'int') {
             const v = parseInt(input.value, 10);
-            if (!isNaN(v)) {
-                params[name] = v;
-            } else {
-                params[name] = input.value;
-            }
+            if (!isNaN(v)) params[name] = v;
+            else params[name] = input.value;
         } else if (fieldType === 'float') {
             const v = parseFloat(input.value);
-            if (!isNaN(v)) {
-                params[name] = v;
-            } else {
-                params[name] = input.value;
-            }
+            if (!isNaN(v)) params[name] = v;
+            else params[name] = input.value;
         } else {
             params[name] = input.value;
         }
@@ -542,10 +564,7 @@ const Properties = (() => {
 
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function escapeAttr(str) {

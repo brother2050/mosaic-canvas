@@ -1256,9 +1256,69 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
 
 /* Input fields (runtime params) — subtle visual distinction */
 .prop-field-input {
-    border-left: 2px solid var(--border);
+    border-left: 2px solid var(--accent);
     padding-left: 8px;
     margin-left: -4px;
+}
+
+/* Source badges */
+.param-source-badge {
+    font-size: 9px;
+    padding: 0 3px;
+    border-radius: 2px;
+    cursor: help;
+}
+.param-source-runtime {
+    color: var(--accent);
+}
+.param-source-both {
+    color: var(--warning);
+}
+
+/* Textarea for JSON fields */
+.prop-textarea {
+    width: 100%;
+    min-height: 60px;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 11px;
+    resize: vertical;
+    line-height: 1.4;
+}
+
+/* Internal field name */
+.prop-field-internal-name {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    margin-bottom: 4px;
+}
+
+/* Collapsible group */
+.prop-collapsible-group {
+    margin-top: 12px;
+}
+.prop-collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 6px 8px;
+    background: var(--bg-2);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-dim);
+    user-select: none;
+}
+.prop-collapsible-header:hover {
+    background: var(--bg-3);
+}
+.prop-collapsible-arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+.prop-collapsible-content {
+    margin-top: 8px;
+    padding-left: 4px;
 }
 .prop-section-title {
     font-size: 12px;

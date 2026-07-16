@@ -90,6 +90,33 @@ class ExecutionResult:
 # ---------------------------------------------------------------------------
 # Parameter coercion
 # ---------------------------------------------------------------------------
+# Field names that expect JSON-encoded values (list[dict], list[str], dict, etc.)
+# When the UI sends these as strings, we parse them into Python objects.
+_JSON_FIELDS: frozenset[str] = frozenset({
+    "messages",
+    "formats",
+    "filter_metadata",
+    "padding",
+})
+
+
+def _try_parse_json(value: Any) -> Any:
+    """Try to parse a string value as JSON. Return original on failure."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped:
+        return value
+    # Only attempt JSON parse if it looks like JSON (starts with [ or {)
+    if stripped[0] in ('[', '{'):
+        try:
+            import json
+            return json.loads(stripped)
+        except (json.JSONDecodeError, ValueError):
+            return value
+    return value
+
+
 def coerce_param(value: Any, ui_type: str) -> Any:
     """Convert a UI string value to the Python type expected by a node.
 
@@ -121,11 +148,19 @@ def _coerce_params(
     raw_params: dict[str, Any],
     param_types: dict[str, str],
 ) -> dict[str, Any]:
-    """Coerce a dict of raw params using known UI types."""
+    """Coerce a dict of raw params using known UI types.
+
+    For JSON fields (messages, formats, filter_metadata, padding), string
+    values that look like JSON are parsed into Python objects.
+    """
     coerced: dict[str, Any] = {}
     for key, value in raw_params.items():
         ui_type = param_types.get(key, "string")
         coerced[key] = coerce_param(value, ui_type)
+    # Parse JSON fields: messages, formats, etc.
+    for key in list(coerced.keys()):
+        if key in _JSON_FIELDS and isinstance(coerced[key], str):
+            coerced[key] = _try_parse_json(coerced[key])
     # Remove None values so node defaults are used.
     return {k: v for k, v in coerced.items() if v is not None}
 
@@ -540,6 +575,9 @@ class GraphExecutor:
             if not preds:
                 # Source node: merge pipeline input
                 for k, v in self.graph.input.data.items():
+                    # Parse JSON fields that come from the pipeline input panel
+                    if k in _JSON_FIELDS and isinstance(v, str):
+                        v = _try_parse_json(v)
                     node_input[k] = v
             else:
                 for pid in preds:
