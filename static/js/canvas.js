@@ -32,7 +32,8 @@ const Canvas = (() => {
     let spacePressed = false;
 
     const NODE_W = 200;
-    const PORT_OFFSET_Y = 18;
+    // Default port Y offset; dynamically updated after node render.
+    let portOffsetY = 18;
 
     function init() {
         viewport = document.getElementById('canvas-viewport');
@@ -291,6 +292,9 @@ const Canvas = (() => {
             if (nodeElements[node.id] && nodeElements[node.id].el === fo) {
                 const h = div.offsetHeight || 80;
                 fo.setAttribute('height', h);
+                // Update edges now that we know the real node height,
+                // so connection lines align with the visual port positions.
+                updateEdgesForNode(node.id);
             }
         });
 
@@ -355,10 +359,24 @@ const Canvas = (() => {
     function getPortPos(nodeId, type) {
         const node = Store.getNode(nodeId);
         if (!node) return null;
+
+        // Try to measure the actual port position from the DOM.
+        // The ports are positioned with CSS `top: 50%` so they sit at
+        // the vertical center of the node. We measure the node height
+        // to compute the exact center, falling back to portOffsetY.
+        const entry = nodeElements[nodeId];
+        let halfHeight = portOffsetY;
+        if (entry && entry.div) {
+            const h = entry.div.offsetHeight || entry.el.getAttribute('height');
+            if (h && h > 20) {
+                halfHeight = h / 2;
+            }
+        }
+
         if (type === 'input') {
-            return { x: node.x, y: node.y + PORT_OFFSET_Y };
+            return { x: node.x, y: node.y + halfHeight };
         } else {
-            return { x: node.x + NODE_W, y: node.y + PORT_OFFSET_Y };
+            return { x: node.x + NODE_W, y: node.y + halfHeight };
         }
     }
 

@@ -80,9 +80,17 @@ const Properties = (() => {
         </div>`;
 
         // --- Constructor Parameters ---
+        // Skip params that also appear in input_fields to avoid duplication.
+        // If a param is both a constructor arg and a runtime input, the user
+        // should only see it once — in the input fields section where it's
+        // most useful (runtime override).
         if (info && info.params && info.params.length > 0) {
-            const basicParams = info.params.filter(p => p.group !== 'advanced');
-            const advancedParams = info.params.filter(p => p.group === 'advanced');
+            const inputFieldNames = new Set(
+                (info.input_fields || []).map(f => f.name)
+            );
+            const visibleParams = info.params.filter(p => !inputFieldNames.has(p.name));
+            const basicParams = visibleParams.filter(p => p.group !== 'advanced');
+            const advancedParams = visibleParams.filter(p => p.group === 'advanced');
 
             html += `<div class="prop-section">
                 <div class="prop-section-title">${I18n.t('prop.parameters')}</div>`;
@@ -102,7 +110,7 @@ const Properties = (() => {
             }
 
             html += `</div>`;
-        } else if (info) {
+        } else if (info && (!info.params || visibleParams.length === 0)) {
             html += `<div class="prop-section">
                 <p class="panel-hint">${I18n.t('prop.no_params')}</p>
             </div>`;
@@ -161,6 +169,9 @@ const Properties = (() => {
         const requiredMark = field.required
             ? `<span class="prop-required-mark" title="${I18n.t('param.required')}">*</span>`
             : '';
+        const requiredBadge = field.required
+            ? `<span class="param-required-badge">${I18n.t('param.required')}</span>`
+            : `<span class="param-optional-badge">${I18n.t('param.optional')}</span>`;
         const typeBadge = `<span class="param-type-badge">${escapeHtml(field.type)}</span>`;
         const modifiedBadge = isModified
             ? `<span class="param-modified-badge" title="${I18n.t('param.changed')}">●</span>`
@@ -182,7 +193,7 @@ const Properties = (() => {
         let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}" data-field-name="${escapeAttr(field.name)}" data-field-type="${escapeAttr(field.type)}" data-field-default="${defaultStr}">
             <div class="prop-field-header">
                 <label class="prop-field-label">${escapeHtml(friendlyName)}${requiredMark}</label>
-                <div class="prop-field-badges">${typeBadge}${modifiedBadge}</div>
+                <div class="prop-field-badges">${requiredBadge}${typeBadge}${modifiedBadge}</div>
             </div>
             <div class="prop-field-internal-name">${escapeHtml(field.name)}</div>`;
 
