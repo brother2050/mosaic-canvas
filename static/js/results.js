@@ -13,6 +13,11 @@ const Results = (() => {
     let panelEl;
     let lastResult = null;
 
+    // Display types that represent a single media object rendered directly.
+    // Container types like "mosaic", "audio", "video" (data type tags) are
+    // NOT in this set — they are iterated field by field.
+    const MEDIA_TYPES = new Set(['image', 'audio', 'video', 'text', 'subtitle']);
+
     function init() {
         panelEl = document.getElementById('results-panel');
         I18n.on(() => {
@@ -60,15 +65,19 @@ const Results = (() => {
             </div>
         </div>`;
 
-        // Per-node results
-        if (result.node_results && result.node_results.length > 0) {
+        const nodeCount = result.node_results ? result.node_results.length : 0;
+        const hasErrors = result.node_results && result.node_results.some(nr => nr.status === 'error');
+
+        // Per-node results — only show when there are multiple nodes or errors.
+        // For a single-node success, showing the same data twice is confusing.
+        if (nodeCount > 1 || hasErrors) {
             html += `<div class="prop-section-title" style="margin:12px 0 8px">${I18n.t('results.node_results')}</div>`;
             result.node_results.forEach(nr => {
                 html += renderNodeResult(nr);
             });
         }
 
-        // Final output
+        // Final output — always show (this is what the user wants to see)
         if (result.final_output) {
             html += `<div class="prop-section-title" style="margin:12px 0 8px">${I18n.t('results.final_output')}</div>`;
             html += `<div class="result-node-card">
@@ -118,18 +127,25 @@ const Results = (() => {
 
     /**
      * Render an output data object as human-friendly labeled fields.
-     * Detects display types via __display_type__ tags from the backend.
+     *
+     * If the object itself is a single media display descriptor (e.g.
+     * {"__display_type__": "image", "src": "..."}), render it directly.
+     * Otherwise, iterate through each field and render individually.
      */
     function renderOutputData(output) {
         if (!output || typeof output !== 'object') {
             return `<div class="result-field">${escapeHtml(String(output))}</div>`;
         }
 
-        // Single display-type object (e.g. {"__display_type__": "image", "src": "..."})
-        if (output.__display_type__) {
+        // Single media display object — render directly.
+        // Only treat as direct media when __display_type__ is a known media
+        // type (image, audio, video, text, subtitle). Container types like
+        // "mosaic" are data-type tags, not display instructions.
+        if (output.__display_type__ && MEDIA_TYPES.has(output.__display_type__)) {
             return renderField(output.__display_type__, I18n.t('results.output'), output);
         }
 
+        // Container object — iterate fields
         let html = '';
 
         for (const [key, value] of Object.entries(output)) {
@@ -204,7 +220,13 @@ const Results = (() => {
                 break;
             case 'json':
             default:
-                contentHtml = `<pre class="result-json">${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+                // For unknown display types (like "mosaic"), try to render
+                // as an object if it has fields, otherwise fall back to JSON.
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    contentHtml = renderOutputData(value);
+                } else {
+                    contentHtml = `<pre class="result-json">${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+                }
                 break;
         }
 
@@ -220,7 +242,7 @@ const Results = (() => {
             return `<span class="result-field-value result-meta">${I18n.t('results.no_preview')}</span>`;
         }
         return `<div class="result-image-container">
-            <img src="${escapeAttr(src)}" class="result-image" alt="Generated image" />
+            <img src="${escapeAttr(src)}" class="result-image" alt="Generated image" loading="lazy" />
         </div>`;
     }
 
@@ -267,7 +289,7 @@ const Results = (() => {
             html += `<div class="result-video-thumbnails">`;
             thumbnails.forEach((thumb, i) => {
                 if (thumb.src) {
-                    html += `<img src="${escapeAttr(thumb.src)}" class="result-video-thumb" alt="Frame ${i + 1}" />`;
+                    html += `<img src="${escapeAttr(thumb.src)}" class="result-video-thumb" alt="Frame ${i + 1}" loading="lazy" />`;
                 }
             });
             html += `</div>`;
