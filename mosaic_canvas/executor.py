@@ -592,6 +592,22 @@ class GraphExecutor:
             except Exception as exc:  # noqa: BLE001
                 elapsed = time.perf_counter() - t0
                 error_msg = f"{type(exc).__name__}: {exc}"
+                # Add helpful suggestions for common model loading errors
+                exc_str = str(exc).lower()
+                if "cannot load model" in exc_str or "not cached locally" in exc_str:
+                    model_name = coerced_params.get("model", "unknown")
+                    error_msg += (
+                        f"\n\nSuggestion: Model '{model_name}' could not be loaded. "
+                        f"It may not be cached locally or the network is unavailable. "
+                        f"Try selecting a different model from the dropdown, or "
+                        f"use the default model by clearing the model field."
+                    )
+                elif "connection" in exc_str or "timeout" in exc_str or "504" in exc_str:
+                    error_msg += (
+                        "\n\nSuggestion: Network error while loading the model. "
+                        "Check your internet connection or try a model that is "
+                        "already cached locally."
+                    )
                 node_results.append(NodeResult(
                     node_id=nid,
                     node_name=node_name,

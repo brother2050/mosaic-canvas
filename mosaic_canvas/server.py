@@ -262,18 +262,32 @@ def create_app() -> FastAPI:
 
             # Wait for completion while sending keepalive pings to prevent
             # the WebSocket connection from timing out during long model loads.
+            # Total timeout: 10 minutes (model downloads can be slow).
             keepalive_counter = 0
+            max_wait_iterations = 1200  # 1200 * 0.5s = 600s = 10 min
             while worker.is_alive():
                 await asyncio.sleep(0.5)
                 keepalive_counter += 1
                 # Send a keepalive ping every 5 seconds
                 if keepalive_counter % 10 == 0:
                     try:
-                        await websocket.send_json({"event": "keepalive", "payload": {}})
+                        await websocket.send_json({"event": "keepalive", "payload": {
+                            "elapsed": keepalive_counter * 0.5,
+                        }})
                     except Exception:  # noqa: BLE001
                         break  # Connection closed
+                # Timeout: if execution takes more than 10 minutes, abort
+                if keepalive_counter >= max_wait_iterations:
+                    logger.warning("Execution timed out after %d seconds", max_wait_iterations * 0.5)
+                    break
 
             worker.join(timeout=5)
+
+            # If worker is still alive after timeout, report it
+            if worker.is_alive():
+                await websocket.send_json({"event": "error", "payload": {
+                    "error": "Execution timed out (10 minutes). The model may be too large to load or the network is too slow. Try selecting a smaller model or checking your network connection.",
+                }})
 
             # Check for errors from the worker thread
             if "error" in result_holder:

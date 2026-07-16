@@ -87,6 +87,7 @@ const I18n = (() => {
             'param.no_help': 'No description available.',
             'param.changed': 'Modified',
             'param.default_option': '— Use default —',
+            'param.not_supported': 'not in supported list',
 
             // Input panel
             'input.title': 'Pipeline Input Data',
@@ -291,6 +292,7 @@ const I18n = (() => {
             'param.no_help': '暂无描述信息。',
             'param.changed': '已修改',
             'param.default_option': '— 使用默认值 —',
+            'param.not_supported': '不在支持列表中',
 
             // Input panel
             'input.title': '流水线输入数据',

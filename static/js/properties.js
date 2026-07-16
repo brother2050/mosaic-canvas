@@ -192,6 +192,11 @@ const Properties = (() => {
             if (!field.required) {
                 html += `<option value="">${I18n.t('param.default_option')}${hasDefault ? ' (' + escapeHtml(String(defaultValue)) + ')' : ''}</option>`;
             }
+            // If current value is not in choices, show it as a warning option
+            // so the user can see it's set and change it.
+            if (hasValue && !field.choices.includes(String(currentValue))) {
+                html += `<option value="${escapeAttr(currentValue)}" selected>⚠️ ${escapeHtml(String(currentValue))} (${I18n.t('param.not_supported')})</option>`;
+            }
             field.choices.forEach(c => {
                 const selected = hasValue && String(currentValue) === String(c) ? 'selected' : '';
                 html += `<option value="${escapeAttr(c)}" ${selected}>${escapeHtml(c)}</option>`;

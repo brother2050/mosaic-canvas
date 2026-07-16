@@ -467,6 +467,16 @@ const App = (function () {
                     Canvas.updateSelection();
                     setStatus(I18n.t('run.node_error', { name: payload.node_name }));
                     toast(I18n.t('run.node_error', { name: payload.node_name }) + ': ' + payload.error, 'error');
+                } else if (event === 'keepalive') {
+                    // Update the running display with elapsed time
+                    const elapsed = payload.elapsed ? Math.round(payload.elapsed) : '?';
+                    const panel = document.getElementById('results-panel');
+                    if (panel) {
+                        const runningEl = panel.querySelector('.results-empty p');
+                        if (runningEl) {
+                            runningEl.textContent = `${I18n.t('results.running')} (${elapsed}s)`;
+                        }
+                    }
                 } else if (event === 'pipeline_complete') {
                     const status = payload.success ? I18n.t('run.complete_status_ok') : I18n.t('run.complete_status_fail');
                     setStatus(I18n.t('run.complete', { status, duration: payload.duration }));
