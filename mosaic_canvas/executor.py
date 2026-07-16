@@ -15,10 +15,16 @@ that a WebSocket can stream progress to the UI in real time.
 from __future__ import annotations
 
 import base64
+import io
 import logging
+import os
 import time
 import traceback
+import uuid
+import wave
+import struct
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 from mosaic_canvas.graph import Graph
@@ -157,17 +163,38 @@ def _serialize_output(data: Any) -> dict[str, Any]:
 
 # Maximum number of video frames to send as thumbnails.
 _MAX_VIDEO_THUMBNAILS = 6
-# Maximum audio duration (seconds) to encode as playable base64 WAV.
+# Maximum audio duration (seconds) to encode as playable WAV.
 _MAX_AUDIO_SECONDS = 60
+
+# Output directory for generated media files (images, audio, video thumbnails).
+# This directory is served by the FastAPI server at /outputs/.
+_OUTPUT_DIR: Path = Path(__file__).resolve().parent.parent / "static" / "outputs"
+_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _save_media_file(data: bytes, ext: str) -> str:
+    """Save binary data to a file in the output directory and return the URL path.
+
+    Returns a relative URL path like ``/outputs/abc123.png`` that can be
+    used directly in ``<img src="...">`` or ``<audio src="...">``.
+    """
+    filename = f"{uuid.uuid4().hex[:16]}.{ext}"
+    filepath = _OUTPUT_DIR / filename
+    filepath.write_bytes(data)
+    return f"/outputs/{filename}"
 
 
 def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
     """Recursively transform Mosaic-serialized data into UI-friendly format.
 
-    * ``{"__pil_image__": True, "encoded": "b64:PNG:..."}`` → ``{"__display_type__": "image", "src": "data:image/png;base64,..."}``
-    * ``{"__ndarray__": True, ...}`` under ``waveform`` key → ``{"__display_type__": "audio", "src": "data:audio/wav;base64,..."}``
+    * ``{"__pil_image__": True, "encoded": "b64:PNG:..."}`` → ``{"__display_type__": "image", "src": "/outputs/xxx.png"}``
+    * ``{"__ndarray__": True, ...}`` under ``waveform`` key → ``{"__display_type__": "audio", "src": "/outputs/xxx.wav"}``
     * Lists of ``__pil_image__`` under ``frames`` key → ``{"__display_type__": "video", "thumbnails": [...], "frame_count": N, "fps": N}``
     * Primitive values are kept as-is.
+
+    Media files are saved to disk and served via HTTP URLs, NOT embedded
+    as base64 data URIs. This prevents the WebSocket message from becoming
+    too large (a 1024x1024 PNG is 2-4MB as base64).
     """
     if depth > 12:
         return "<truncated>"
@@ -181,8 +208,6 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
 
     # numpy ndarray serialized by Mosaic
     if isinstance(obj, dict) and obj.get("__ndarray__"):
-        # Keep metadata but mark as raw data — the caller (waveform/frames
-        # handler) will convert it to a playable format if appropriate.
         shape = obj.get("shape", [])
         dtype_str = obj.get("dtype", "unknown")
         size = 1
@@ -206,13 +231,13 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
 
             key = str(k)
 
-            # Audio waveform → convert to playable WAV data URI
+            # Audio waveform → save as WAV file, return URL
             if key == "waveform" and isinstance(v, dict) and v.get("__ndarray__"):
                 sample_rate = obj.get("sample_rate", 22050)
                 result[key] = _make_audio_display(v, sample_rate)
                 continue
 
-            # Video frames → convert to thumbnails
+            # Video frames → save thumbnails as files, return URLs
             if key == "frames" and isinstance(v, list):
                 result[key] = _make_video_display(v, obj.get("fps", 30))
                 continue
@@ -249,37 +274,45 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
 
 
 def _make_image_display(encoded: str) -> dict[str, Any]:
-    """Convert a Mosaic b64-encoded image into a UI display descriptor."""
+    """Convert a Mosaic b64-encoded image into a UI display descriptor.
+
+    Saves the image to a file in the output directory and returns an
+    HTTP URL instead of a base64 data URI. This keeps the WebSocket
+    message small.
+    """
     if not encoded or not isinstance(encoded, str):
         return {"__display_type__": "image", "src": "", "error": "empty"}
 
-    # Mosaic format: "b64:<fmt>:<data>"
-    if encoded.startswith("b64:"):
-        parts = encoded.split(":", 2)
-        if len(parts) == 3:
-            fmt = parts[1].lower()
-            data = parts[2]
-            mime = f"image/{fmt}" if fmt != "jpg" else "image/jpeg"
-            return {
-                "__display_type__": "image",
-                "src": f"data:{mime};base64,{data}",
-            }
+    try:
+        # Mosaic format: "b64:<fmt>:<data>"
+        if encoded.startswith("b64:"):
+            parts = encoded.split(":", 2)
+            if len(parts) == 3:
+                fmt = parts[1].lower()
+                data = parts[2]
+                raw = base64.b64decode(data)
+                ext = fmt if fmt in ("png", "jpg", "jpeg", "gif", "webp") else "png"
+                if ext == "jpeg":
+                    ext = "jpg"
+                url = _save_media_file(raw, ext)
+                return {"__display_type__": "image", "src": url}
 
-    # Already raw base64
-    return {
-        "__display_type__": "image",
-        "src": f"data:image/png;base64,{encoded}",
-    }
+        # Already raw base64
+        raw = base64.b64decode(encoded)
+        url = _save_media_file(raw, "png")
+        return {"__display_type__": "image", "src": url}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to save image for display: %s", exc)
+        return {"__display_type__": "image", "src": "", "error": str(exc)}
 
 
 def _make_audio_display(ndarray_dict: dict, sample_rate: int) -> dict[str, Any]:
-    """Convert a serialized numpy waveform into a playable WAV data URI."""
-    import io
-    import struct
-    import wave
+    """Convert a serialized numpy waveform into a playable WAV file URL.
 
+    Saves the audio as a WAV file in the output directory and returns an
+    HTTP URL instead of a base64 data URI.
+    """
     data = ndarray_dict.get("data", [])
-    shape = ndarray_dict.get("shape", [])
 
     # Flatten nested lists (multi-channel: [channels, samples] → mono)
     flat_samples = _flatten_samples(data)
@@ -306,7 +339,7 @@ def _make_audio_display(ndarray_dict: dict, sample_rate: int) -> dict[str, Any]:
                 s = max(-1.0, min(1.0, float(sample)))
                 frames.extend(struct.pack("<h", int(s * 32767)))
             wav.writeframes(bytes(frames))
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         return {
             "__display_type__": "audio",
             "src": "",
@@ -315,12 +348,12 @@ def _make_audio_display(ndarray_dict: dict, sample_rate: int) -> dict[str, Any]:
             "sample_count": len(flat_samples),
         }
 
-    b64_data = base64.b64encode(buf.getvalue()).decode("ascii")
+    url = _save_media_file(buf.getvalue(), "wav")
     duration = len(flat_samples) / sample_rate if sample_rate > 0 else 0
 
     return {
         "__display_type__": "audio",
-        "src": f"data:audio/wav;base64,{b64_data}",
+        "src": url,
         "sample_rate": sample_rate,
         "duration": round(duration, 2),
         "truncated": truncated,
@@ -340,7 +373,11 @@ def _flatten_samples(data: Any) -> list[float]:
 
 
 def _make_video_display(frames: list, fps: int) -> dict[str, Any]:
-    """Convert a list of serialized frames into a video display descriptor."""
+    """Convert a list of serialized frames into a video display descriptor.
+
+    Saves thumbnail frames as image files in the output directory and
+    returns HTTP URLs.
+    """
     frame_count = len(frames)
     thumbnails: list[dict] = []
 

@@ -310,6 +310,12 @@ def create_app() -> FastAPI:
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+        # Mount the outputs directory for serving generated media files
+        # (images, audio, video thumbnails saved by the executor).
+        outputs_dir = static_dir / "outputs"
+        outputs_dir.mkdir(parents=True, exist_ok=True)
+        app.mount("/outputs", StaticFiles(directory=str(outputs_dir)), name="outputs")
+
         @app.get("/", response_class=HTMLResponse)
         async def index() -> HTMLResponse:
             index_path = static_dir / "index.html"

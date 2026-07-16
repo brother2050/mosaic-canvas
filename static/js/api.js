@@ -66,19 +66,29 @@ const API = (() => {
                 };
 
                 ws.onmessage = (event) => {
-                    const msg = JSON.parse(event.data);
-                    if (msg.event === 'done') {
-                        settled = true;
-                        resolve(msg.payload);
-                        ws.close();
-                    } else if (msg.event === 'error') {
-                        settled = true;
-                        reject(new Error(msg.payload.error || 'Execution failed'));
-                        ws.close();
-                    } else if (msg.event === 'keepalive') {
-                        // Server keepalive ping — ignore
-                    } else {
-                        onEvent(msg.event, msg.payload);
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg.event === 'done') {
+                            settled = true;
+                            resolve(msg.payload);
+                            ws.close();
+                        } else if (msg.event === 'error') {
+                            settled = true;
+                            reject(new Error(msg.payload.error || 'Execution failed'));
+                            ws.close();
+                        } else if (msg.event === 'keepalive') {
+                            // Server keepalive ping — ignore
+                        } else {
+                            onEvent(msg.event, msg.payload);
+                        }
+                    } catch (err) {
+                        // JSON.parse or onEvent failed — reject the Promise
+                        // so the UI shows an error instead of hanging forever.
+                        if (!settled) {
+                            settled = true;
+                            reject(new Error('Failed to parse server response: ' + err.message));
+                            ws.close();
+                        }
                     }
                 };
 
