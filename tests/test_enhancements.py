@@ -624,3 +624,291 @@ class TestI18nStrings:
         assert "批量" in content
         assert "全部插入" in content
         assert "预设组合" in content
+
+
+# ---------------------------------------------------------------------------
+# 9. Mosaic examples-based templates (ex01-ex13)
+# ---------------------------------------------------------------------------
+class TestExampleTemplates:
+    """Validate the templates derived from Mosaic framework examples/*.py."""
+
+    @pytest.fixture
+    def templates_js_content(self):
+        templates_path = Path(__file__).resolve().parent.parent / "static" / "js" / "templates.js"
+        return templates_path.read_text(encoding="utf-8")
+
+    # ── Template presence ──
+    EXPECTED_EXAMPLE_IDS = [
+        # 01_text_domain.py
+        "ex01-text-gen-translate-summarize",
+        "ex01-text-rewriter",
+        "ex01-text-classifier",
+        # 02_image_domain.py
+        "ex02-image-to-image",
+        "ex02-inpainting",
+        # 03/20_video_domain.py
+        "ex03-wan-video-encode",
+        "ex03-hunyuan-video-encode",
+        "ex03-ltx-video-encode",
+        "ex03-image-to-video",
+        "ex03-video-continuation",
+        "ex03-frame-extractor",
+        # 04_audio_domain.py
+        "ex04-voice-clone",
+        "ex04-sound-effect",
+        "ex04-asr-summarize",
+        # 05-08 TTS backends
+        "ex05-tts-chattts",
+        "ex06-tts-fish-speech",
+        "ex07-tts-gpt-sovits",
+        "ex08-tts-cosyvoice",
+        # 09/21/23 subtitle_rag
+        "ex09-subtitle-gen-translate",
+        "ex09-subtitle-gen-translate-align",
+        "ex09-rag-with-generator",
+        "ex09-video-content-qa",
+        # 10_digital_human.py
+        "ex10-avatar-lipsync",
+        "ex10-tts-lipsync-encode",
+        "ex10-motion-avatar",
+        # 11_cross_domain_pipeline.py
+        "ex11-text-image-video-export",
+        "ex11-digital-human-creation",
+        "ex11-document-qa-simple",
+        "ex11-dubbing-pipeline",
+        # 12_consistency_domain.py
+        "ex12-identity-keeper",
+        "ex12-style-keeper",
+        "ex12-cross-frame-consistency",
+        # 13/22_export_domain.py
+        "ex13-livestream",
+        "ex13-video-encode-subtitle",
+    ]
+
+    def test_all_example_template_ids_present(self, templates_js_content):
+        """All 35 example-derived template IDs must be present."""
+        for tid in self.EXPECTED_EXAMPLE_IDS:
+            assert f"id: '{tid}'" in templates_js_content, \
+                f"Template ID '{tid}' not found in templates.js"
+
+    def test_example_template_count(self, templates_js_content):
+        """Should have exactly 34 example-derived templates."""
+        import re
+        ex_ids = re.findall(r"id:\s*'(ex\d+-[a-z0-9-]+)'", templates_js_content)
+        unique_ids = set(ex_ids)
+        assert len(unique_ids) == 34, \
+            f"Expected 34 example templates, found {len(unique_ids)}"
+
+    def test_total_template_count(self, templates_js_content):
+        """Total templates should be at least 51 (17 original + 34 new)."""
+        import re
+        # Match id: 'xxx-yyy' but exclude node IDs (n1) and edge IDs (e1, e2)
+        all_ids = re.findall(r"id:\s*'([a-z][a-z0-9]+-[a-z0-9-]+)'", templates_js_content)
+        # Filter out node/edge IDs: node IDs start with 'n' + digit, edge IDs start with 'e' + digit
+        template_ids = {i for i in all_ids if not re.match(r'^n\d', i) and not re.match(r'^e\d', i)}
+        assert len(template_ids) >= 51, \
+            f"Expected >= 51 templates, found {len(template_ids)}"
+
+    # ── Structure validation ──
+    def test_each_example_template_has_required_fields(self, templates_js_content):
+        """Each example template should have id, name, icon, description, nodes, edges, input."""
+        for tid in self.EXPECTED_EXAMPLE_IDS:
+            idx = templates_js_content.index(f"id: '{tid}'")
+            # Get a section large enough to cover the template
+            section = templates_js_content[idx:idx + 3000]
+            assert "name:" in section, f"{tid}: missing 'name'"
+            assert "icon:" in section, f"{tid}: missing 'icon'"
+            assert "description:" in section, f"{tid}: missing 'description'"
+            assert "nodes:" in section, f"{tid}: missing 'nodes'"
+            assert "edges:" in section, f"{tid}: missing 'edges'"
+            assert "input:" in section, f"{tid}: missing 'input'"
+
+    def test_each_example_template_has_bilingual_names(self, templates_js_content):
+        """Each example template should have both en and zh names."""
+        for tid in self.EXPECTED_EXAMPLE_IDS:
+            idx = templates_js_content.index(f"id: '{tid}'")
+            section = templates_js_content[idx:idx + 600]
+            assert "en:" in section, f"{tid}: missing English name"
+            assert "zh:" in section, f"{tid}: missing Chinese name"
+
+    def test_each_example_template_has_bilingual_descriptions(self, templates_js_content):
+        """Each example template should have both en and zh descriptions."""
+        for tid in self.EXPECTED_EXAMPLE_IDS:
+            idx = templates_js_content.index(f"id: '{tid}'")
+            section = templates_js_content[idx:idx + 1500]
+            # Count en: and zh: occurrences — should have at least 2 each (name + description)
+            assert section.count("en:") >= 2, f"{tid}: missing English description"
+            assert section.count("zh:") >= 2, f"{tid}: missing Chinese description"
+
+    # ── Node type validity ──
+    def test_all_node_types_in_templates_are_registered(self, templates_js_content):
+        """Every node type referenced in example templates must be registered."""
+        from mosaic.core.registry import registry
+        registry.discover()
+        registered = set(registry._nodes.keys())
+
+        import re
+        # Find all type: 'xxx' patterns in the example template sections.
+        # Use negative lookbehind to avoid matching 'content_type:' or similar.
+        for tid in self.EXPECTED_EXAMPLE_IDS:
+            idx = templates_js_content.index(f"id: '{tid}'")
+            # Find the next template or end of array
+            next_template = templates_js_content.find("id: 'ex", idx + 10)
+            if next_template == -1:
+                next_template = templates_js_content.find("];", idx)
+            section = templates_js_content[idx:next_template]
+            # Match 'type:' not preceded by a word character (avoids content_type)
+            types = re.findall(r"(?<!\w)type:\s*'([a-z0-9-]+)'", section)
+            for node_type in types:
+                assert node_type in registered, \
+                    f"{tid}: node type '{node_type}' not in registry"
+
+    # ── Specific template validation ──
+    def test_ex01_text_gen_translate_summarize_has_3_nodes(self, templates_js_content):
+        """ex01-text-gen-translate-summarize should have 3 nodes and 2 edges."""
+        idx = templates_js_content.index("ex01-text-gen-translate-summarize")
+        section = templates_js_content[idx:idx + 2000]
+        assert section.count("type: 'text-generator'") == 1
+        assert section.count("type: 'translator'") == 1
+        assert section.count("type: 'text-summarizer'") == 1
+
+    def test_ex09_rag_with_generator_has_5_nodes(self, templates_js_content):
+        """ex09-rag-with-generator should have 5 nodes in a chain."""
+        idx = templates_js_content.index("ex09-rag-with-generator")
+        # Find just the edges section of this template
+        edges_start = templates_js_content.index("edges:", idx)
+        edges_end = templates_js_content.index("],", edges_start)
+        edges_section = templates_js_content[edges_start:edges_end]
+        assert "document-parser" in templates_js_content[idx:idx + 2000]
+        assert "vector-indexer" in templates_js_content[idx:idx + 2000]
+        assert "retriever" in templates_js_content[idx:idx + 2000]
+        assert "text-generator" in templates_js_content[idx:idx + 2000]
+        assert "citation-generator" in templates_js_content[idx:idx + 2000]
+        # 5 nodes → 4 edges
+        assert edges_section.count("source:") == 4
+
+    def test_ex09_video_content_qa_has_6_nodes(self, templates_js_content):
+        """ex09-video-content-qa should have 6 nodes in a chain."""
+        idx = templates_js_content.index("ex09-video-content-qa")
+        # Find just the edges section of this template
+        edges_start = templates_js_content.index("edges:", idx)
+        edges_end = templates_js_content.index("],", edges_start)
+        edges_section = templates_js_content[edges_start:edges_end]
+        assert "asr" in templates_js_content[idx:idx + 2000]
+        assert "subtitle-generator" in templates_js_content[idx:idx + 2000]
+        assert "vector-indexer" in templates_js_content[idx:idx + 2000]
+        assert "retriever" in templates_js_content[idx:idx + 2000]
+        assert "text-generator" in templates_js_content[idx:idx + 2000]
+        assert "citation-generator" in templates_js_content[idx:idx + 2000]
+        # 6 nodes → 5 edges
+        assert edges_section.count("source:") == 5
+
+    def test_ex11_text_image_video_export_has_6_nodes(self, templates_js_content):
+        """ex11-text-image-video-export should have 6 nodes in a chain."""
+        idx = templates_js_content.index("ex11-text-image-video-export")
+        section = templates_js_content[idx:idx + 3000]
+        assert "text-generator" in section
+        assert "field-mapper" in section
+        assert "text-to-image" in section
+        assert "upscaler" in section
+        assert "wan-video" in section
+        assert "multi-format-exporter" in section
+
+    def test_ex11_dubbing_pipeline_has_merge_pattern(self, templates_js_content):
+        """ex11-dubbing-pipeline should have a merge pattern (two sources → one target)."""
+        idx = templates_js_content.index("ex11-dubbing-pipeline")
+        section = templates_js_content[idx:idx + 3000]
+        # Video and subtitle-aligner both feed into video-encoder
+        assert "wan-video" in section
+        assert "tts" in section
+        assert "subtitle-generator" in section
+        assert "subtitle-aligner" in section
+        assert "video-encoder" in section
+
+    def test_ex11_digital_human_creation_has_merge_pattern(self, templates_js_content):
+        """ex11-digital-human-creation should merge image+audio into lip-syncer."""
+        idx = templates_js_content.index("ex11-digital-human-creation")
+        section = templates_js_content[idx:idx + 3000]
+        assert "text-to-image" in section
+        assert "tts" in section
+        assert "lip-syncer" in section
+        assert "video-encoder" in section
+
+    def test_tts_templates_have_different_backends(self, templates_js_content):
+        """The 4 TTS templates should use different backends."""
+        backends = ["chattts", "fish", "sovits", "cosyvoice"]
+        tts_ids = [
+            "ex05-tts-chattts", "ex06-tts-fish-speech",
+            "ex07-tts-gpt-sovits", "ex08-tts-cosyvoice",
+        ]
+        for tid, backend in zip(tts_ids, backends):
+            idx = templates_js_content.index(tid)
+            section = templates_js_content[idx:idx + 1000]
+            assert f"backend: '{backend}'" in section, \
+                f"{tid}: missing backend '{backend}'"
+
+    def test_video_templates_use_different_generators(self, templates_js_content):
+        """Video templates should use different video generation backends."""
+        video_templates = [
+            ("ex03-wan-video-encode", "wan-video"),
+            ("ex03-hunyuan-video-encode", "hunyuan-video"),
+            ("ex03-ltx-video-encode", "ltx-video"),
+            ("ex03-image-to-video", "image-to-video"),
+            ("ex03-video-continuation", "video-continuation"),
+        ]
+        for tid, expected_type in video_templates:
+            idx = templates_js_content.index(tid)
+            section = templates_js_content[idx:idx + 2000]
+            assert f"type: '{expected_type}'" in section, \
+                f"{tid}: missing node type '{expected_type}'"
+
+    # ── Example file coverage ──
+    def test_covers_examples_01_through_13(self, templates_js_content):
+        """Templates should cover examples 01 through 13."""
+        import re
+        ex_numbers = set()
+        for tid in self.EXPECTED_EXAMPLE_IDS:
+            match = re.match(r'ex(\d+)-', tid)
+            if match:
+                ex_numbers.add(int(match.group(1)))
+        # Should cover examples 1-13 (14-19 are low-level engine examples
+        # that don't map to Canvas node types)
+        for n in range(1, 14):
+            assert n in ex_numbers, f"No template covers example {n:02d}"
+
+
+class TestExampleTemplateNodeTypes:
+    """Verify that all node types used in example templates are valid."""
+
+    def test_node_types_match_mosaic_examples(self):
+        """The node types in templates should match the Mosaic examples."""
+        templates_path = Path(__file__).resolve().parent.parent / "static" / "js" / "templates.js"
+        content = templates_path.read_text(encoding="utf-8")
+
+        from mosaic.core.registry import registry
+        registry.discover()
+        registered = set(registry._nodes.keys())
+
+        import re
+        # Extract all node types from example templates
+        ex_section_start = content.find("Templates derived from Mosaic framework examples")
+        if ex_section_start == -1:
+            pytest.skip("Example templates section not found")
+        ex_section = content[ex_section_start:]
+
+        types = re.findall(r"(?<!\w)type:\s*'([a-z0-9-]+)'", ex_section)
+        unique_types = set(types)
+        for nt in unique_types:
+            assert nt in registered, f"Node type '{nt}' not registered in Mosaic"
+
+    def test_no_duplicate_template_ids(self):
+        """Template IDs should be unique."""
+        templates_path = Path(__file__).resolve().parent.parent / "static" / "js" / "templates.js"
+        content = templates_path.read_text(encoding="utf-8")
+
+        import re
+        all_ids = re.findall(r"id:\s*'([a-z][a-z0-9]*-[a-z0-9-]+)'", content)
+        # Filter out node/edge IDs
+        template_ids = [i for i in all_ids if not i.startswith('n') and not i.startswith('e')]
+        duplicates = [i for i in template_ids if template_ids.count(i) > 1]
+        assert len(duplicates) == 0, f"Duplicate template IDs: {set(duplicates)}"
