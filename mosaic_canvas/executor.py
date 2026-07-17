@@ -565,14 +565,72 @@ class GraphExecutor:
                 )
         return errors
 
-    def _cleanup(self) -> None:
-        """Unload all instantiated nodes to free GPU memory and resources."""
-        for nid, instance in self._instances.items():
-            try:
+    def _get_node_scheduler(self, instance: Any) -> Any | None:
+        """Return the node's scheduler if it has one, else ``None``.
+
+        Mosaic ``ModelNode`` instances store their scheduler on
+        ``self._scheduler``.  Plain mock objects or nodes that do not
+        participate in GPU scheduling (e.g. ``Merge``, ``_ConditionalNode``)
+        will not have the attribute.
+        """
+        return getattr(instance, "_scheduler", None)
+
+    def _release_node(self, nid: str, instance: Any) -> None:
+        """Release a node's GPU memory.
+
+        When the node has a scheduler, ``scheduler.release(node)`` is used
+        so that the scheduler's LRU and loaded-set stay consistent.  This
+        mirrors :meth:`Pipeline._release_unused_nodes_serial` in the Mosaic
+        framework.
+
+        Nodes without a scheduler (test mocks, lightweight nodes) fall back
+        to ``node.unload()``.
+        """
+        scheduler = self._get_node_scheduler(instance)
+        try:
+            if scheduler is not None:
                 if hasattr(instance, "is_loaded") and instance.is_loaded():
-                    instance.unload()
-            except Exception:  # noqa: BLE001
-                logger.debug("Failed to unload node %s", nid, exc_info=True)
+                    scheduler.release(instance)
+            elif hasattr(instance, "is_loaded") and instance.is_loaded():
+                instance.unload()
+        except Exception:  # noqa: BLE001
+            logger.debug("Failed to release node %s", nid, exc_info=True)
+
+    def _release_unused_nodes(
+        self,
+        order: list[str],
+        outputs: dict[str, Any],
+    ) -> None:
+        """Release intermediate nodes whose successors have all produced output.
+
+        Mirrors ``Pipeline._release_unused_nodes_serial``: once every
+        successor of a node has executed, the node's model is no longer
+        needed and can be evicted from GPU memory.  Sink nodes (no
+        successors) are never released here because their output may still
+        be consumed by the caller; they are cleaned up in :meth:`_cleanup`.
+        """
+        for nid in order:
+            dn = self.graph.get_node(nid)
+            if dn is None:
+                continue
+            # Skip nodes that haven't executed yet
+            if nid not in outputs:
+                continue
+            successors = self.graph.successors(nid)
+            # Sink nodes are not released mid-pipeline
+            if not successors:
+                continue
+            # Only release when ALL successors have produced output
+            if not all(s in outputs for s in successors):
+                continue
+            instance = self._instances.get(nid)
+            if instance is not None:
+                self._release_node(nid, instance)
+
+    def _cleanup(self) -> None:
+        """Release all instantiated nodes to free GPU memory and resources."""
+        for nid, instance in self._instances.items():
+            self._release_node(nid, instance)
 
     # -- Execution ---------------------------------------------------------
 
@@ -680,10 +738,14 @@ class GraphExecutor:
                 for k, v in coerced_input_params.items():
                     node_input[k] = v
 
-            # Execute
+            # Execute — use run() instead of __call__() so that the node's
+            # internal scheduler.ensure_loaded() performs the GPU capacity
+            # check and LRU eviction.  Calling __call__ would bypass the
+            # scheduler and load the model directly, risking OOM in
+            # multi-model pipelines.
             t0 = time.perf_counter()
             try:
-                output = instance(node_input)
+                output = instance.run(node_input)
                 elapsed = time.perf_counter() - t0
                 outputs[nid] = output
 
@@ -711,13 +773,19 @@ class GraphExecutor:
                         "output_keys": output_keys,
                         "output_summary": _make_output_summary(serialized_output),
                     })
+
+                # Release intermediate nodes whose successors are all done.
+                # This reduces peak GPU memory in multi-model pipelines
+                # (e.g. TextGenerator → TextToImage) by evicting models
+                # that are no longer needed, mirroring Pipeline behaviour.
+                self._release_unused_nodes(order, outputs)
             except Exception as exc:  # noqa: BLE001
                 elapsed = time.perf_counter() - t0
                 error_msg = f"{type(exc).__name__}: {exc}"
                 # Add helpful suggestions for common model loading errors
                 exc_str = str(exc).lower()
                 if "cannot load model" in exc_str or "not cached locally" in exc_str:
-                    model_name = coerced_params.get("model", "unknown")
+                    model_name = gnode.params.get("model", "unknown")
                     error_msg += (
                         f"\n\nSuggestion: Model '{model_name}' could not be loaded. "
                         f"It may not be cached locally or the network is unavailable. "
