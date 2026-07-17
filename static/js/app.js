@@ -724,6 +724,7 @@ const App = (function () {
         Prompts.init();
         Properties.init();
         Results.init();
+        Splitter.init();
         initTabs();
         initToolbar();
         initLanguageSwitcher();

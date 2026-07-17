@@ -760,19 +760,34 @@ class GraphExecutor:
                     output_keys=output_keys,
                 ))
                 if progress:
-                    # Send a lightweight summary in the event — the full
-                    # output is sent later in the "done" event.  Including
-                    # the full serialized output here can cause very large
-                    # WebSocket messages (e.g. chat node with full message
-                    # history) that block the event loop and prevent the
-                    # "done" event from ever reaching the frontend.
-                    progress("node_complete", {
+                    # Send the full serialized output in the event so the
+                    # frontend can render each node's result immediately as
+                    # it completes, rather than waiting for the final "done"
+                    # event.  The serialized output has already been through
+                    # _transform_for_ui() which saves media to disk and
+                    # truncates very long strings (>10000 chars).
+                    #
+                    # For very large outputs (>256KB JSON), fall back to the
+                    # lightweight summary to avoid blocking the WebSocket.
+                    import json as _json
+                    try:
+                        output_json = _json.dumps(serialized_output, ensure_ascii=False)
+                        output_size = len(output_json.encode("utf-8"))
+                    except (TypeError, ValueError):
+                        output_json = None
+                        output_size = 0
+
+                    event_payload = {
                         "node_id": nid,
                         "node_name": node_name,
                         "duration": round(elapsed, 3),
                         "output_keys": output_keys,
                         "output_summary": _make_output_summary(serialized_output),
-                    })
+                    }
+                    # Include full output when reasonably sized (<256KB)
+                    if output_size < 262144:
+                        event_payload["output"] = serialized_output
+                    progress("node_complete", event_payload)
 
                 # Release intermediate nodes whose successors are all done.
                 # This reduces peak GPU memory in multi-model pipelines

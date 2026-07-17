@@ -52,18 +52,19 @@ const Results = (() => {
 
     function appendNodeResult(payload) {
         if (!streamingMode) startStreaming();
+        const hasFullOutput = payload.output && typeof payload.output === 'object';
         const nr = {
             node_id: payload.node_id,
             node_name: payload.node_name,
             status: payload.status || 'success',
             duration: payload.duration,
-            // Use output_summary (lightweight) for streaming display;
-            // full output will be shown when finalizeStreaming replaces
-            // the streamed cards with the complete result.
+            // Use full output when available (complete rendering);
+            // fall back to output_summary (lightweight preview) only when
+            // the full output was too large to send in the event.
             output: payload.output || payload.output_summary,
             error: payload.error,
             output_keys: payload.output_keys || [],
-            _is_summary: !payload.output && !!payload.output_summary,
+            _is_summary: !hasFullOutput && !!payload.output_summary,
         };
         streamingNodes.push(nr);
 
@@ -92,9 +93,13 @@ const Results = (() => {
     function finalizeStreaming(result) {
         streamingMode = false;
         lastResult = result;
-        // If the final result has additional info (summary, final_output),
-        // re-render fully. Otherwise keep the streamed cards.
-        if (result && (result.final_output || result.node_results)) {
+        if (!result) return;
+        // Check if any streamed cards used summary-only (no full output).
+        // If all cards have full output AND there's a final_output to add,
+        // we can append the final output without re-rendering everything.
+        // Otherwise, do a full re-render with the complete result.
+        const hasSummaryOnly = streamingNodes.some(nr => nr._is_summary);
+        if (hasSummaryOnly || result.node_results) {
             renderContent(result);
         }
     }

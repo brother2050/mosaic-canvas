@@ -102,6 +102,9 @@
             </div>
         </aside>
 
+        <!-- Left splitter: drag to resize palette -->
+        <div class="panel-splitter" id="splitter-left" data-target="palette"></div>
+
         <!-- Center: Canvas -->
         <div id="canvas-container">
             <div id="canvas-viewport">
@@ -140,6 +143,9 @@
                 <button class="context-menu-item context-menu-danger" id="ctx-delete" data-i18n="btn.delete">Delete</button>
             </div>
         </div>
+
+        <!-- Right splitter: drag to resize sidebar -->
+        <div class="panel-splitter" id="splitter-right" data-target="sidebar"></div>
 
         <!-- Right: Properties / Input / Results -->
         <aside id="sidebar">
@@ -335,8 +341,9 @@
     <script src="/static/js/prompts.js?v=20260717c"></script>
     <script src="/static/js/canvas.js?v=20260717c"></script>
     <script src="/static/js/properties.js?v=20260717c"></script>
-    <script src="/static/js/results.js?v=20260717c"></script>
-    <script src="/static/js/guide.js?v=20260717c"></script>
-    <script src="/static/js/app.js?v=20260717c"></script>
+    <script src="/static/js/results.js?v=20260717d"></script>
+    <script src="/static/js/splitter.js?v=20260717d"></script>
+    <script src="/static/js/guide.js?v=20260717d"></script>
+    <script src="/static/js/app.js?v=20260717d"></script>
 </body>
 </html>
