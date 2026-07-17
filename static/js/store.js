@@ -218,8 +218,8 @@ const Store = (() => {
             const targetNode = _nodes.find(n => n.id === targetId);
             if (!sourceNode || !targetNode) return { ok: true }; // can't check, allow
 
-            const sourceInfo = _nodeInfo[sourceNode.type];
-            const targetInfo = _nodeInfo[targetNode.type];
+            const sourceInfo = Store.getNodeInfo(sourceNode.type);
+            const targetInfo = Store.getNodeInfo(targetNode.type);
             if (!sourceInfo || !targetInfo) return { ok: true };
 
             const outputTypes = sourceInfo.output_types || [];
