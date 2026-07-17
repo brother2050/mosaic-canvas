@@ -1397,7 +1397,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     "json-path": [
         InputField(name="query", type="string", required=True,
-                   description="JSONPath expression, e.g. $.store.book[*].author."),
+                   description="JSONPath expression, e.g. $.field, $.field[0], $.field[1,3], $.field[1:3], $.field[*]."),
         InputField(name="source_field", type="string", required=False, default="data",
                    description="Input field containing JSON data."),
         InputField(name="target_field", type="string", required=False, default="result",

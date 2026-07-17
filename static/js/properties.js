@@ -124,10 +124,9 @@ const Properties = (() => {
                     <div class="prop-section-title">${I18n.t('prop.output_fields')}</div>
                     <div class="prop-io-schema">`;
                 info.output_fields.forEach(f => {
-                    const fieldName = I18n.paramLabel(f.name) !== f.name ? I18n.paramLabel(f.name) : f.name;
                     const desc = f.description || '';
                     html += `<div class="prop-schema-row">
-                        <span class="prop-schema-name">${escapeHtml(fieldName)}</span>
+                        <span class="prop-schema-name">${escapeHtml(f.name)}</span>
                         <span class="param-type-badge">${escapeHtml(f.type)}</span>
                         <span class="prop-schema-desc">${escapeHtml(desc)}</span>
                     </div>`;

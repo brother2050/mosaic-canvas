@@ -120,6 +120,7 @@ const Guide = (() => {
                 <tr><td><code>value-injector</code></td><td>Inject additional static values (e.g., default width/height)</td></tr>
                 <tr><td><code>type-converter</code></td><td>Convert types: <code>{"count": "int"}</code> forces string→int</td></tr>
                 <tr><td><code>json-builder</code></td><td>Build structured JSON from fields: <code>{"query": "prompt"}</code></td></tr>
+                <tr><td><code>json-path</code></td><td>Extract values via JSONPath: <code>$.field[0]</code>, <code>$.field[1,3]</code>, <code>$.field[1:3]</code>, <code>$.field[*]</code></td></tr>
                 <tr><td><code>template-renderer</code></td><td>Render Jinja2 templates: <code>A {{ field }} image</code></td></tr>
             </table>
             <div class="guide-tip"><strong>Example</strong>: To connect <code>chat</code> → <code>text-to-image</code>, add a <code>field-mapper</code> between them with <code>mappings = {"text": "prompt"}</code>. The chat's <code>text</code> output becomes <code>prompt</code> input for text-to-image.</div>
@@ -367,6 +368,7 @@ const Guide = (() => {
                 <tr><td><code>value-injector</code></td><td>注入额外静态值（如默认 width/height）</td></tr>
                 <tr><td><code>type-converter</code></td><td>类型转换：<code>{"count": "int"}</code> 将字符串→整数</td></tr>
                 <tr><td><code>json-builder</code></td><td>从字段构建结构化 JSON：<code>{"query": "prompt"}</code></td></tr>
+                <tr><td><code>json-path</code></td><td>通过 JSONPath 提取值：<code>$.field[0]</code>、<code>$.field[1,3]</code>、<code>$.field[1:3]</code>、<code>$.field[*]</code></td></tr>
                 <tr><td><code>template-renderer</code></td><td>渲染 Jinja2 模板：<code>A {{ field }} image</code></td></tr>
             </table>
             <div class="guide-tip"><strong>示例</strong>：要连接 <code>chat</code> → <code>text-to-image</code>，在中间加一个 <code>field-mapper</code>，设置 <code>mappings = {"text": "prompt"}</code>。chat 的 <code>text</code> 输出就会变成 text-to-image 的 <code>prompt</code> 输入。</div>

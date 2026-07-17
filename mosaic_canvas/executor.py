@@ -211,6 +211,59 @@ def _serialize_output(data: Any) -> dict[str, Any]:
         return {"__display_type__": "text", "value": str(data)}
 
 
+def _make_output_summary(serialized: dict[str, Any]) -> dict[str, Any]:
+    """Create a lightweight summary of a serialized node output.
+
+    This is sent in the ``node_complete`` WebSocket event so the frontend
+    can show a quick preview without waiting for the full ``done`` event.
+    The full output is sent later in the ``done`` event.
+
+    Truncates long strings and lists to keep the event payload small.
+    """
+    summary: dict[str, Any] = {}
+    for key, val in serialized.items():
+        if key.startswith("__"):
+            summary[key] = val
+            continue
+        summary[key] = _summarize_value(val)
+    return summary
+
+
+def _summarize_value(val: Any, max_str: int = 200) -> Any:
+    """Summarize a single value for the output summary."""
+    if isinstance(val, str):
+        if len(val) > max_str:
+            return val[:max_str] + f"... ({len(val)} chars total)"
+        return val
+    if isinstance(val, list):
+        if len(val) > 5:
+            return f"[{len(val)} items]"
+        return [_summarize_item(v, max_str) for v in val]
+    if isinstance(val, dict):
+        if "__display_type__" in val:
+            return val
+        keys = list(val.keys())
+        return f"{{ {len(keys)} keys: {keys[:5]}{'...' if len(keys) > 5 else ''} }}"
+    if isinstance(val, (int, float, bool)):
+        return val
+    if val is None:
+        return None
+    return str(val)[:max_str]
+
+
+def _summarize_item(val: Any, max_str: int) -> Any:
+    """Summarize a single list item."""
+    if isinstance(val, str):
+        if len(val) > max_str:
+            return val[:max_str] + "..."
+        return val
+    if isinstance(val, dict):
+        return f"{{ {len(val)} keys }}"
+    if isinstance(val, list):
+        return f"[{len(val)} items]"
+    return val
+
+
 # Maximum number of video frames to send as thumbnails.
 _MAX_VIDEO_THUMBNAILS = 6
 # Maximum audio duration (seconds) to encode as playable WAV.
@@ -248,7 +301,13 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
     """
     if depth > 12:
         return "<truncated>"
-    if obj is None or isinstance(obj, (bool, int, float, str)):
+    if obj is None or isinstance(obj, (bool, int, float)):
+        return obj
+    if isinstance(obj, str):
+        # Truncate very long strings to prevent oversized WebSocket messages
+        # (e.g. chat responses with full message history)
+        if len(obj) > 10000:
+            return obj[:10000] + f"... ({len(obj)} chars total, truncated)"
         return obj
 
     # PIL Image serialized by Mosaic
@@ -627,21 +686,28 @@ class GraphExecutor:
                 outputs[nid] = output
 
                 output_keys = list(output.keys()) if hasattr(output, "keys") else []
+                serialized_output = _serialize_output(output)
                 node_results.append(NodeResult(
                     node_id=nid,
                     node_name=node_name,
                     status="success",
                     duration=elapsed,
-                    output=_serialize_output(output),
+                    output=serialized_output,
                     output_keys=output_keys,
                 ))
                 if progress:
+                    # Send a lightweight summary in the event — the full
+                    # output is sent later in the "done" event.  Including
+                    # the full serialized output here can cause very large
+                    # WebSocket messages (e.g. chat node with full message
+                    # history) that block the event loop and prevent the
+                    # "done" event from ever reaching the frontend.
                     progress("node_complete", {
                         "node_id": nid,
                         "node_name": node_name,
                         "duration": round(elapsed, 3),
                         "output_keys": output_keys,
-                        "output": _serialize_output(output),
+                        "output_summary": _make_output_summary(serialized_output),
                     })
             except Exception as exc:  # noqa: BLE001
                 elapsed = time.perf_counter() - t0

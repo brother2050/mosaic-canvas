@@ -288,16 +288,28 @@ def create_app() -> FastAPI:
             import asyncio
 
             loop = asyncio.get_event_loop()
+            # Track send errors so the worker thread can detect connection failures
+            send_error: list[Exception] = []
 
             def progress(event_type: str, payload: dict[str, Any]) -> None:
                 # Schedule the send on the event loop (we're in a worker thread)
                 try:
-                    asyncio.run_coroutine_threadsafe(
+                    fut = asyncio.run_coroutine_threadsafe(
                         websocket.send_json({"event": event_type, "payload": payload}),
                         loop,
                     )
+                    # Check the result so exceptions don't get silently swallowed
+                    fut.add_done_callback(lambda f: _on_send_done(f, send_error))
                 except Exception:  # noqa: BLE001
                     pass  # Connection may have been closed
+
+            def _on_send_done(fut: "asyncio.Future[None]", err_list: list[Exception]) -> None:
+                """Callback to capture send exceptions instead of silently dropping them."""
+                try:
+                    fut.result()
+                except Exception as exc:  # noqa: BLE001
+                    err_list.append(exc)
+                    logger.warning("WebSocket send failed: %s", exc)
 
             # Run execution in a background thread
             result_holder: dict[str, Any] = {}

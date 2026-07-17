@@ -57,9 +57,13 @@ const Results = (() => {
             node_name: payload.node_name,
             status: payload.status || 'success',
             duration: payload.duration,
-            output: payload.output,
+            // Use output_summary (lightweight) for streaming display;
+            // full output will be shown when finalizeStreaming replaces
+            // the streamed cards with the complete result.
+            output: payload.output || payload.output_summary,
             error: payload.error,
             output_keys: payload.output_keys || [],
+            _is_summary: !payload.output && !!payload.output_summary,
         };
         streamingNodes.push(nr);
 
@@ -172,6 +176,9 @@ const Results = (() => {
             html += `<div class="result-node-body expanded">
                 ${renderOutputData(nr.output)}
             </div>`;
+            if (nr._is_summary) {
+                html += `<div class="result-preview-hint">${I18n.t('results.preview_hint')}</div>`;
+            }
         } else if (nr.status === 'skipped') {
             html += `<div class="result-node-body">
                 <div class="result-output">${I18n.t('results.skipped')}</div>
