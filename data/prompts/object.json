@@ -10,103 +10,327 @@
       "name": "桌子",
       "name_en": "Table",
       "items": [
-        { "text": "a wooden table", "label": "木桌", "label_en": "wooden table" },
-        { "text": "a round glass table", "label": "圆形玻璃桌", "label_en": "round glass table" },
-        { "text": "a rectangular marble table", "label": "长方形大理石桌", "label_en": "rectangular marble table" },
-        { "text": "a three-legged stool", "label": "三脚凳", "label_en": "three-legged stool" },
-        { "text": "a four-legged dining table", "label": "四腿餐桌", "label_en": "four-legged dining table" },
-        { "text": "a folding table", "label": "折叠桌", "label_en": "folding table" },
-        { "text": "a modern metal table", "label": "现代金属桌", "label_en": "modern metal table" },
-        { "text": "a vintage wooden coffee table", "label": "复古木茶几", "label_en": "vintage coffee table" },
-        { "text": "a large conference table", "label": "大型会议桌", "label_en": "conference table" }
-      ]
+        {
+          "text": "a wooden table",
+          "label": "木桌",
+          "label_en": "wooden table"
+        },
+        {
+          "text": "a round glass table",
+          "label": "圆形玻璃桌",
+          "label_en": "round glass table"
+        },
+        {
+          "text": "a rectangular marble table",
+          "label": "长方形大理石桌",
+          "label_en": "rectangular marble table"
+        },
+        {
+          "text": "a three-legged stool",
+          "label": "三脚凳",
+          "label_en": "three-legged stool"
+        },
+        {
+          "text": "a four-legged dining table",
+          "label": "四腿餐桌",
+          "label_en": "four-legged dining table"
+        },
+        {
+          "text": "a folding table",
+          "label": "折叠桌",
+          "label_en": "folding table"
+        },
+        {
+          "text": "a modern metal table",
+          "label": "现代金属桌",
+          "label_en": "modern metal table"
+        },
+        {
+          "text": "a vintage wooden coffee table",
+          "label": "复古木茶几",
+          "label_en": "vintage coffee table"
+        },
+        {
+          "text": "a large conference table",
+          "label": "大型会议桌",
+          "label_en": "conference table"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "table_color",
       "name": "桌子-颜色",
       "name_en": "Table Colors",
       "items": [
-        { "text": "white table", "label": "白色", "label_en": "white" },
-        { "text": "black table", "label": "黑色", "label_en": "black" },
-        { "text": "brown table", "label": "棕色", "label_en": "brown" },
-        { "text": "red table", "label": "红色", "label_en": "red" },
-        { "text": "natural wood color table", "label": "原木色", "label_en": "natural wood" },
-        { "text": "grey table", "label": "灰色", "label_en": "grey" }
-      ]
+        {
+          "text": "white table",
+          "label": "白色",
+          "label_en": "white"
+        },
+        {
+          "text": "black table",
+          "label": "黑色",
+          "label_en": "black"
+        },
+        {
+          "text": "brown table",
+          "label": "棕色",
+          "label_en": "brown"
+        },
+        {
+          "text": "red table",
+          "label": "红色",
+          "label_en": "red"
+        },
+        {
+          "text": "natural wood color table",
+          "label": "原木色",
+          "label_en": "natural wood"
+        },
+        {
+          "text": "grey table",
+          "label": "灰色",
+          "label_en": "grey"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "table_shape",
       "name": "桌子-形状",
       "name_en": "Table Shapes",
       "items": [
-        { "text": "round table", "label": "圆形", "label_en": "round" },
-        { "text": "rectangular table", "label": "长方形", "label_en": "rectangular" },
-        { "text": "square table", "label": "正方形", "label_en": "square" },
-        { "text": "oval table", "label": "椭圆形", "label_en": "oval" },
-        { "text": "L-shaped table", "label": "L形", "label_en": "L-shaped" }
-      ]
+        {
+          "text": "round table",
+          "label": "圆形",
+          "label_en": "round"
+        },
+        {
+          "text": "rectangular table",
+          "label": "长方形",
+          "label_en": "rectangular"
+        },
+        {
+          "text": "square table",
+          "label": "正方形",
+          "label_en": "square"
+        },
+        {
+          "text": "oval table",
+          "label": "椭圆形",
+          "label_en": "oval"
+        },
+        {
+          "text": "L-shaped table",
+          "label": "L形",
+          "label_en": "L-shaped"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "chair",
       "name": "椅子",
       "name_en": "Chair",
       "items": [
-        { "text": "a wooden dining chair", "label": "木质餐椅", "label_en": "wooden dining chair" },
-        { "text": "a leather office chair", "label": "皮质办公椅", "label_en": "leather office chair" },
-        { "text": "a rocking chair", "label": "摇椅", "label_en": "rocking chair" },
-        { "text": "a modern minimalist chair", "label": "现代极简椅", "label_en": "modern minimalist chair" },
-        { "text": "a vintage armchair", "label": "复古扶手椅", "label_en": "vintage armchair" },
-        { "text": "a bar stool", "label": "吧台凳", "label_en": "bar stool" },
-        { "text": "a folding chair", "label": "折叠椅", "label_en": "folding chair" },
-        { "text": "a lounge chair", "label": "躺椅", "label_en": "lounge chair" }
-      ]
+        {
+          "text": "a wooden dining chair",
+          "label": "木质餐椅",
+          "label_en": "wooden dining chair"
+        },
+        {
+          "text": "a leather office chair",
+          "label": "皮质办公椅",
+          "label_en": "leather office chair"
+        },
+        {
+          "text": "a rocking chair",
+          "label": "摇椅",
+          "label_en": "rocking chair"
+        },
+        {
+          "text": "a modern minimalist chair",
+          "label": "现代极简椅",
+          "label_en": "modern minimalist chair"
+        },
+        {
+          "text": "a vintage armchair",
+          "label": "复古扶手椅",
+          "label_en": "vintage armchair"
+        },
+        {
+          "text": "a bar stool",
+          "label": "吧台凳",
+          "label_en": "bar stool"
+        },
+        {
+          "text": "a folding chair",
+          "label": "折叠椅",
+          "label_en": "folding chair"
+        },
+        {
+          "text": "a lounge chair",
+          "label": "躺椅",
+          "label_en": "lounge chair"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "vehicle",
       "name": "交通工具",
       "name_en": "Vehicle",
       "items": [
-        { "text": "a red sports car", "label": "红色跑车", "label_en": "red sports car" },
-        { "text": "a vintage motorcycle", "label": "复古摩托车", "label_en": "vintage motorcycle" },
-        { "text": "a white sailboat", "label": "白色帆船", "label_en": "white sailboat" },
-        { "text": "a small airplane", "label": "小型飞机", "label_en": "small airplane" },
-        { "text": "a city bus", "label": "城市公交", "label_en": "city bus" },
-        { "text": "a pickup truck", "label": "皮卡", "label_en": "pickup truck" },
-        { "text": "a bicycle", "label": "自行车", "label_en": "bicycle" },
-        { "text": "a train", "label": "火车", "label_en": "train" },
-        { "text": "a helicopter", "label": "直升机", "label_en": "helicopter" }
-      ]
+        {
+          "text": "a red sports car",
+          "label": "红色跑车",
+          "label_en": "red sports car"
+        },
+        {
+          "text": "a vintage motorcycle",
+          "label": "复古摩托车",
+          "label_en": "vintage motorcycle"
+        },
+        {
+          "text": "a white sailboat",
+          "label": "白色帆船",
+          "label_en": "white sailboat"
+        },
+        {
+          "text": "a small airplane",
+          "label": "小型飞机",
+          "label_en": "small airplane"
+        },
+        {
+          "text": "a city bus",
+          "label": "城市公交",
+          "label_en": "city bus"
+        },
+        {
+          "text": "a pickup truck",
+          "label": "皮卡",
+          "label_en": "pickup truck"
+        },
+        {
+          "text": "a bicycle",
+          "label": "自行车",
+          "label_en": "bicycle"
+        },
+        {
+          "text": "a train",
+          "label": "火车",
+          "label_en": "train"
+        },
+        {
+          "text": "a helicopter",
+          "label": "直升机",
+          "label_en": "helicopter"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "decoration",
       "name": "装饰",
       "name_en": "Decoration",
       "items": [
-        { "text": "a vase with fresh flowers", "label": "花瓶", "label_en": "vase with flowers" },
-        { "text": "a vintage wall clock", "label": "复古挂钟", "label_en": "vintage wall clock" },
-        { "text": "a crystal chandelier", "label": "水晶吊灯", "label_en": "crystal chandelier" },
-        { "text": "a framed oil painting", "label": "油画", "label_en": "framed oil painting" },
-        { "text": "a potted green plant", "label": "盆栽", "label_en": "potted plant" },
-        { "text": "a sculpture", "label": "雕塑", "label_en": "sculpture" },
-        { "text": "a Persian rug", "label": "波斯地毯", "label_en": "Persian rug" },
-        { "text": "a table lamp", "label": "台灯", "label_en": "table lamp" },
-        { "text": "candles on the table", "label": "蜡烛", "label_en": "candles" }
-      ]
+        {
+          "text": "a vase with fresh flowers",
+          "label": "花瓶",
+          "label_en": "vase with flowers"
+        },
+        {
+          "text": "a vintage wall clock",
+          "label": "复古挂钟",
+          "label_en": "vintage wall clock"
+        },
+        {
+          "text": "a crystal chandelier",
+          "label": "水晶吊灯",
+          "label_en": "crystal chandelier"
+        },
+        {
+          "text": "a framed oil painting",
+          "label": "油画",
+          "label_en": "framed oil painting"
+        },
+        {
+          "text": "a potted green plant",
+          "label": "盆栽",
+          "label_en": "potted plant"
+        },
+        {
+          "text": "a sculpture",
+          "label": "雕塑",
+          "label_en": "sculpture"
+        },
+        {
+          "text": "a Persian rug",
+          "label": "波斯地毯",
+          "label_en": "Persian rug"
+        },
+        {
+          "text": "a table lamp",
+          "label": "台灯",
+          "label_en": "table lamp"
+        },
+        {
+          "text": "candles on the table",
+          "label": "蜡烛",
+          "label_en": "candles"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "food",
       "name": "食物",
       "name_en": "Food",
       "items": [
-        { "text": "a plate of sushi", "label": "寿司", "label_en": "sushi" },
-        { "text": "a bowl of ramen", "label": "拉面", "label_en": "ramen" },
-        { "text": "a pizza with melted cheese", "label": "披萨", "label_en": "pizza" },
-        { "text": "a cup of coffee with latte art", "label": "拉花咖啡", "label_en": "latte coffee" },
-        { "text": "a chocolate cake", "label": "巧克力蛋糕", "label_en": "chocolate cake" },
-        { "text": "a basket of fresh bread", "label": "面包篮", "label_en": "bread basket" },
-        { "text": "a fruit platter", "label": "水果拼盘", "label_en": "fruit platter" },
-        { "text": "a steak dinner", "label": "牛排", "label_en": "steak dinner" }
-      ]
+        {
+          "text": "a plate of sushi",
+          "label": "寿司",
+          "label_en": "sushi"
+        },
+        {
+          "text": "a bowl of ramen",
+          "label": "拉面",
+          "label_en": "ramen"
+        },
+        {
+          "text": "a pizza with melted cheese",
+          "label": "披萨",
+          "label_en": "pizza"
+        },
+        {
+          "text": "a cup of coffee with latte art",
+          "label": "拉花咖啡",
+          "label_en": "latte coffee"
+        },
+        {
+          "text": "a chocolate cake",
+          "label": "巧克力蛋糕",
+          "label_en": "chocolate cake"
+        },
+        {
+          "text": "a basket of fresh bread",
+          "label": "面包篮",
+          "label_en": "bread basket"
+        },
+        {
+          "text": "a fruit platter",
+          "label": "水果拼盘",
+          "label_en": "fruit platter"
+        },
+        {
+          "text": "a steak dinner",
+          "label": "牛排",
+          "label_en": "steak dinner"
+        }
+      ],
+      "polarity": "positive"
     }
-  ]
+  ],
+  "polarity": "positive"
 }

@@ -334,6 +334,57 @@ const Store = (() => {
             emit('select');
             emit('status');
         },
+        /**
+         * Incrementally merge a graph into the current canvas (non-destructive).
+         *
+         * Unlike fromGraph() which replaces everything, addGraph() generates
+         * fresh IDs for all incoming nodes/edges and appends them to the
+         * existing canvas.  Node positions are offset so the new group
+         * appears to the right of existing nodes.  Input data is merged
+         * (existing keys take precedence).
+         *
+         * Returns the array of new node IDs added.
+         */
+        addGraph(graph) {
+            const idMap = {};  // oldId → newId
+            const existing = _nodes.length;
+            // Determine offset: place new nodes to the right of rightmost node
+            let maxX = 0;
+            _nodes.forEach(n => { if (n.x > maxX) maxX = n.x; });
+            const offsetX = (maxX > 0 ? maxX + 80 : 0);
+
+            const newNodes = (graph.nodes || []).map((n, i) => {
+                const newId = `t${Date.now()}${Math.floor(Math.random() * 1e4)}_${i}`;
+                idMap[n.id] = newId;
+                return {
+                    ...n,
+                    id: newId,
+                    x: (n.x || 0) + offsetX,
+                    y: n.y || (i * 80),
+                    input_params: n.input_params || {},
+                };
+            });
+
+            const newEdges = (graph.edges || []).filter(e => {
+                return idMap[e.source] && idMap[e.target];
+            }).map((e, i) => ({
+                id: `te${Date.now()}${Math.floor(Math.random() * 1e4)}_${i}`,
+                source: idMap[e.source],
+                target: idMap[e.target],
+            }));
+
+            _nodes = _nodes.concat(newNodes);
+            _edges = _edges.concat(newEdges);
+
+            // Merge input data (existing keys take precedence)
+            if (graph.input && graph.input.data) {
+                const merged = { ...graph.input.data, ..._input };
+                _input = merged;
+            }
+
+            emit('change');
+            return newNodes.map(n => n.id);
+        },
         clear() {
             _nodes = [];
             _edges = [];

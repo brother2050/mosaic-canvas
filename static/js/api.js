@@ -78,6 +78,30 @@ const API = (() => {
             });
         },
 
+        // -- Template persistence (save / load / list / delete) --
+
+        async listTemplates() {
+            return fetchJSON(`${baseUrl}/api/templates`);
+        },
+
+        async saveTemplate(graph) {
+            return fetchJSON(`${baseUrl}/api/templates`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(graph),
+            });
+        },
+
+        async loadTemplate(filename) {
+            return fetchJSON(`${baseUrl}/api/templates/${encodeURIComponent(filename)}`);
+        },
+
+        async deleteTemplate(filename) {
+            return fetchJSON(`${baseUrl}/api/templates/${encodeURIComponent(filename)}`, {
+                method: 'DELETE',
+            });
+        },
+
         /** Run pipeline via WebSocket with real-time progress callbacks. */
         runWebSocket(graph, onEvent) {
             return new Promise((resolve, reject) => {

@@ -104,6 +104,34 @@ _job_manager = JobManager()
 
 
 # ---------------------------------------------------------------------------
+# Data directory resolution
+# ---------------------------------------------------------------------------
+def _get_data_dir(subdir: str) -> Path:
+    """Resolve a data subdirectory, checking multiple candidate locations.
+
+    Checks (in order):
+    1. ``<project_root>/data/<subdir>``  — development layout
+    2. ``<package_dir>/data/<subdir>``   — installed-package layout
+
+    Creates the directory at the first writable candidate if none exists,
+    so the server always has a valid path to read from / write to.
+    """
+    pkg_dir = Path(__file__).resolve().parent          # mosaic_canvas/
+    root_dir = pkg_dir.parent                           # project root
+    candidates = [
+        root_dir / "data" / subdir,
+        pkg_dir / "data" / subdir,
+    ]
+    for c in candidates:
+        if c.is_dir():
+            return c
+    # Create at the first candidate (project-root layout)
+    first = candidates[0]
+    first.mkdir(parents=True, exist_ok=True)
+    return first
+
+
+# ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
 def create_app() -> FastAPI:
@@ -154,11 +182,11 @@ def create_app() -> FastAPI:
         """List all available prompt category files (metadata only).
 
         Scans ``data/prompts/*.json`` and returns each file's top-level
-        metadata (id, name, name_en, icon, version, subcategory count,
-        item count). The full content is loaded on demand via
+        metadata (id, name, name_en, icon, version, polarity, subcategory
+        count, item count). The full content is loaded on demand via
         ``GET /api/prompts/{category_id}``.
         """
-        prompts_dir = Path(__file__).resolve().parent.parent / "data" / "prompts"
+        prompts_dir = _get_data_dir("prompts")
         categories = []
         if prompts_dir.is_dir():
             for f in sorted(prompts_dir.glob("*.json")):
@@ -170,12 +198,18 @@ def create_app() -> FastAPI:
                         len(sub.get("items", []))
                         for sub in data.get("subcategories", [])
                     )
+                    has_negative = any(
+                        sub.get("polarity") == "negative"
+                        for sub in data.get("subcategories", [])
+                    )
                     categories.append({
                         "id": data.get("id", f.stem),
                         "name": data.get("name", f.stem),
                         "name_en": data.get("name_en", data.get("name", f.stem)),
                         "icon": data.get("icon", ""),
                         "version": data.get("version", "1.0"),
+                        "polarity": data.get("polarity", "neutral"),
+                        "has_negative": has_negative,
                         "subcategory_count": sub_count,
                         "item_count": item_count,
                     })
@@ -190,7 +224,7 @@ def create_app() -> FastAPI:
         Looks for ``data/prompts/{category_id}.json``. Returns the full
         category content (subcategories with all items).
         """
-        prompts_dir = Path(__file__).resolve().parent.parent / "data" / "prompts"
+        prompts_dir = _get_data_dir("prompts")
         prompt_file = prompts_dir / f"{category_id}.json"
         if prompt_file.exists():
             try:
@@ -272,18 +306,17 @@ def create_app() -> FastAPI:
 
     # -- Pipeline persistence (save / load / list / delete) -------------
 
-    pipelines_dir = Path(__file__).resolve().parent.parent / "data" / "pipelines"
-    pipelines_dir.mkdir(parents=True, exist_ok=True)
+    pipelines_dir = _get_data_dir("pipelines")
 
     import re
     _SAFE_NAME_RE = re.compile(r'^[A-Za-z0-9_\-\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff ]+$')
 
     def _safe_filename(name: str) -> str:
-        """Sanitise a pipeline name into a safe filename (without extension)."""
+        """Sanitise a pipeline or template name into a safe filename (without extension)."""
         # Replace spaces with underscores, strip to 60 chars
         safe = name.strip().replace(' ', '_')[:60]
         if not safe or not _SAFE_NAME_RE.match(name.strip()):
-            safe = "pipeline"
+            safe = "untitled"
         return safe
 
     @app.get("/api/pipelines")
@@ -351,6 +384,76 @@ def create_app() -> FastAPI:
         filepath.unlink()
         logger.info("Deleted pipeline %s", filepath)
         return JSONResponse(content={"ok": True, "message": "Pipeline deleted."})
+
+    # -- Template persistence (save / load / list / delete) -------------
+
+    templates_dir = _get_data_dir("templates")
+
+    @app.get("/api/templates")
+    def api_list_templates() -> JSONResponse:
+        """List all user-saved templates on the server."""
+        result = []
+        for f in sorted(templates_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                result.append({
+                    "name": data.get("name", f.stem),
+                    "filename": f.name,
+                    "saved_at": f.stat().st_mtime,
+                    "description": data.get("description", ""),
+                    "nodes_count": len(data.get("nodes", [])),
+                    "edges_count": len(data.get("edges", [])),
+                })
+            except Exception:
+                logger.warning("Failed to read template file %s", f, exc_info=True)
+        return JSONResponse(content={"templates": result})
+
+    @app.post("/api/templates")
+    def api_save_template(req: GraphRequest) -> JSONResponse:
+        """Save a user template to the server."""
+        name = req.name.strip() or "Untitled Template"
+        filename = _safe_filename(name) + ".json"
+        filepath = templates_dir / filename
+        data = req.model_dump()
+        data["name"] = name
+        filepath.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info("Saved template '%s' to %s", name, filepath)
+        return JSONResponse(content={
+            "ok": True,
+            "name": name,
+            "filename": filename,
+            "message": f"Template '{name}' saved to server.",
+        })
+
+    @app.get("/api/templates/{filename}")
+    def api_load_template(filename: str) -> JSONResponse:
+        """Load a user template from the server."""
+        if "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(status_code=400, content={"error": "Invalid filename."})
+        if not filename.endswith(".json"):
+            filename += ".json"
+        filepath = templates_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": f"Template '{filename}' not found."})
+        try:
+            data = json.loads(filepath.read_text(encoding="utf-8"))
+            return JSONResponse(content=data)
+        except Exception as exc:
+            return JSONResponse(status_code=500, content={"error": f"Failed to load: {exc}"})
+
+    @app.delete("/api/templates/{filename}")
+    def api_delete_template(filename: str) -> JSONResponse:
+        """Delete a user template from the server."""
+        if "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(status_code=400, content={"error": "Invalid filename."})
+        if not filename.endswith(".json"):
+            filename += ".json"
+        filepath = templates_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": f"Template '{filename}' not found."})
+        filepath.unlink()
+        logger.info("Deleted template %s", filepath)
+        return JSONResponse(content={"ok": True, "message": "Template deleted."})
 
     # -- WebSocket for real-time execution --------------------------------
 

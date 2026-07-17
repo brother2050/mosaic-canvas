@@ -132,12 +132,16 @@ const Prompts = (() => {
         let html = '';
         cat.subcategories.forEach(sub => {
             const subName = lang === 'zh' ? sub.name : (sub.name_en || sub.name);
-            html += `<div class="prompts-subgroup">
-                <div class="prompts-sub-header">${escapeHtml(subName)}</div>
+            const isNegative = sub.polarity === 'negative';
+            const badge = isNegative ? ` <span class="prompts-polarity-badge">${I18n.t('prompts.negative_badge')}</span>` : '';
+            const subClass = isNegative ? 'prompts-subgroup prompts-subgroup-negative' : 'prompts-subgroup';
+            html += `<div class="${subClass}">
+                <div class="prompts-sub-header">${escapeHtml(subName)}${badge}</div>
                 <div class="prompts-items">`;
             sub.items.forEach(item => {
                 const label = lang === 'zh' ? item.label : (item.label_en || item.label);
-                html += `<div class="prompt-chip" data-prompt-text="${escapeAttr(item.text)}" title="${escapeAttr(item.text)}">
+                const chipClass = isNegative ? 'prompt-chip prompt-chip-negative' : 'prompt-chip';
+                html += `<div class="${chipClass}" data-prompt-text="${escapeAttr(item.text)}" title="${escapeAttr(item.text)}">
                     ${escapeHtml(label)}
                 </div>`;
             });
@@ -254,15 +258,18 @@ const Prompts = (() => {
     function openPopover(inputEl, fieldId) {
         closePopover();
         activeTarget = inputEl;
+        // Determine polarity from fieldId: fields containing "negative" show
+        // only negative-polarity prompts; all other fields show positive.
+        const polarity = (fieldId && /negative/i.test(fieldId)) ? 'negative' : 'positive';
 
         if (!categoryList) {
-            loadCategoryList().then(() => _buildPopover(inputEl));
+            loadCategoryList().then(() => _buildPopover(inputEl, polarity));
             return;
         }
-        _buildPopover(inputEl);
+        _buildPopover(inputEl, polarity);
     }
 
-    async function _buildPopover(inputEl) {
+    async function _buildPopover(inputEl, polarity) {
         const lang = I18n.getLang();
         const rect = inputEl.getBoundingClientRect();
 
@@ -280,8 +287,10 @@ const Prompts = (() => {
         popover.style.top = top + 'px';
         popover.style.width = width + 'px';
 
+        // Title reflects polarity
+        const titleKey = polarity === 'negative' ? 'prompts.popover_title_negative' : 'prompts.popover_title';
         let html = `<div class="prompt-popover-header">
-            <span>${I18n.t('prompts.popover_title')}</span>
+            <span>${I18n.t(titleKey)}</span>
             <button class="prompt-popover-close" id="prompt-popover-close">×</button>
         </div>`;
         html += `<div class="prompt-popover-search-wrap">
@@ -290,8 +299,17 @@ const Prompts = (() => {
         </div>`;
         html += `<div class="prompt-popover-body" id="prompt-popover-body">`;
 
-        // Render categories — load all lazily, show loading state
-        for (const cat of categoryList) {
+        // Filter categories by polarity:
+        // - negative: show categories with polarity "negative" OR has_negative=true
+        // - positive: show all categories (negative subcategories filtered per-category)
+        const visibleCats = categoryList.filter(cat => {
+            if (polarity === 'negative') {
+                return cat.polarity === 'negative' || cat.has_negative === true;
+            }
+            return true;
+        });
+
+        for (const cat of visibleCats) {
             const catName = lang === 'zh' ? cat.name : (cat.name_en || cat.name);
             html += `<div class="prompt-popover-cat" data-cat-id="${cat.id}">
                 <div class="prompt-popover-cat-header">${escapeHtml(catName)}</div>
@@ -299,7 +317,7 @@ const Prompts = (() => {
 
             const cached = categoryCache.get(cat.id);
             if (cached) {
-                html += _renderPopoverCatItems(cached);
+                html += _renderPopoverCatItems(cached, polarity);
             } else {
                 html += `<span class="prompts-cat-loading">${I18n.t('prompts.loading')}</span>`;
             }
@@ -314,25 +332,28 @@ const Prompts = (() => {
 
         // Prevent mousedown on popover from stealing focus from the target input
         popover.addEventListener('mousedown', (e) => {
-            // Allow focus on the search input, but prevent default elsewhere
             if (e.target.id !== 'prompt-popover-search') {
                 e.preventDefault();
             }
         });
 
         // Lazy load any categories not yet cached
-        for (const cat of categoryList) {
+        for (const cat of visibleCats) {
             if (!categoryCache.has(cat.id)) {
                 loadCategory(cat.id).then(data => {
                     if (!data) return;
                     const container = popover.querySelector(`#popover-cat-${cat.id}`);
                     if (container) {
-                        container.innerHTML = _renderPopoverCatItems(data);
+                        container.innerHTML = _renderPopoverCatItems(data, polarity);
                         _wireUpChips(container);
+                        _hideEmptyCategories(popover);
                     }
                 });
             }
         }
+
+        // Hide categories that have no visible items after polarity filtering
+        _hideEmptyCategories(popover);
 
         // Focus search
         const search = popover.querySelector('#prompt-popover-search');
@@ -358,10 +379,23 @@ const Prompts = (() => {
         }, 50);
     }
 
-    function _renderPopoverCatItems(cat) {
+    function _hideEmptyCategories(popover) {
+        popover.querySelectorAll('.prompt-popover-cat').forEach(cat => {
+            const visible = cat.querySelectorAll('.prompt-chip-sm:not([style*="none"])').length;
+            cat.style.display = visible > 0 ? '' : 'none';
+        });
+    }
+
+    function _renderPopoverCatItems(cat, polarity) {
         const lang = I18n.getLang();
         let html = '';
         cat.subcategories.forEach(sub => {
+            // Filter by polarity: positive shows only positive/neutral subs,
+            // negative shows only negative subs.
+            const subPolarity = sub.polarity || 'neutral';
+            if (polarity === 'negative' && subPolarity !== 'negative') return;
+            if (polarity === 'positive' && subPolarity === 'negative') return;
+
             const subName = lang === 'zh' ? sub.name : (sub.name_en || sub.name);
             html += `<div class="prompt-popover-sub">${escapeHtml(subName)}:</div>`;
             sub.items.forEach(item => {

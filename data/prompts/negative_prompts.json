@@ -1,120 +1,78 @@
 {
   "id": "negative_prompts",
-  "name": "负面提示词",
-  "name_en": "Negative Prompts",
+  "name": "通用负面提示词",
+  "name_en": "Common Negative Prompts",
   "icon": "✕",
   "version": "1.0",
   "subcategories": [
-    {
-      "id": "quality",
-      "name": "画质质量",
-      "name_en": "Quality Issues",
-      "items": [
-        { "text": "low quality", "label": "低质量", "label_en": "Low Quality" },
-        { "text": "worst quality", "label": "最差质量", "label_en": "Worst Quality" },
-        { "text": "blurry", "label": "模糊", "label_en": "Blurry" },
-        { "text": "out of focus", "label": "失焦", "label_en": "Out of Focus" },
-        { "text": "distorted", "label": "变形", "label_en": "Distorted" },
-        { "text": "pixelated", "label": "像素化", "label_en": "Pixelated" },
-        { "text": "compressed", "label": "压缩痕迹", "label_en": "Compressed" },
-        { "text": "noise", "label": "噪点", "label_en": "Noise" },
-        { "text": "grainy", "label": "颗粒感", "label_en": "Grainy" },
-        { "text": "jpeg artifacts", "label": "JPEG伪影", "label_en": "JPEG Artifacts" },
-        { "text": "overexposed", "label": "过曝", "label_en": "Overexposed" },
-        { "text": "underexposed", "label": "欠曝", "label_en": "Underexposed" },
-        { "text": "oversaturated", "label": "过饱和", "label_en": "Oversaturated" }
-      ]
-    },
-    {
-      "id": "anatomy",
-      "name": "人体结构",
-      "name_en": "Anatomy Defects",
-      "items": [
-        { "text": "bad anatomy", "label": "解剖结构错误", "label_en": "Bad Anatomy" },
-        { "text": "bad hands", "label": "手部错误", "label_en": "Bad Hands" },
-        { "text": "extra fingers", "label": "多余手指", "label_en": "Extra Fingers" },
-        { "text": "missing fingers", "label": "缺失手指", "label_en": "Missing Fingers" },
-        { "text": "fused fingers", "label": "手指融合", "label_en": "Fused Fingers" },
-        { "text": "too many fingers", "label": "手指过多", "label_en": "Too Many Fingers" },
-        { "text": "bad limbs", "label": "肢体错误", "label_en": "Bad Limbs" },
-        { "text": "extra limbs", "label": "多余肢体", "label_en": "Extra Limbs" },
-        { "text": "missing limbs", "label": "缺失肢体", "label_en": "Missing Limbs" },
-        { "text": "extra arms", "label": "多余手臂", "label_en": "Extra Arms" },
-        { "text": "bad proportions", "label": "比例失调", "label_en": "Bad Proportions" },
-        { "text": "disfigured", "label": "畸形", "label_en": "Disfigured" },
-        { "text": "deformed", "label": "变形", "label_en": "Deformed" },
-        { "text": "malformed", "label": "发育不良", "label_en": "Malformed" }
-      ]
-    },
-    {
-      "id": "face",
-      "name": "面部缺陷",
-      "name_en": "Face Defects",
-      "items": [
-        { "text": "bad face", "label": "面部错误", "label_en": "Bad Face" },
-        { "text": "asymmetrical face", "label": "面部不对称", "label_en": "Asymmetrical Face" },
-        { "text": "cross-eyed", "label": "斗鸡眼", "label_en": "Cross-eyed" },
-        { "text": "ugly", "label": "丑陋", "label_en": "Ugly" },
-        { "text": "duplicate face", "label": "重复面部", "label_en": "Duplicate Face" },
-        { "text": "mutation", "label": "变异", "label_en": "Mutation" },
-        { "text": "long neck", "label": "脖子过长", "label_en": "Long Neck" },
-        { "text": "bad eyes", "label": "眼睛错误", "label_en": "Bad Eyes" },
-        { "text": "unnatural eyes", "label": "不自然眼睛", "label_en": "Unnatural Eyes" },
-        { "text": "bad teeth", "label": "牙齿错误", "label_en": "Bad Teeth" }
-      ]
-    },
-    {
-      "id": "style",
-      "name": "风格问题",
-      "name_en": "Style Issues",
-      "items": [
-        { "text": "cartoon", "label": "卡通风格", "label_en": "Cartoon" },
-        { "text": "anime", "label": "动漫风格", "label_en": "Anime" },
-        { "text": "3d render", "label": "3D渲染", "label_en": "3D Render" },
-        { "text": "cg", "label": "CG风格", "label_en": "CG" },
-        { "text": "illustration", "label": "插画风格", "label_en": "Illustration" },
-        { "text": "painting", "label": "绘画风格", "label_en": "Painting" },
-        { "text": "sketch", "label": "素描", "label_en": "Sketch" },
-        { "text": "watermark", "label": "水印", "label_en": "Watermark" },
-        { "text": "signature", "label": "签名", "label_en": "Signature" },
-        { "text": "text", "label": "文字", "label_en": "Text" },
-        { "text": "logo", "label": "标志", "label_en": "Logo" },
-        { "text": "frame", "label": "边框", "label_en": "Frame" }
-      ]
-    },
-    {
-      "id": "composition",
-      "name": "构图问题",
-      "name_en": "Composition Issues",
-      "items": [
-        { "text": "cropped", "label": "裁切", "label_en": "Cropped" },
-        { "text": "out of frame", "label": "超出画面", "label_en": "Out of Frame" },
-        { "text": "cut off", "label": "截断", "label_en": "Cut Off" },
-        { "text": "duplicate", "label": "重复", "label_en": "Duplicate" },
-        { "text": "tilted", "label": "倾斜", "label_en": "Tilted" },
-        { "text": "cluttered", "label": "杂乱", "label_en": "Cluttered" },
-        { "text": "empty background", "label": "空背景", "label_en": "Empty Background" },
-        { "text": "bad composition", "label": "构图差", "label_en": "Bad Composition" }
-      ]
-    },
     {
       "id": "common",
       "name": "通用负面",
       "name_en": "Common Negative",
       "items": [
-        { "text": "nsfw", "label": "NSFW内容", "label_en": "NSFW" },
-        { "text": "gore", "label": "血腥", "label_en": "Gore" },
-        { "text": "violence", "label": "暴力", "label_en": "Violence" },
-        { "text": "scary", "label": "恐怖", "label_en": "Scary" },
-        { "text": "racist", "label": "种族歧视", "label_en": "Racist" },
-        { "text": "offensive", "label": "冒犯性", "label_en": "Offensive" },
-        { "text": "copyrighted", "label": "版权内容", "label_en": "Copyrighted" },
-        { "text": "celebrity", "label": "名人", "label_en": "Celebrity" },
-        { "text": "brand", "label": "品牌", "label_en": "Brand" },
-        { "text": "plastic", "label": "塑料感", "label_en": "Plastic" },
-        { "text": "artificial", "label": "人工感", "label_en": "Artificial" },
-        { "text": "waxy", "label": "蜡质感", "label_en": "Waxy" }
-      ]
+        {
+          "text": "nsfw",
+          "label": "NSFW内容",
+          "label_en": "NSFW"
+        },
+        {
+          "text": "gore",
+          "label": "血腥",
+          "label_en": "Gore"
+        },
+        {
+          "text": "violence",
+          "label": "暴力",
+          "label_en": "Violence"
+        },
+        {
+          "text": "scary",
+          "label": "恐怖",
+          "label_en": "Scary"
+        },
+        {
+          "text": "racist",
+          "label": "种族歧视",
+          "label_en": "Racist"
+        },
+        {
+          "text": "offensive",
+          "label": "冒犯性",
+          "label_en": "Offensive"
+        },
+        {
+          "text": "copyrighted",
+          "label": "版权内容",
+          "label_en": "Copyrighted"
+        },
+        {
+          "text": "celebrity",
+          "label": "名人",
+          "label_en": "Celebrity"
+        },
+        {
+          "text": "brand",
+          "label": "品牌",
+          "label_en": "Brand"
+        },
+        {
+          "text": "plastic",
+          "label": "塑料感",
+          "label_en": "Plastic"
+        },
+        {
+          "text": "artificial",
+          "label": "人工感",
+          "label_en": "Artificial"
+        },
+        {
+          "text": "waxy",
+          "label": "蜡质感",
+          "label_en": "Waxy"
+        }
+      ],
+      "polarity": "negative"
     }
-  ]
+  ],
+  "polarity": "negative"
 }

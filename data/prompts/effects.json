@@ -10,83 +10,281 @@
       "name": "魔法特效",
       "name_en": "Magic Effects",
       "items": [
-        { "text": "glowing magic circle on the ground", "label": "魔法阵", "label_en": "magic circle" },
-        { "text": "fire magic swirling around hands", "label": "火焰魔法", "label_en": "fire magic" },
-        { "text": "ice crystals forming in the air", "label": "冰晶魔法", "label_en": "ice magic" },
-        { "text": "lightning crackling from fingertips", "label": "闪电魔法", "label_en": "lightning magic" },
-        { "text": " swirling wind vortex", "label": "风之漩涡", "label_en": "wind vortex" },
-        { "text": "glowing healing aura", "label": "治愈光环", "label_en": "healing aura" },
-        { "text": "dark shadow tendrils", "label": "暗影触手", "label_en": "shadow tendrils" },
-        { "text": "golden light particles floating", "label": "金色光粒", "label_en": "golden particles" },
-        { "text": "magical energy explosion", "label": "魔法爆炸", "label_en": "magic explosion" },
-        { "text": "runic symbols glowing in air", "label": "符文发光", "label_en": "glowing runes" },
-        { "text": "water magic stream", "label": "水流魔法", "label_en": "water magic" },
-        { "text": "earth magic rising rocks", "label": "岩石魔法", "label_en": "earth magic" }
-      ]
+        {
+          "text": "glowing magic circle on the ground",
+          "label": "魔法阵",
+          "label_en": "magic circle"
+        },
+        {
+          "text": "fire magic swirling around hands",
+          "label": "火焰魔法",
+          "label_en": "fire magic"
+        },
+        {
+          "text": "ice crystals forming in the air",
+          "label": "冰晶魔法",
+          "label_en": "ice magic"
+        },
+        {
+          "text": "lightning crackling from fingertips",
+          "label": "闪电魔法",
+          "label_en": "lightning magic"
+        },
+        {
+          "text": " swirling wind vortex",
+          "label": "风之漩涡",
+          "label_en": "wind vortex"
+        },
+        {
+          "text": "glowing healing aura",
+          "label": "治愈光环",
+          "label_en": "healing aura"
+        },
+        {
+          "text": "dark shadow tendrils",
+          "label": "暗影触手",
+          "label_en": "shadow tendrils"
+        },
+        {
+          "text": "golden light particles floating",
+          "label": "金色光粒",
+          "label_en": "golden particles"
+        },
+        {
+          "text": "magical energy explosion",
+          "label": "魔法爆炸",
+          "label_en": "magic explosion"
+        },
+        {
+          "text": "runic symbols glowing in air",
+          "label": "符文发光",
+          "label_en": "glowing runes"
+        },
+        {
+          "text": "water magic stream",
+          "label": "水流魔法",
+          "label_en": "water magic"
+        },
+        {
+          "text": "earth magic rising rocks",
+          "label": "岩石魔法",
+          "label_en": "earth magic"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "particle_effects",
       "name": "粒子特效",
       "name_en": "Particle Effects",
       "items": [
-        { "text": "sparkling light particles", "label": "闪烁光粒", "label_en": "sparkling particles" },
-        { "text": "floating dust motes in sunlight", "label": "阳光浮尘", "label_en": "floating dust" },
-        { "text": "fireflies in the dark", "label": "暗处萤火", "label_en": "fireflies" },
-        { "text": "cherry blossom petals falling", "label": "樱花飘落", "label_en": "cherry blossom" },
-        { "text": "autumn leaves swirling", "label": "秋叶旋转", "label_en": "autumn leaves" },
-        { "text": "snowflakes drifting", "label": "雪花飘落", "label_en": "snowflakes" },
-        { "text": "ash and embers floating", "label": "灰烬余烬", "label_en": "ash and embers" },
-        { "text": "bubbles floating upward", "label": "泡泡上升", "label_en": "bubbles" },
-        { "text": "glowing fireflies in a jar", "label": "瓶中萤火", "label_en": "fireflies in jar" }
-      ]
+        {
+          "text": "sparkling light particles",
+          "label": "闪烁光粒",
+          "label_en": "sparkling particles"
+        },
+        {
+          "text": "floating dust motes in sunlight",
+          "label": "阳光浮尘",
+          "label_en": "floating dust"
+        },
+        {
+          "text": "fireflies in the dark",
+          "label": "暗处萤火",
+          "label_en": "fireflies"
+        },
+        {
+          "text": "cherry blossom petals falling",
+          "label": "樱花飘落",
+          "label_en": "cherry blossom"
+        },
+        {
+          "text": "autumn leaves swirling",
+          "label": "秋叶旋转",
+          "label_en": "autumn leaves"
+        },
+        {
+          "text": "snowflakes drifting",
+          "label": "雪花飘落",
+          "label_en": "snowflakes"
+        },
+        {
+          "text": "ash and embers floating",
+          "label": "灰烬余烬",
+          "label_en": "ash and embers"
+        },
+        {
+          "text": "bubbles floating upward",
+          "label": "泡泡上升",
+          "label_en": "bubbles"
+        },
+        {
+          "text": "glowing fireflies in a jar",
+          "label": "瓶中萤火",
+          "label_en": "fireflies in jar"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "environment_effects",
       "name": "环境特效",
       "name_en": "Environment Effects",
       "items": [
-        { "text": "god rays through clouds", "label": "丁达尔光效", "label_en": "god rays" },
-        { "text": "aurora borealis in the sky", "label": "北极光", "label_en": "aurora borealis" },
-        { "text": "rainbow appearing", "label": "彩虹", "label_en": "rainbow" },
-        { "text": "fog rolling in", "label": "雾气弥漫", "label_en": "rolling fog" },
-        { "text": "dramatic storm clouds", "label": "戏剧性风暴云", "label_en": "storm clouds" },
-        { "text": "mist over water surface", "label": "水面薄雾", "label_en": "mist over water" },
-        { "text": "dust storm", "label": "沙尘暴", "label_en": "dust storm" },
-        { "text": "lightning storm", "label": "雷暴", "label_en": "lightning storm" },
-        { "text": "shooting stars", "label": "流星", "label_en": "shooting stars" },
-        { "text": "eclipse", "label": "日食", "label_en": "eclipse" }
-      ]
+        {
+          "text": "god rays through clouds",
+          "label": "丁达尔光效",
+          "label_en": "god rays"
+        },
+        {
+          "text": "aurora borealis in the sky",
+          "label": "北极光",
+          "label_en": "aurora borealis"
+        },
+        {
+          "text": "rainbow appearing",
+          "label": "彩虹",
+          "label_en": "rainbow"
+        },
+        {
+          "text": "fog rolling in",
+          "label": "雾气弥漫",
+          "label_en": "rolling fog"
+        },
+        {
+          "text": "dramatic storm clouds",
+          "label": "戏剧性风暴云",
+          "label_en": "storm clouds"
+        },
+        {
+          "text": "mist over water surface",
+          "label": "水面薄雾",
+          "label_en": "mist over water"
+        },
+        {
+          "text": "dust storm",
+          "label": "沙尘暴",
+          "label_en": "dust storm"
+        },
+        {
+          "text": "lightning storm",
+          "label": "雷暴",
+          "label_en": "lightning storm"
+        },
+        {
+          "text": "shooting stars",
+          "label": "流星",
+          "label_en": "shooting stars"
+        },
+        {
+          "text": "eclipse",
+          "label": "日食",
+          "label_en": "eclipse"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "combat_effects",
       "name": "战斗特效",
       "name_en": "Combat Effects",
       "items": [
-        { "text": "sword slash trail effect", "label": "剑气轨迹", "label_en": "sword trail" },
-        { "text": "explosion blast", "label": "爆炸冲击波", "label_en": "explosion blast" },
-        { "text": "sparks flying from impact", "label": "撞击火花", "label_en": "impact sparks" },
-        { "text": "smoke cloud", "label": "烟雾", "label_en": "smoke cloud" },
-        { "text": "energy shield glowing", "label": "能量护盾", "label_en": "energy shield" },
-        { "text": "bullet trail", "label": "子弹轨迹", "label_en": "bullet trail" },
-        { "text": "shockwave ripple", "label": "冲击波涟漪", "label_en": "shockwave" },
-        { "text": "blood splatter", "label": "血溅", "label_en": "blood splatter" }
-      ]
+        {
+          "text": "sword slash trail effect",
+          "label": "剑气轨迹",
+          "label_en": "sword trail"
+        },
+        {
+          "text": "explosion blast",
+          "label": "爆炸冲击波",
+          "label_en": "explosion blast"
+        },
+        {
+          "text": "sparks flying from impact",
+          "label": "撞击火花",
+          "label_en": "impact sparks"
+        },
+        {
+          "text": "smoke cloud",
+          "label": "烟雾",
+          "label_en": "smoke cloud"
+        },
+        {
+          "text": "energy shield glowing",
+          "label": "能量护盾",
+          "label_en": "energy shield"
+        },
+        {
+          "text": "bullet trail",
+          "label": "子弹轨迹",
+          "label_en": "bullet trail"
+        },
+        {
+          "text": "shockwave ripple",
+          "label": "冲击波涟漪",
+          "label_en": "shockwave"
+        },
+        {
+          "text": "blood splatter",
+          "label": "血溅",
+          "label_en": "blood splatter"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "post_effects",
       "name": "后期特效",
       "name_en": "Post Effects",
       "items": [
-        { "text": "bloom glow effect", "label": "泛光", "label_en": "bloom" },
-        { "text": "lens flare", "label": "镜头光晕", "label_en": "lens flare" },
-        { "text": "depth of field blur", "label": "景深模糊", "label_en": "depth of field" },
-        { "text": "motion blur", "label": "运动模糊", "label_en": "motion blur" },
-        { "text": "vignette darkened edges", "label": "暗角", "label_en": "vignette" },
-        { "text": "chromatic aberration", "label": "色差", "label_en": "chromatic aberration" },
-        { "text": "film grain texture", "label": "胶片颗粒", "label_en": "film grain" },
-        { "text": "glitch distortion effect", "label": "故障艺术", "label_en": "glitch effect" },
-        { "text": "holographic effect", "label": "全息效果", "label_en": "holographic" }
-      ]
+        {
+          "text": "bloom glow effect",
+          "label": "泛光",
+          "label_en": "bloom"
+        },
+        {
+          "text": "lens flare",
+          "label": "镜头光晕",
+          "label_en": "lens flare"
+        },
+        {
+          "text": "depth of field blur",
+          "label": "景深模糊",
+          "label_en": "depth of field"
+        },
+        {
+          "text": "motion blur",
+          "label": "运动模糊",
+          "label_en": "motion blur"
+        },
+        {
+          "text": "vignette darkened edges",
+          "label": "暗角",
+          "label_en": "vignette"
+        },
+        {
+          "text": "chromatic aberration",
+          "label": "色差",
+          "label_en": "chromatic aberration"
+        },
+        {
+          "text": "film grain texture",
+          "label": "胶片颗粒",
+          "label_en": "film grain"
+        },
+        {
+          "text": "glitch distortion effect",
+          "label": "故障艺术",
+          "label_en": "glitch effect"
+        },
+        {
+          "text": "holographic effect",
+          "label": "全息效果",
+          "label_en": "holographic"
+        }
+      ],
+      "polarity": "positive"
     }
-  ]
+  ],
+  "polarity": "positive"
 }

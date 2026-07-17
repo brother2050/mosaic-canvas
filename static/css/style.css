@@ -1836,6 +1836,68 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     font-size: 11px;
     color: var(--text-faint);
 }
+.templates-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 12px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+.templates-section-title:first-child { margin-top: 0; }
+.templates-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 13px;
+}
+.template-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.btn-template-insert {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+.btn-template-replace {
+    background: var(--bg-2);
+    border-color: var(--border);
+}
+.btn-template-delete {
+    background: transparent;
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* ---- Prompt polarity styles ---- */
+.prompts-polarity-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: #ef4444;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.prompts-subgroup-negative .prompts-items {
+    border-left: 2px solid #ef4444;
+    padding-left: 6px;
+    margin-left: 2px;
+}
+.prompt-chip-negative {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+.prompt-chip-negative:hover {
+    background: #ef4444;
+    color: #fff;
+}
 
 /* ---- Shortcuts modal ---- */
 .modal-sm { max-width: 460px; }

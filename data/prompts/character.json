@@ -10,250 +10,1117 @@
       "name": "种族",
       "name_en": "Race",
       "items": [
-        { "text": "an ordinary human", "label": "普通人", "label_en": "human" },
-        { "text": "an elf with pointed ears", "label": "精灵", "label_en": "elf" },
-        { "text": "a dwarf", "label": "矮人", "label_en": "dwarf" },
-        { "text": "an orc", "label": "兽人", "label_en": "orc" },
-        { "text": "a demon with horns", "label": "恶魔", "label_en": "demon" },
-        { "text": "an angel with wings", "label": "天使", "label_en": "angel" },
-        { "text": "a vampire", "label": "吸血鬼", "label_en": "vampire" },
-        { "text": "a werewolf", "label": "狼人", "label_en": "werewolf" },
-        { "text": "a zombie", "label": "丧尸", "label_en": "zombie" },
-        { "text": "a ghostly spirit", "label": "幽灵", "label_en": "ghost" },
-        { "text": "a mermaid", "label": "美人鱼", "label_en": "mermaid" },
-        { "text": "a fairy with translucent wings", "label": "仙子", "label_en": "fairy" },
-        { "text": "a dragon-human hybrid", "label": "龙裔", "label_en": "dragonborn" },
-        { "text": "a cyborg", "label": "半机械人", "label_en": "cyborg" },
-        { "text": "an android", "label": "仿生人", "label_en": "android" },
-        { "text": "a goblin", "label": "哥布林", "label_en": "goblin" },
-        { "text": "a troll", "label": "巨魔", "label_en": "troll" },
-        { "text": "a giant", "label": "巨人", "label_en": "giant" },
-        { "text": "a centaur", "label": "半人马", "label_en": "centaur" },
-        { "text": "a harpy", "label": "鸟身女妖", "label_en": "harpy" }
-      ]
+        {
+          "text": "an ordinary human",
+          "label": "普通人",
+          "label_en": "human"
+        },
+        {
+          "text": "an elf with pointed ears",
+          "label": "精灵",
+          "label_en": "elf"
+        },
+        {
+          "text": "a dwarf",
+          "label": "矮人",
+          "label_en": "dwarf"
+        },
+        {
+          "text": "an orc",
+          "label": "兽人",
+          "label_en": "orc"
+        },
+        {
+          "text": "a demon with horns",
+          "label": "恶魔",
+          "label_en": "demon"
+        },
+        {
+          "text": "an angel with wings",
+          "label": "天使",
+          "label_en": "angel"
+        },
+        {
+          "text": "a vampire",
+          "label": "吸血鬼",
+          "label_en": "vampire"
+        },
+        {
+          "text": "a werewolf",
+          "label": "狼人",
+          "label_en": "werewolf"
+        },
+        {
+          "text": "a zombie",
+          "label": "丧尸",
+          "label_en": "zombie"
+        },
+        {
+          "text": "a ghostly spirit",
+          "label": "幽灵",
+          "label_en": "ghost"
+        },
+        {
+          "text": "a mermaid",
+          "label": "美人鱼",
+          "label_en": "mermaid"
+        },
+        {
+          "text": "a fairy with translucent wings",
+          "label": "仙子",
+          "label_en": "fairy"
+        },
+        {
+          "text": "a dragon-human hybrid",
+          "label": "龙裔",
+          "label_en": "dragonborn"
+        },
+        {
+          "text": "a cyborg",
+          "label": "半机械人",
+          "label_en": "cyborg"
+        },
+        {
+          "text": "an android",
+          "label": "仿生人",
+          "label_en": "android"
+        },
+        {
+          "text": "a goblin",
+          "label": "哥布林",
+          "label_en": "goblin"
+        },
+        {
+          "text": "a troll",
+          "label": "巨魔",
+          "label_en": "troll"
+        },
+        {
+          "text": "a giant",
+          "label": "巨人",
+          "label_en": "giant"
+        },
+        {
+          "text": "a centaur",
+          "label": "半人马",
+          "label_en": "centaur"
+        },
+        {
+          "text": "a harpy",
+          "label": "鸟身女妖",
+          "label_en": "harpy"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "gender",
       "name": "性别",
       "name_en": "Gender",
       "items": [
-        { "text": "a man", "label": "男人", "label_en": "a man" },
-        { "text": "a woman", "label": "女人", "label_en": "a woman" },
-        { "text": "a young boy", "label": "男孩", "label_en": "a young boy" },
-        { "text": "a young girl", "label": "女孩", "label_en": "a young girl" },
-        { "text": "an elderly man", "label": "老年男性", "label_en": "an elderly man" },
-        { "text": "an elderly woman", "label": "老年女性", "label_en": "an elderly woman" },
-        { "text": "a middle-aged man", "label": "中年男性", "label_en": "a middle-aged man" },
-        { "text": "a middle-aged woman", "label": "中年女性", "label_en": "a middle-aged woman" },
-        { "text": "a teenager", "label": "青少年", "label_en": "a teenager" },
-        { "text": "a baby", "label": "婴儿", "label_en": "a baby" },
-        { "text": "a young adult", "label": "青年", "label_en": "a young adult" },
-        { "text": "a toddler", "label": "幼儿", "label_en": "a toddler" }
-      ]
+        {
+          "text": "a man",
+          "label": "男人",
+          "label_en": "a man"
+        },
+        {
+          "text": "a woman",
+          "label": "女人",
+          "label_en": "a woman"
+        },
+        {
+          "text": "a young boy",
+          "label": "男孩",
+          "label_en": "a young boy"
+        },
+        {
+          "text": "a young girl",
+          "label": "女孩",
+          "label_en": "a young girl"
+        },
+        {
+          "text": "an elderly man",
+          "label": "老年男性",
+          "label_en": "an elderly man"
+        },
+        {
+          "text": "an elderly woman",
+          "label": "老年女性",
+          "label_en": "an elderly woman"
+        },
+        {
+          "text": "a middle-aged man",
+          "label": "中年男性",
+          "label_en": "a middle-aged man"
+        },
+        {
+          "text": "a middle-aged woman",
+          "label": "中年女性",
+          "label_en": "a middle-aged woman"
+        },
+        {
+          "text": "a teenager",
+          "label": "青少年",
+          "label_en": "a teenager"
+        },
+        {
+          "text": "a baby",
+          "label": "婴儿",
+          "label_en": "a baby"
+        },
+        {
+          "text": "a young adult",
+          "label": "青年",
+          "label_en": "a young adult"
+        },
+        {
+          "text": "a toddler",
+          "label": "幼儿",
+          "label_en": "a toddler"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "body_type",
       "name": "体型",
       "name_en": "Body Type",
       "items": [
-        { "text": "tall and slender", "label": "高挑纤细", "label_en": "tall and slender" },
-        { "text": "short and petite", "label": "娇小", "label_en": "short and petite" },
-        { "text": "muscular and athletic", "label": "健壮", "label_en": "muscular" },
-        { "text": "curvy figure", "label": "丰满曲线", "label_en": "curvy" },
-        { "text": "slim and lean", "label": "瘦长", "label_en": "slim" },
-        { "text": "plus-sized", "label": "大码", "label_en": "plus-sized" },
-        { "text": "average build", "label": "普通体型", "label_en": "average build" },
-        { "text": "broad-shouldered", "label": "宽肩", "label_en": "broad-shouldered" },
-        { "text": "voluptuous", "label": "丰腴", "label_en": "voluptuous" },
-        { "text": "stocky and robust", "label": "敦实", "label_en": "stocky" }
-      ]
+        {
+          "text": "tall and slender",
+          "label": "高挑纤细",
+          "label_en": "tall and slender"
+        },
+        {
+          "text": "short and petite",
+          "label": "娇小",
+          "label_en": "short and petite"
+        },
+        {
+          "text": "muscular and athletic",
+          "label": "健壮",
+          "label_en": "muscular"
+        },
+        {
+          "text": "curvy figure",
+          "label": "丰满曲线",
+          "label_en": "curvy"
+        },
+        {
+          "text": "slim and lean",
+          "label": "瘦长",
+          "label_en": "slim"
+        },
+        {
+          "text": "plus-sized",
+          "label": "大码",
+          "label_en": "plus-sized"
+        },
+        {
+          "text": "average build",
+          "label": "普通体型",
+          "label_en": "average build"
+        },
+        {
+          "text": "broad-shouldered",
+          "label": "宽肩",
+          "label_en": "broad-shouldered"
+        },
+        {
+          "text": "voluptuous",
+          "label": "丰腴",
+          "label_en": "voluptuous"
+        },
+        {
+          "text": "stocky and robust",
+          "label": "敦实",
+          "label_en": "stocky"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "hair",
       "name": "发型发色",
       "name_en": "Hair",
       "items": [
-        { "text": "short black hair", "label": "黑色短发", "label_en": "short black hair" },
-        { "text": "long flowing blonde hair", "label": "金色长发", "label_en": "long blonde hair" },
-        { "text": "curly brown hair", "label": "棕色卷发", "label_en": "curly brown hair" },
-        { "text": "straight silver hair", "label": "银色直发", "label_en": "straight silver hair" },
-        { "text": "wavy red hair", "label": "红色波浪卷", "label_en": "wavy red hair" },
-        { "text": "pixie cut", "label": "精灵短发", "label_en": "pixie cut" },
-        { "text": "buzz cut", "label": "寸头", "label_en": "buzz cut" },
-        { "text": "bald", "label": "光头", "label_en": "bald" },
-        { "text": "braided hair", "label": "编发", "label_en": "braided hair" },
-        { "text": "ponytail", "label": "马尾", "label_en": "ponytail" },
-        { "text": "double buns", "label": "双丸子头", "label_en": "double buns" },
-        { "text": "long twin braids", "label": "双麻花辫", "label_en": "twin braids" },
-        { "text": "undercut hairstyle", "label": "底切发型", "label_en": "undercut" },
-        { "text": "afro", "label": "爆炸头", "label_en": "afro" },
-        { "text": "side-swept bangs", "label": "侧分刘海", "label_en": "side-swept bangs" },
-        { "text": "messy bed hair", "label": "凌乱起床头", "label_en": "messy bed hair" },
-        { "text": "gradient dyed hair", "label": "渐变染发", "label_en": "gradient dyed" },
-        { "text": "white hair with black roots", "label": "白发黑根", "label_en": "white with black roots" },
-        { "text": "split dye half black half white", "label": "黑白双色染发", "label_en": "split dye" },
-        { "text": "neon green hair", "label": "霓虹绿发", "label_en": "neon green" },
-        { "text": "pastel pink hair", "label": "粉色头发", "label_en": "pastel pink" },
-        { "text": "purple hair", "label": "紫色头发", "label_en": "purple hair" }
-      ]
+        {
+          "text": "short black hair",
+          "label": "黑色短发",
+          "label_en": "short black hair"
+        },
+        {
+          "text": "long flowing blonde hair",
+          "label": "金色长发",
+          "label_en": "long blonde hair"
+        },
+        {
+          "text": "curly brown hair",
+          "label": "棕色卷发",
+          "label_en": "curly brown hair"
+        },
+        {
+          "text": "straight silver hair",
+          "label": "银色直发",
+          "label_en": "straight silver hair"
+        },
+        {
+          "text": "wavy red hair",
+          "label": "红色波浪卷",
+          "label_en": "wavy red hair"
+        },
+        {
+          "text": "pixie cut",
+          "label": "精灵短发",
+          "label_en": "pixie cut"
+        },
+        {
+          "text": "buzz cut",
+          "label": "寸头",
+          "label_en": "buzz cut"
+        },
+        {
+          "text": "bald",
+          "label": "光头",
+          "label_en": "bald"
+        },
+        {
+          "text": "braided hair",
+          "label": "编发",
+          "label_en": "braided hair"
+        },
+        {
+          "text": "ponytail",
+          "label": "马尾",
+          "label_en": "ponytail"
+        },
+        {
+          "text": "double buns",
+          "label": "双丸子头",
+          "label_en": "double buns"
+        },
+        {
+          "text": "long twin braids",
+          "label": "双麻花辫",
+          "label_en": "twin braids"
+        },
+        {
+          "text": "undercut hairstyle",
+          "label": "底切发型",
+          "label_en": "undercut"
+        },
+        {
+          "text": "afro",
+          "label": "爆炸头",
+          "label_en": "afro"
+        },
+        {
+          "text": "side-swept bangs",
+          "label": "侧分刘海",
+          "label_en": "side-swept bangs"
+        },
+        {
+          "text": "messy bed hair",
+          "label": "凌乱起床头",
+          "label_en": "messy bed hair"
+        },
+        {
+          "text": "gradient dyed hair",
+          "label": "渐变染发",
+          "label_en": "gradient dyed"
+        },
+        {
+          "text": "white hair with black roots",
+          "label": "白发黑根",
+          "label_en": "white with black roots"
+        },
+        {
+          "text": "split dye half black half white",
+          "label": "黑白双色染发",
+          "label_en": "split dye"
+        },
+        {
+          "text": "neon green hair",
+          "label": "霓虹绿发",
+          "label_en": "neon green"
+        },
+        {
+          "text": "pastel pink hair",
+          "label": "粉色头发",
+          "label_en": "pastel pink"
+        },
+        {
+          "text": "purple hair",
+          "label": "紫色头发",
+          "label_en": "purple hair"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "face",
       "name": "面部特征",
       "name_en": "Facial Features",
       "items": [
-        { "text": "blue eyes", "label": "蓝色眼睛", "label_en": "blue eyes" },
-        { "text": "green eyes", "label": "绿色眼睛", "label_en": "green eyes" },
-        { "text": "brown eyes", "label": "棕色眼睛", "label_en": "brown eyes" },
-        { "text": "hazel eyes", "label": "琥珀色眼睛", "label_en": "hazel eyes" },
-        { "text": "heterochromia (different colored eyes)", "label": "异色瞳", "label_en": "heterochromia" },
-        { "text": "glowing red eyes", "label": "发光红眼", "label_en": "glowing red eyes" },
-        { "text": "golden eyes", "label": "金色眼睛", "label_en": "golden eyes" },
-        { "text": "fair skin", "label": "白皙皮肤", "label_en": "fair skin" },
-        { "text": "tanned skin", "label": "棕褐色皮肤", "label_en": "tanned skin" },
-        { "text": "dark skin", "label": "深色皮肤", "label_en": "dark skin" },
-        { "text": "pale porcelain skin", "label": "苍白瓷肌", "label_en": "pale porcelain skin" },
-        { "text": "olive skin tone", "label": "橄榄色肌肤", "label_en": "olive skin" },
-        { "text": "freckles", "label": "雀斑", "label_en": "freckles" },
-        { "text": "high cheekbones", "label": "高颧骨", "label_en": "high cheekbones" },
-        { "text": "sharp jawline", "label": "清晰下颌线", "label_en": "sharp jawline" },
-        { "text": "full lips", "label": "丰满嘴唇", "label_en": "full lips" },
-        { "text": "thin lips", "label": "薄唇", "label_en": "thin lips" },
-        { "text": "with a beard", "label": "有胡须", "label_en": "with a beard" },
-        { "text": "with a mustache", "label": "有胡子", "label_en": "with a mustache" },
-        { "text": "clean-shaven", "label": "刮干净", "label_en": "clean-shaven" },
-        { "text": "stubble beard", "label": "络腮胡茬", "label_en": "stubble" },
-        { "text": "face scars", "label": "面部疤痕", "label_en": "face scars" },
-        { "text": "face tattoo", "label": "面部纹身", "label_en": "face tattoo" },
-        { "text": "beauty mark", "label": "美人痣", "label_en": "beauty mark" }
-      ]
+        {
+          "text": "blue eyes",
+          "label": "蓝色眼睛",
+          "label_en": "blue eyes"
+        },
+        {
+          "text": "green eyes",
+          "label": "绿色眼睛",
+          "label_en": "green eyes"
+        },
+        {
+          "text": "brown eyes",
+          "label": "棕色眼睛",
+          "label_en": "brown eyes"
+        },
+        {
+          "text": "hazel eyes",
+          "label": "琥珀色眼睛",
+          "label_en": "hazel eyes"
+        },
+        {
+          "text": "heterochromia (different colored eyes)",
+          "label": "异色瞳",
+          "label_en": "heterochromia"
+        },
+        {
+          "text": "glowing red eyes",
+          "label": "发光红眼",
+          "label_en": "glowing red eyes"
+        },
+        {
+          "text": "golden eyes",
+          "label": "金色眼睛",
+          "label_en": "golden eyes"
+        },
+        {
+          "text": "fair skin",
+          "label": "白皙皮肤",
+          "label_en": "fair skin"
+        },
+        {
+          "text": "tanned skin",
+          "label": "棕褐色皮肤",
+          "label_en": "tanned skin"
+        },
+        {
+          "text": "dark skin",
+          "label": "深色皮肤",
+          "label_en": "dark skin"
+        },
+        {
+          "text": "pale porcelain skin",
+          "label": "苍白瓷肌",
+          "label_en": "pale porcelain skin"
+        },
+        {
+          "text": "olive skin tone",
+          "label": "橄榄色肌肤",
+          "label_en": "olive skin"
+        },
+        {
+          "text": "freckles",
+          "label": "雀斑",
+          "label_en": "freckles"
+        },
+        {
+          "text": "high cheekbones",
+          "label": "高颧骨",
+          "label_en": "high cheekbones"
+        },
+        {
+          "text": "sharp jawline",
+          "label": "清晰下颌线",
+          "label_en": "sharp jawline"
+        },
+        {
+          "text": "full lips",
+          "label": "丰满嘴唇",
+          "label_en": "full lips"
+        },
+        {
+          "text": "thin lips",
+          "label": "薄唇",
+          "label_en": "thin lips"
+        },
+        {
+          "text": "with a beard",
+          "label": "有胡须",
+          "label_en": "with a beard"
+        },
+        {
+          "text": "with a mustache",
+          "label": "有胡子",
+          "label_en": "with a mustache"
+        },
+        {
+          "text": "clean-shaven",
+          "label": "刮干净",
+          "label_en": "clean-shaven"
+        },
+        {
+          "text": "stubble beard",
+          "label": "络腮胡茬",
+          "label_en": "stubble"
+        },
+        {
+          "text": "face scars",
+          "label": "面部疤痕",
+          "label_en": "face scars"
+        },
+        {
+          "text": "face tattoo",
+          "label": "面部纹身",
+          "label_en": "face tattoo"
+        },
+        {
+          "text": "beauty mark",
+          "label": "美人痣",
+          "label_en": "beauty mark"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "expression",
       "name": "表情",
       "name_en": "Expression",
       "items": [
-        { "text": "smiling happily", "label": "开心微笑", "label_en": "smiling happily" },
-        { "text": "serious expression", "label": "严肃表情", "label_en": "serious" },
-        { "text": "surprised look", "label": "惊讶表情", "label_en": "surprised" },
-        { "text": "thoughtful gaze", "label": "沉思眼神", "label_en": "thoughtful" },
-        { "text": "confident smile", "label": "自信微笑", "label_en": "confident smile" },
-        { "text": "sad expression", "label": "悲伤表情", "label_en": "sad" },
-        { "text": "angry expression", "label": "愤怒表情", "label_en": "angry" },
-        { "text": "laughing out loud", "label": "大笑", "label_en": "laughing" },
-        { "text": "winking", "label": "眨眼", "label_en": "winking" },
-        { "text": "pouting", "label": "嘟嘴", "label_en": "pouting" },
-        { "text": "fearful expression", "label": "恐惧表情", "label_en": "fearful" },
-        { "text": "determined look", "label": "坚毅表情", "label_en": "determined" },
-        { "text": "smirking", "label": "坏笑", "label_en": "smirking" },
-        { "text": "crying with tears", "label": "哭泣流泪", "label_en": "crying" },
-        { "text": "bored expression", "label": "无聊表情", "label_en": "bored" },
-        { "text": "enigmatic smile", "label": "神秘微笑", "label_en": "enigmatic smile" }
-      ]
+        {
+          "text": "smiling happily",
+          "label": "开心微笑",
+          "label_en": "smiling happily"
+        },
+        {
+          "text": "serious expression",
+          "label": "严肃表情",
+          "label_en": "serious"
+        },
+        {
+          "text": "surprised look",
+          "label": "惊讶表情",
+          "label_en": "surprised"
+        },
+        {
+          "text": "thoughtful gaze",
+          "label": "沉思眼神",
+          "label_en": "thoughtful"
+        },
+        {
+          "text": "confident smile",
+          "label": "自信微笑",
+          "label_en": "confident smile"
+        },
+        {
+          "text": "sad expression",
+          "label": "悲伤表情",
+          "label_en": "sad"
+        },
+        {
+          "text": "angry expression",
+          "label": "愤怒表情",
+          "label_en": "angry"
+        },
+        {
+          "text": "laughing out loud",
+          "label": "大笑",
+          "label_en": "laughing"
+        },
+        {
+          "text": "winking",
+          "label": "眨眼",
+          "label_en": "winking"
+        },
+        {
+          "text": "pouting",
+          "label": "嘟嘴",
+          "label_en": "pouting"
+        },
+        {
+          "text": "fearful expression",
+          "label": "恐惧表情",
+          "label_en": "fearful"
+        },
+        {
+          "text": "determined look",
+          "label": "坚毅表情",
+          "label_en": "determined"
+        },
+        {
+          "text": "smirking",
+          "label": "坏笑",
+          "label_en": "smirking"
+        },
+        {
+          "text": "crying with tears",
+          "label": "哭泣流泪",
+          "label_en": "crying"
+        },
+        {
+          "text": "bored expression",
+          "label": "无聊表情",
+          "label_en": "bored"
+        },
+        {
+          "text": "enigmatic smile",
+          "label": "神秘微笑",
+          "label_en": "enigmatic smile"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "clothing",
       "name": "服装",
       "name_en": "Clothing",
       "items": [
-        { "text": "wearing a business suit", "label": "西装", "label_en": "business suit" },
-        { "text": "wearing a casual t-shirt and jeans", "label": "休闲T恤牛仔裤", "label_en": "casual t-shirt and jeans" },
-        { "text": "wearing a traditional hanfu", "label": "汉服", "label_en": "hanfu" },
-        { "text": "wearing a winter coat and scarf", "label": "冬装大衣围巾", "label_en": "winter coat" },
-        { "text": "wearing a flowing summer dress", "label": "夏日连衣裙", "label_en": "summer dress" },
-        { "text": "wearing a kimono", "label": "和服", "label_en": "kimono" },
-        { "text": "wearing a leather jacket", "label": "皮夹克", "label_en": "leather jacket" },
-        { "text": "wearing a hoodie", "label": "连帽衫", "label_en": "hoodie" },
-        { "text": "wearing a uniform", "label": "制服", "label_en": "uniform" },
-        { "text": "wearing sportswear", "label": "运动装", "label_en": "sportswear" },
-        { "text": "wearing an evening gown", "label": "晚礼服", "label_en": "evening gown" },
-        { "text": "wearing a tuxedo", "label": "燕尾服", "label_en": "tuxedo" },
-        { "text": "wearing medieval armor", "label": "中世纪盔甲", "label_en": "medieval armor" },
-        { "text": "wearing a wizard robe", "label": "法师袍", "label_en": "wizard robe" },
-        { "text": "wearing a ninja outfit", "label": "忍者装", "label_en": "ninja outfit" },
-        { "text": "wearing a samurai outfit", "label": "武士装", "label_en": "samurai outfit" },
-        { "text": "wearing a spacesuit", "label": "宇航服", "label_en": "spacesuit" },
-        { "text": "wearing a lab coat", "label": "白大褂", "label_en": "lab coat" },
-        { "text": "wearing a cheerleader outfit", "label": "拉拉队服", "label_en": "cheerleader outfit" },
-        { "text": "wearing a gothic lolita dress", "label": "哥特洛丽塔", "label_en": "gothic lolita" },
-        { "text": "wearing a swimsuit", "label": "泳装", "label_en": "swimsuit" },
-        { "text": "wearing a trench coat", "label": "风衣", "label_en": "trench coat" },
-        { "text": "wearing a punk outfit with spikes", "label": "朋克尖刺装", "label_en": "punk outfit" },
-        { "text": "wearing a Victorian dress", "label": "维多利亚裙", "label_en": "Victorian dress" }
-      ]
+        {
+          "text": "wearing a business suit",
+          "label": "西装",
+          "label_en": "business suit"
+        },
+        {
+          "text": "wearing a casual t-shirt and jeans",
+          "label": "休闲T恤牛仔裤",
+          "label_en": "casual t-shirt and jeans"
+        },
+        {
+          "text": "wearing a traditional hanfu",
+          "label": "汉服",
+          "label_en": "hanfu"
+        },
+        {
+          "text": "wearing a winter coat and scarf",
+          "label": "冬装大衣围巾",
+          "label_en": "winter coat"
+        },
+        {
+          "text": "wearing a flowing summer dress",
+          "label": "夏日连衣裙",
+          "label_en": "summer dress"
+        },
+        {
+          "text": "wearing a kimono",
+          "label": "和服",
+          "label_en": "kimono"
+        },
+        {
+          "text": "wearing a leather jacket",
+          "label": "皮夹克",
+          "label_en": "leather jacket"
+        },
+        {
+          "text": "wearing a hoodie",
+          "label": "连帽衫",
+          "label_en": "hoodie"
+        },
+        {
+          "text": "wearing a uniform",
+          "label": "制服",
+          "label_en": "uniform"
+        },
+        {
+          "text": "wearing sportswear",
+          "label": "运动装",
+          "label_en": "sportswear"
+        },
+        {
+          "text": "wearing an evening gown",
+          "label": "晚礼服",
+          "label_en": "evening gown"
+        },
+        {
+          "text": "wearing a tuxedo",
+          "label": "燕尾服",
+          "label_en": "tuxedo"
+        },
+        {
+          "text": "wearing medieval armor",
+          "label": "中世纪盔甲",
+          "label_en": "medieval armor"
+        },
+        {
+          "text": "wearing a wizard robe",
+          "label": "法师袍",
+          "label_en": "wizard robe"
+        },
+        {
+          "text": "wearing a ninja outfit",
+          "label": "忍者装",
+          "label_en": "ninja outfit"
+        },
+        {
+          "text": "wearing a samurai outfit",
+          "label": "武士装",
+          "label_en": "samurai outfit"
+        },
+        {
+          "text": "wearing a spacesuit",
+          "label": "宇航服",
+          "label_en": "spacesuit"
+        },
+        {
+          "text": "wearing a lab coat",
+          "label": "白大褂",
+          "label_en": "lab coat"
+        },
+        {
+          "text": "wearing a cheerleader outfit",
+          "label": "拉拉队服",
+          "label_en": "cheerleader outfit"
+        },
+        {
+          "text": "wearing a gothic lolita dress",
+          "label": "哥特洛丽塔",
+          "label_en": "gothic lolita"
+        },
+        {
+          "text": "wearing a swimsuit",
+          "label": "泳装",
+          "label_en": "swimsuit"
+        },
+        {
+          "text": "wearing a trench coat",
+          "label": "风衣",
+          "label_en": "trench coat"
+        },
+        {
+          "text": "wearing a punk outfit with spikes",
+          "label": "朋克尖刺装",
+          "label_en": "punk outfit"
+        },
+        {
+          "text": "wearing a Victorian dress",
+          "label": "维多利亚裙",
+          "label_en": "Victorian dress"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "pose",
       "name": "姿势",
       "name_en": "Pose",
       "items": [
-        { "text": "standing upright", "label": "站立", "label_en": "standing upright" },
-        { "text": "sitting on a chair", "label": "坐在椅子上", "label_en": "sitting on a chair" },
-        { "text": "walking forward", "label": "向前走", "label_en": "walking forward" },
-        { "text": "looking up at the sky", "label": "仰望天空", "label_en": "looking up" },
-        { "text": "arms crossed", "label": "双手交叉", "label_en": "arms crossed" },
-        { "text": "hands on hips", "label": "叉腰", "label_en": "hands on hips" },
-        { "text": "leaning against a wall", "label": "靠墙", "label_en": "leaning against wall" },
-        { "text": "kneeling", "label": "跪着", "label_en": "kneeling" },
-        { "text": "jumping mid-air", "label": "跳跃", "label_en": "jumping mid-air" },
-        { "text": "running", "label": "跑步", "label_en": "running" },
-        { "text": "stretching arms", "label": "伸展双臂", "label_en": "stretching arms" },
-        { "text": "crouching", "label": "蹲下", "label_en": "crouching" },
-        { "text": "lying on the ground", "label": "躺在地上", "label_en": "lying down" },
-        { "text": "fighting stance", "label": "战斗姿态", "label_en": "fighting stance" },
-        { "text": "casting a spell", "label": "施法姿态", "label_en": "casting spell" },
-        { "text": "reading a book", "label": "读书", "label_en": "reading a book" }
-      ]
+        {
+          "text": "standing upright",
+          "label": "站立",
+          "label_en": "standing upright"
+        },
+        {
+          "text": "sitting on a chair",
+          "label": "坐在椅子上",
+          "label_en": "sitting on a chair"
+        },
+        {
+          "text": "walking forward",
+          "label": "向前走",
+          "label_en": "walking forward"
+        },
+        {
+          "text": "looking up at the sky",
+          "label": "仰望天空",
+          "label_en": "looking up"
+        },
+        {
+          "text": "arms crossed",
+          "label": "双手交叉",
+          "label_en": "arms crossed"
+        },
+        {
+          "text": "hands on hips",
+          "label": "叉腰",
+          "label_en": "hands on hips"
+        },
+        {
+          "text": "leaning against a wall",
+          "label": "靠墙",
+          "label_en": "leaning against wall"
+        },
+        {
+          "text": "kneeling",
+          "label": "跪着",
+          "label_en": "kneeling"
+        },
+        {
+          "text": "jumping mid-air",
+          "label": "跳跃",
+          "label_en": "jumping mid-air"
+        },
+        {
+          "text": "running",
+          "label": "跑步",
+          "label_en": "running"
+        },
+        {
+          "text": "stretching arms",
+          "label": "伸展双臂",
+          "label_en": "stretching arms"
+        },
+        {
+          "text": "crouching",
+          "label": "蹲下",
+          "label_en": "crouching"
+        },
+        {
+          "text": "lying on the ground",
+          "label": "躺在地上",
+          "label_en": "lying down"
+        },
+        {
+          "text": "fighting stance",
+          "label": "战斗姿态",
+          "label_en": "fighting stance"
+        },
+        {
+          "text": "casting a spell",
+          "label": "施法姿态",
+          "label_en": "casting spell"
+        },
+        {
+          "text": "reading a book",
+          "label": "读书",
+          "label_en": "reading a book"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "accessories",
       "name": "配饰",
       "name_en": "Accessories",
       "items": [
-        { "text": "wearing glasses", "label": "戴眼镜", "label_en": "glasses" },
-        { "text": "wearing sunglasses", "label": "戴墨镜", "label_en": "sunglasses" },
-        { "text": "wearing a hat", "label": "戴帽子", "label_en": "hat" },
-        { "text": "wearing a scarf", "label": "戴围巾", "label_en": "scarf" },
-        { "text": "wearing a necklace", "label": "戴项链", "label_en": "necklace" },
-        { "text": "wearing earrings", "label": "戴耳环", "label_en": "earrings" },
-        { "text": "holding a handbag", "label": "拿手提包", "label_en": "handbag" },
-        { "text": "wearing a watch", "label": "戴手表", "label_en": "watch" },
-        { "text": "wearing a backpack", "label": "背背包", "label_en": "backpack" },
-        { "text": "wearing a crown", "label": "戴皇冠", "label_en": "crown" },
-        { "text": "holding a sword", "label": "持剑", "label_en": "holding a sword" },
-        { "text": "holding a staff", "label": "持法杖", "label_en": "holding a staff" },
-        { "text": "holding a bow", "label": "持弓", "label_en": "holding a bow" },
-        { "text": "wearing a mask", "label": "戴面具", "label_en": "mask" },
-        { "text": "wearing a headband", "label": "戴发带", "label_en": "headband" },
-        { "text": "wearing a flower in hair", "label": "发间戴花", "label_en": "flower in hair" }
-      ]
+        {
+          "text": "wearing glasses",
+          "label": "戴眼镜",
+          "label_en": "glasses"
+        },
+        {
+          "text": "wearing sunglasses",
+          "label": "戴墨镜",
+          "label_en": "sunglasses"
+        },
+        {
+          "text": "wearing a hat",
+          "label": "戴帽子",
+          "label_en": "hat"
+        },
+        {
+          "text": "wearing a scarf",
+          "label": "戴围巾",
+          "label_en": "scarf"
+        },
+        {
+          "text": "wearing a necklace",
+          "label": "戴项链",
+          "label_en": "necklace"
+        },
+        {
+          "text": "wearing earrings",
+          "label": "戴耳环",
+          "label_en": "earrings"
+        },
+        {
+          "text": "holding a handbag",
+          "label": "拿手提包",
+          "label_en": "handbag"
+        },
+        {
+          "text": "wearing a watch",
+          "label": "戴手表",
+          "label_en": "watch"
+        },
+        {
+          "text": "wearing a backpack",
+          "label": "背背包",
+          "label_en": "backpack"
+        },
+        {
+          "text": "wearing a crown",
+          "label": "戴皇冠",
+          "label_en": "crown"
+        },
+        {
+          "text": "holding a sword",
+          "label": "持剑",
+          "label_en": "holding a sword"
+        },
+        {
+          "text": "holding a staff",
+          "label": "持法杖",
+          "label_en": "holding a staff"
+        },
+        {
+          "text": "holding a bow",
+          "label": "持弓",
+          "label_en": "holding a bow"
+        },
+        {
+          "text": "wearing a mask",
+          "label": "戴面具",
+          "label_en": "mask"
+        },
+        {
+          "text": "wearing a headband",
+          "label": "戴发带",
+          "label_en": "headband"
+        },
+        {
+          "text": "wearing a flower in hair",
+          "label": "发间戴花",
+          "label_en": "flower in hair"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "profession",
       "name": "职业",
       "name_en": "Profession",
       "items": [
-        { "text": "a warrior", "label": "战士", "label_en": "warrior" },
-        { "text": "a mage", "label": "法师", "label_en": "mage" },
-        { "text": "a knight", "label": "骑士", "label_en": "knight" },
-        { "text": "an archer", "label": "弓箭手", "label_en": "archer" },
-        { "text": "a healer", "label": "治疗师", "label_en": "healer" },
-        { "text": "a thief", "label": "盗贼", "label_en": "thief" },
-        { "text": "an assassin", "label": "刺客", "label_en": "assassin" },
-        { "text": "a king", "label": "国王", "label_en": "king" },
-        { "text": "a queen", "label": "女王", "label_en": "queen" },
-        { "text": "a prince", "label": "王子", "label_en": "prince" },
-        { "text": "a princess", "label": "公主", "label_en": "princess" },
-        { "text": "a scientist", "label": "科学家", "label_en": "scientist" },
-        { "text": "a doctor", "label": "医生", "label_en": "doctor" },
-        { "text": "a detective", "label": "侦探", "label_en": "detective" },
-        { "text": "a pilot", "label": "飞行员", "label_en": "pilot" },
-        { "text": "a chef", "label": "厨师", "label_en": "chef" },
-        { "text": "a musician", "label": "音乐家", "label_en": "musician" },
-        { "text": "a soldier", "label": "士兵", "label_en": "soldier" },
-        { "text": "a samurai", "label": "武士", "label_en": "samurai" },
-        { "text": "a ninja", "label": "忍者", "label_en": "ninja" }
-      ]
+        {
+          "text": "a warrior",
+          "label": "战士",
+          "label_en": "warrior"
+        },
+        {
+          "text": "a mage",
+          "label": "法师",
+          "label_en": "mage"
+        },
+        {
+          "text": "a knight",
+          "label": "骑士",
+          "label_en": "knight"
+        },
+        {
+          "text": "an archer",
+          "label": "弓箭手",
+          "label_en": "archer"
+        },
+        {
+          "text": "a healer",
+          "label": "治疗师",
+          "label_en": "healer"
+        },
+        {
+          "text": "a thief",
+          "label": "盗贼",
+          "label_en": "thief"
+        },
+        {
+          "text": "an assassin",
+          "label": "刺客",
+          "label_en": "assassin"
+        },
+        {
+          "text": "a king",
+          "label": "国王",
+          "label_en": "king"
+        },
+        {
+          "text": "a queen",
+          "label": "女王",
+          "label_en": "queen"
+        },
+        {
+          "text": "a prince",
+          "label": "王子",
+          "label_en": "prince"
+        },
+        {
+          "text": "a princess",
+          "label": "公主",
+          "label_en": "princess"
+        },
+        {
+          "text": "a scientist",
+          "label": "科学家",
+          "label_en": "scientist"
+        },
+        {
+          "text": "a doctor",
+          "label": "医生",
+          "label_en": "doctor"
+        },
+        {
+          "text": "a detective",
+          "label": "侦探",
+          "label_en": "detective"
+        },
+        {
+          "text": "a pilot",
+          "label": "飞行员",
+          "label_en": "pilot"
+        },
+        {
+          "text": "a chef",
+          "label": "厨师",
+          "label_en": "chef"
+        },
+        {
+          "text": "a musician",
+          "label": "音乐家",
+          "label_en": "musician"
+        },
+        {
+          "text": "a soldier",
+          "label": "士兵",
+          "label_en": "soldier"
+        },
+        {
+          "text": "a samurai",
+          "label": "武士",
+          "label_en": "samurai"
+        },
+        {
+          "text": "a ninja",
+          "label": "忍者",
+          "label_en": "ninja"
+        }
+      ],
+      "polarity": "positive"
+    },
+    {
+      "id": "anatomy_negative",
+      "name": "人体结构",
+      "name_en": "Anatomy Defects",
+      "items": [
+        {
+          "text": "bad anatomy",
+          "label": "解剖结构错误",
+          "label_en": "Bad Anatomy"
+        },
+        {
+          "text": "bad hands",
+          "label": "手部错误",
+          "label_en": "Bad Hands"
+        },
+        {
+          "text": "extra fingers",
+          "label": "多余手指",
+          "label_en": "Extra Fingers"
+        },
+        {
+          "text": "missing fingers",
+          "label": "缺失手指",
+          "label_en": "Missing Fingers"
+        },
+        {
+          "text": "fused fingers",
+          "label": "手指融合",
+          "label_en": "Fused Fingers"
+        },
+        {
+          "text": "too many fingers",
+          "label": "手指过多",
+          "label_en": "Too Many Fingers"
+        },
+        {
+          "text": "bad limbs",
+          "label": "肢体错误",
+          "label_en": "Bad Limbs"
+        },
+        {
+          "text": "extra limbs",
+          "label": "多余肢体",
+          "label_en": "Extra Limbs"
+        },
+        {
+          "text": "missing limbs",
+          "label": "缺失肢体",
+          "label_en": "Missing Limbs"
+        },
+        {
+          "text": "extra arms",
+          "label": "多余手臂",
+          "label_en": "Extra Arms"
+        },
+        {
+          "text": "bad proportions",
+          "label": "比例失调",
+          "label_en": "Bad Proportions"
+        },
+        {
+          "text": "disfigured",
+          "label": "畸形",
+          "label_en": "Disfigured"
+        },
+        {
+          "text": "deformed",
+          "label": "变形",
+          "label_en": "Deformed"
+        },
+        {
+          "text": "malformed",
+          "label": "发育不良",
+          "label_en": "Malformed"
+        }
+      ],
+      "polarity": "negative"
+    },
+    {
+      "id": "face_negative",
+      "name": "面部缺陷",
+      "name_en": "Face Defects",
+      "items": [
+        {
+          "text": "bad face",
+          "label": "面部错误",
+          "label_en": "Bad Face"
+        },
+        {
+          "text": "asymmetrical face",
+          "label": "面部不对称",
+          "label_en": "Asymmetrical Face"
+        },
+        {
+          "text": "cross-eyed",
+          "label": "斗鸡眼",
+          "label_en": "Cross-eyed"
+        },
+        {
+          "text": "ugly",
+          "label": "丑陋",
+          "label_en": "Ugly"
+        },
+        {
+          "text": "duplicate face",
+          "label": "重复面部",
+          "label_en": "Duplicate Face"
+        },
+        {
+          "text": "mutation",
+          "label": "变异",
+          "label_en": "Mutation"
+        },
+        {
+          "text": "long neck",
+          "label": "脖子过长",
+          "label_en": "Long Neck"
+        },
+        {
+          "text": "bad eyes",
+          "label": "眼睛错误",
+          "label_en": "Bad Eyes"
+        },
+        {
+          "text": "unnatural eyes",
+          "label": "不自然眼睛",
+          "label_en": "Unnatural Eyes"
+        },
+        {
+          "text": "bad teeth",
+          "label": "牙齿错误",
+          "label_en": "Bad Teeth"
+        }
+      ],
+      "polarity": "negative"
     }
-  ]
+  ],
+  "polarity": "positive"
 }

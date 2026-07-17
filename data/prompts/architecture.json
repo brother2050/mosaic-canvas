@@ -10,73 +10,258 @@
       "name": "建筑类型",
       "name_en": "Building Type",
       "items": [
-        { "text": "a Gothic cathedral", "label": "哥特式大教堂", "label_en": "Gothic cathedral" },
-        { "text": "a medieval castle", "label": "中世纪城堡", "label_en": "medieval castle" },
-        { "text": "a Japanese shrine", "label": "日式神社", "label_en": "Japanese shrine" },
-        { "text": "a Chinese pagoda", "label": "中国宝塔", "label_en": "Chinese pagoda" },
-        { "text": "a modern glass skyscraper", "label": "现代玻璃摩天楼", "label_en": "glass skyscraper" },
-        { "text": "a Victorian mansion", "label": "维多利亚豪宅", "label_en": "Victorian mansion" },
-        { "text": "a rustic wooden cabin", "label": "乡村木屋", "label_en": "wooden cabin" },
-        { "text": "a futuristic eco-building", "label": "未来生态建筑", "label_en": "eco-building" },
-        { "text": "an ancient Greek temple", "label": "古希腊神殿", "label_en": "Greek temple" },
-        { "text": "an Islamic mosque with domes", "label": "清真寺", "label_en": "mosque" },
-        { "text": "a Roman amphitheater", "label": "罗马斗兽场", "label_en": "Roman amphitheater" },
-        { "text": "a stone bridge", "label": "石桥", "label_en": "stone bridge" },
-        { "text": "a lighthouse on a cliff", "label": "悬崖灯塔", "label_en": "lighthouse" },
-        { "text": "a windmill", "label": "风车", "label_en": "windmill" },
-        { "text": "a stilt house over water", "label": "水上吊脚楼", "label_en": "stilt house" }
-      ]
+        {
+          "text": "a Gothic cathedral",
+          "label": "哥特式大教堂",
+          "label_en": "Gothic cathedral"
+        },
+        {
+          "text": "a medieval castle",
+          "label": "中世纪城堡",
+          "label_en": "medieval castle"
+        },
+        {
+          "text": "a Japanese shrine",
+          "label": "日式神社",
+          "label_en": "Japanese shrine"
+        },
+        {
+          "text": "a Chinese pagoda",
+          "label": "中国宝塔",
+          "label_en": "Chinese pagoda"
+        },
+        {
+          "text": "a modern glass skyscraper",
+          "label": "现代玻璃摩天楼",
+          "label_en": "glass skyscraper"
+        },
+        {
+          "text": "a Victorian mansion",
+          "label": "维多利亚豪宅",
+          "label_en": "Victorian mansion"
+        },
+        {
+          "text": "a rustic wooden cabin",
+          "label": "乡村木屋",
+          "label_en": "wooden cabin"
+        },
+        {
+          "text": "a futuristic eco-building",
+          "label": "未来生态建筑",
+          "label_en": "eco-building"
+        },
+        {
+          "text": "an ancient Greek temple",
+          "label": "古希腊神殿",
+          "label_en": "Greek temple"
+        },
+        {
+          "text": "an Islamic mosque with domes",
+          "label": "清真寺",
+          "label_en": "mosque"
+        },
+        {
+          "text": "a Roman amphitheater",
+          "label": "罗马斗兽场",
+          "label_en": "Roman amphitheater"
+        },
+        {
+          "text": "a stone bridge",
+          "label": "石桥",
+          "label_en": "stone bridge"
+        },
+        {
+          "text": "a lighthouse on a cliff",
+          "label": "悬崖灯塔",
+          "label_en": "lighthouse"
+        },
+        {
+          "text": "a windmill",
+          "label": "风车",
+          "label_en": "windmill"
+        },
+        {
+          "text": "a stilt house over water",
+          "label": "水上吊脚楼",
+          "label_en": "stilt house"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "arch_style",
       "name": "建筑风格",
       "name_en": "Architectural Style",
       "items": [
-        { "text": "Gothic architecture", "label": "哥特式", "label_en": "Gothic" },
-        { "text": "Baroque architecture", "label": "巴洛克", "label_en": "Baroque" },
-        { "text": "Art Deco style", "label": "装饰艺术", "label_en": "Art Deco" },
-        { "text": "Brutalist architecture", "label": "粗野主义", "label_en": "Brutalist" },
-        { "text": "traditional Chinese architecture", "label": "中国传统建筑", "label_en": "Chinese traditional" },
-        { "text": "Japanese architecture", "label": "日式建筑", "label_en": "Japanese" },
-        { "text": "Mediterranean style", "label": "地中海风格", "label_en": "Mediterranean" },
-        { "text": "Scandinavian minimalist", "label": "北欧极简", "label_en": "Scandinavian" },
-        { "text": "cyberpunk architecture", "label": "赛博朋克建筑", "label_en": "cyberpunk" },
-        { "text": "steampunk architecture", "label": "蒸汽朋克建筑", "label_en": "steampunk" },
-        { "text": "Islamic architecture", "label": "伊斯兰建筑", "label_en": "Islamic" },
-        { "text": "futuristic architecture", "label": "未来主义建筑", "label_en": "futuristic" }
-      ]
+        {
+          "text": "Gothic architecture",
+          "label": "哥特式",
+          "label_en": "Gothic"
+        },
+        {
+          "text": "Baroque architecture",
+          "label": "巴洛克",
+          "label_en": "Baroque"
+        },
+        {
+          "text": "Art Deco style",
+          "label": "装饰艺术",
+          "label_en": "Art Deco"
+        },
+        {
+          "text": "Brutalist architecture",
+          "label": "粗野主义",
+          "label_en": "Brutalist"
+        },
+        {
+          "text": "traditional Chinese architecture",
+          "label": "中国传统建筑",
+          "label_en": "Chinese traditional"
+        },
+        {
+          "text": "Japanese architecture",
+          "label": "日式建筑",
+          "label_en": "Japanese"
+        },
+        {
+          "text": "Mediterranean style",
+          "label": "地中海风格",
+          "label_en": "Mediterranean"
+        },
+        {
+          "text": "Scandinavian minimalist",
+          "label": "北欧极简",
+          "label_en": "Scandinavian"
+        },
+        {
+          "text": "cyberpunk architecture",
+          "label": "赛博朋克建筑",
+          "label_en": "cyberpunk"
+        },
+        {
+          "text": "steampunk architecture",
+          "label": "蒸汽朋克建筑",
+          "label_en": "steampunk"
+        },
+        {
+          "text": "Islamic architecture",
+          "label": "伊斯兰建筑",
+          "label_en": "Islamic"
+        },
+        {
+          "text": "futuristic architecture",
+          "label": "未来主义建筑",
+          "label_en": "futuristic"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "arch_material",
       "name": "建材",
       "name_en": "Material",
       "items": [
-        { "text": "stone walls", "label": "石墙", "label_en": "stone walls" },
-        { "text": "red brick walls", "label": "红砖墙", "label_en": "red brick" },
-        { "text": "white marble", "label": "白色大理石", "label_en": "white marble" },
-        { "text": "wooden structure", "label": "木结构", "label_en": "wooden" },
-        { "text": "glass facade", "label": "玻璃幕墙", "label_en": "glass facade" },
-        { "text": "steel framework", "label": "钢架结构", "label_en": "steel" },
-        { "text": "bamboo construction", "label": "竹结构", "label_en": "bamboo" },
-        { "text": "adobe clay walls", "label": "土坯墙", "label_en": "adobe" },
-        { "text": "concrete brutalist", "label": "混凝土", "label_en": "concrete" }
-      ]
+        {
+          "text": "stone walls",
+          "label": "石墙",
+          "label_en": "stone walls"
+        },
+        {
+          "text": "red brick walls",
+          "label": "红砖墙",
+          "label_en": "red brick"
+        },
+        {
+          "text": "white marble",
+          "label": "白色大理石",
+          "label_en": "white marble"
+        },
+        {
+          "text": "wooden structure",
+          "label": "木结构",
+          "label_en": "wooden"
+        },
+        {
+          "text": "glass facade",
+          "label": "玻璃幕墙",
+          "label_en": "glass facade"
+        },
+        {
+          "text": "steel framework",
+          "label": "钢架结构",
+          "label_en": "steel"
+        },
+        {
+          "text": "bamboo construction",
+          "label": "竹结构",
+          "label_en": "bamboo"
+        },
+        {
+          "text": "adobe clay walls",
+          "label": "土坯墙",
+          "label_en": "adobe"
+        },
+        {
+          "text": "concrete brutalist",
+          "label": "混凝土",
+          "label_en": "concrete"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "arch_detail",
       "name": "建筑细节",
       "name_en": "Details",
       "items": [
-        { "text": "intricate stone carvings", "label": "精美石雕", "label_en": "stone carvings" },
-        { "text": "stained glass windows", "label": "彩色玻璃窗", "label_en": "stained glass" },
-        { "text": "soaring arches", "label": "高耸拱门", "label_en": "soaring arches" },
-        { "text": "grand columns", "label": "宏伟立柱", "label_en": "grand columns" },
-        { "text": "curved domes", "label": "穹顶", "label_en": "domes" },
-        { "text": "ornate balconies", "label": "华丽阳台", "label_en": "ornate balconies" },
-        { "text": "spiral staircases", "label": "螺旋楼梯", "label_en": "spiral staircase" },
-        { "text": "towering spires", "label": "高耸尖塔", "label_en": "spires" },
-        { "text": "ivory-covered walls", "label": "爬满常春藤的墙", "label_en": "ivy walls" }
-      ]
+        {
+          "text": "intricate stone carvings",
+          "label": "精美石雕",
+          "label_en": "stone carvings"
+        },
+        {
+          "text": "stained glass windows",
+          "label": "彩色玻璃窗",
+          "label_en": "stained glass"
+        },
+        {
+          "text": "soaring arches",
+          "label": "高耸拱门",
+          "label_en": "soaring arches"
+        },
+        {
+          "text": "grand columns",
+          "label": "宏伟立柱",
+          "label_en": "grand columns"
+        },
+        {
+          "text": "curved domes",
+          "label": "穹顶",
+          "label_en": "domes"
+        },
+        {
+          "text": "ornate balconies",
+          "label": "华丽阳台",
+          "label_en": "ornate balconies"
+        },
+        {
+          "text": "spiral staircases",
+          "label": "螺旋楼梯",
+          "label_en": "spiral staircase"
+        },
+        {
+          "text": "towering spires",
+          "label": "高耸尖塔",
+          "label_en": "spires"
+        },
+        {
+          "text": "ivory-covered walls",
+          "label": "爬满常春藤的墙",
+          "label_en": "ivy walls"
+        }
+      ],
+      "polarity": "positive"
     }
-  ]
+  ],
+  "polarity": "positive"
 }

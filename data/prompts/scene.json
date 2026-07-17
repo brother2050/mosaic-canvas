@@ -10,85 +10,291 @@
       "name": "自然风光",
       "name_en": "Nature",
       "items": [
-        { "text": "a sun rising over the mountains", "label": "日出山峦", "label_en": "sunrise over mountains" },
-        { "text": "a calm lake reflecting the sky", "label": "平静湖泊", "label_en": "calm lake" },
-        { "text": "a dense forest with sunlight filtering through", "label": "阳光穿过密林", "label_en": "sunlit dense forest" },
-        { "text": "a waterfall cascading down rocks", "label": "瀑布", "label_en": "waterfall" },
-        { "text": "a desert with rolling sand dunes", "label": "沙漠沙丘", "label_en": "desert dunes" },
-        { "text": "a snow-covered mountain peak", "label": "雪山", "label_en": "snowy mountain peak" },
-        { "text": "a green meadow with wildflowers", "label": "野花草甸", "label_en": "wildflower meadow" },
-        { "text": "a tropical beach with palm trees", "label": "热带海滩", "label_en": "tropical beach" },
-        { "text": "a volcanic landscape with lava", "label": "火山熔岩", "label_en": "volcanic landscape" },
-        { "text": "a frozen tundra", "label": "冻原", "label_en": "frozen tundra" },
-        { "text": "a canyon with steep cliffs", "label": "峡谷", "label_en": "canyon" },
-        { "text": "a rice terrace on a hillside", "label": "梯田", "label_en": "rice terrace" }
-      ]
+        {
+          "text": "a sun rising over the mountains",
+          "label": "日出山峦",
+          "label_en": "sunrise over mountains"
+        },
+        {
+          "text": "a calm lake reflecting the sky",
+          "label": "平静湖泊",
+          "label_en": "calm lake"
+        },
+        {
+          "text": "a dense forest with sunlight filtering through",
+          "label": "阳光穿过密林",
+          "label_en": "sunlit dense forest"
+        },
+        {
+          "text": "a waterfall cascading down rocks",
+          "label": "瀑布",
+          "label_en": "waterfall"
+        },
+        {
+          "text": "a desert with rolling sand dunes",
+          "label": "沙漠沙丘",
+          "label_en": "desert dunes"
+        },
+        {
+          "text": "a snow-covered mountain peak",
+          "label": "雪山",
+          "label_en": "snowy mountain peak"
+        },
+        {
+          "text": "a green meadow with wildflowers",
+          "label": "野花草甸",
+          "label_en": "wildflower meadow"
+        },
+        {
+          "text": "a tropical beach with palm trees",
+          "label": "热带海滩",
+          "label_en": "tropical beach"
+        },
+        {
+          "text": "a volcanic landscape with lava",
+          "label": "火山熔岩",
+          "label_en": "volcanic landscape"
+        },
+        {
+          "text": "a frozen tundra",
+          "label": "冻原",
+          "label_en": "frozen tundra"
+        },
+        {
+          "text": "a canyon with steep cliffs",
+          "label": "峡谷",
+          "label_en": "canyon"
+        },
+        {
+          "text": "a rice terrace on a hillside",
+          "label": "梯田",
+          "label_en": "rice terrace"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "urban",
       "name": "城市街景",
       "name_en": "Urban",
       "items": [
-        { "text": "a bustling city street at night with neon lights", "label": "夜晚霓虹街道", "label_en": "neon city street at night" },
-        { "text": "a modern skyscraper skyline", "label": "摩天大楼天际线", "label_en": "modern skyline" },
-        { "text": "an old cobblestone alley", "label": "鹅卵石小巷", "label_en": "cobblestone alley" },
-        { "text": "a cozy cafe interior", "label": "温馨咖啡馆", "label_en": "cozy cafe interior" },
-        { "text": "a rooftop garden overlooking the city", "label": "屋顶花园", "label_en": "rooftop garden" },
-        { "text": "a busy intersection with traffic", "label": "繁忙路口", "label_en": "busy intersection" },
-        { "text": "a subway station", "label": "地铁站", "label_en": "subway station" },
-        { "text": "a shopping mall atrium", "label": "商场中庭", "label_en": "shopping mall atrium" },
-        { "text": "a bridge over a river at sunset", "label": "夕阳桥梁", "label_en": "bridge at sunset" },
-        { "text": "a small town main street", "label": "小镇主街", "label_en": "small town street" }
-      ]
+        {
+          "text": "a bustling city street at night with neon lights",
+          "label": "夜晚霓虹街道",
+          "label_en": "neon city street at night"
+        },
+        {
+          "text": "a modern skyscraper skyline",
+          "label": "摩天大楼天际线",
+          "label_en": "modern skyline"
+        },
+        {
+          "text": "an old cobblestone alley",
+          "label": "鹅卵石小巷",
+          "label_en": "cobblestone alley"
+        },
+        {
+          "text": "a cozy cafe interior",
+          "label": "温馨咖啡馆",
+          "label_en": "cozy cafe interior"
+        },
+        {
+          "text": "a rooftop garden overlooking the city",
+          "label": "屋顶花园",
+          "label_en": "rooftop garden"
+        },
+        {
+          "text": "a busy intersection with traffic",
+          "label": "繁忙路口",
+          "label_en": "busy intersection"
+        },
+        {
+          "text": "a subway station",
+          "label": "地铁站",
+          "label_en": "subway station"
+        },
+        {
+          "text": "a shopping mall atrium",
+          "label": "商场中庭",
+          "label_en": "shopping mall atrium"
+        },
+        {
+          "text": "a bridge over a river at sunset",
+          "label": "夕阳桥梁",
+          "label_en": "bridge at sunset"
+        },
+        {
+          "text": "a small town main street",
+          "label": "小镇主街",
+          "label_en": "small town street"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "interior",
       "name": "室内空间",
       "name_en": "Interior",
       "items": [
-        { "text": "a modern living room with large windows", "label": "现代客厅", "label_en": "modern living room" },
-        { "text": "a minimalist bedroom with warm lighting", "label": "极简卧室", "label_en": "minimalist bedroom" },
-        { "text": "a professional kitchen with stainless steel appliances", "label": "专业厨房", "label_en": "professional kitchen" },
-        { "text": "a cozy study room with bookshelves", "label": "书房", "label_en": "cozy study room" },
-        { "text": "a luxurious bathroom with marble", "label": "豪华浴室", "label_en": "luxurious bathroom" },
-        { "text": "a home office setup", "label": "家庭办公室", "label_en": "home office" },
-        { "text": "a restaurant dining hall", "label": "餐厅大厅", "label_en": "restaurant dining hall" },
-        { "text": "a hotel lobby", "label": "酒店大堂", "label_en": "hotel lobby" },
-        { "text": "a classroom with desks", "label": "教室", "label_en": "classroom" },
-        { "text": "a warehouse interior", "label": "仓库内部", "label_en": "warehouse interior" }
-      ]
+        {
+          "text": "a modern living room with large windows",
+          "label": "现代客厅",
+          "label_en": "modern living room"
+        },
+        {
+          "text": "a minimalist bedroom with warm lighting",
+          "label": "极简卧室",
+          "label_en": "minimalist bedroom"
+        },
+        {
+          "text": "a professional kitchen with stainless steel appliances",
+          "label": "专业厨房",
+          "label_en": "professional kitchen"
+        },
+        {
+          "text": "a cozy study room with bookshelves",
+          "label": "书房",
+          "label_en": "cozy study room"
+        },
+        {
+          "text": "a luxurious bathroom with marble",
+          "label": "豪华浴室",
+          "label_en": "luxurious bathroom"
+        },
+        {
+          "text": "a home office setup",
+          "label": "家庭办公室",
+          "label_en": "home office"
+        },
+        {
+          "text": "a restaurant dining hall",
+          "label": "餐厅大厅",
+          "label_en": "restaurant dining hall"
+        },
+        {
+          "text": "a hotel lobby",
+          "label": "酒店大堂",
+          "label_en": "hotel lobby"
+        },
+        {
+          "text": "a classroom with desks",
+          "label": "教室",
+          "label_en": "classroom"
+        },
+        {
+          "text": "a warehouse interior",
+          "label": "仓库内部",
+          "label_en": "warehouse interior"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "weather",
       "name": "天气氛围",
       "name_en": "Weather",
       "items": [
-        { "text": "golden hour sunlight", "label": "黄金时刻", "label_en": "golden hour" },
-        { "text": "heavy rain with dramatic clouds", "label": "暴雨", "label_en": "heavy rain" },
-        { "text": "foggy morning mist", "label": "雾气弥漫", "label_en": "foggy morning" },
-        { "text": "clear blue sky", "label": "晴空", "label_en": "clear blue sky" },
-        { "text": "snow falling gently", "label": "飘雪", "label_en": "gentle snowfall" },
-        { "text": "thunderstorm with lightning", "label": "雷暴闪电", "label_en": "thunderstorm" },
-        { "text": "rainbow after rain", "label": "雨后彩虹", "label_en": "rainbow" },
-        { "text": "starry night sky", "label": "星空", "label_en": "starry night" },
-        { "text": "overcast cloudy sky", "label": "阴天", "label_en": "overcast" },
-        { "text": "strong wind with falling leaves", "label": "大风落叶", "label_en": "windy with leaves" }
-      ]
+        {
+          "text": "golden hour sunlight",
+          "label": "黄金时刻",
+          "label_en": "golden hour"
+        },
+        {
+          "text": "heavy rain with dramatic clouds",
+          "label": "暴雨",
+          "label_en": "heavy rain"
+        },
+        {
+          "text": "foggy morning mist",
+          "label": "雾气弥漫",
+          "label_en": "foggy morning"
+        },
+        {
+          "text": "clear blue sky",
+          "label": "晴空",
+          "label_en": "clear blue sky"
+        },
+        {
+          "text": "snow falling gently",
+          "label": "飘雪",
+          "label_en": "gentle snowfall"
+        },
+        {
+          "text": "thunderstorm with lightning",
+          "label": "雷暴闪电",
+          "label_en": "thunderstorm"
+        },
+        {
+          "text": "rainbow after rain",
+          "label": "雨后彩虹",
+          "label_en": "rainbow"
+        },
+        {
+          "text": "starry night sky",
+          "label": "星空",
+          "label_en": "starry night"
+        },
+        {
+          "text": "overcast cloudy sky",
+          "label": "阴天",
+          "label_en": "overcast"
+        },
+        {
+          "text": "strong wind with falling leaves",
+          "label": "大风落叶",
+          "label_en": "windy with leaves"
+        }
+      ],
+      "polarity": "positive"
     },
     {
       "id": "time",
       "name": "时间",
       "name_en": "Time of Day",
       "items": [
-        { "text": "at dawn", "label": "黎明", "label_en": "at dawn" },
-        { "text": "in the morning", "label": "早晨", "label_en": "in the morning" },
-        { "text": "at noon", "label": "正午", "label_en": "at noon" },
-        { "text": "in the afternoon", "label": "下午", "label_en": "in the afternoon" },
-        { "text": "at sunset", "label": "日落", "label_en": "at sunset" },
-        { "text": "at dusk", "label": "黄昏", "label_en": "at dusk" },
-        { "text": "at night", "label": "夜晚", "label_en": "at night" },
-        { "text": "at midnight", "label": "午夜", "label_en": "at midnight" }
-      ]
+        {
+          "text": "at dawn",
+          "label": "黎明",
+          "label_en": "at dawn"
+        },
+        {
+          "text": "in the morning",
+          "label": "早晨",
+          "label_en": "in the morning"
+        },
+        {
+          "text": "at noon",
+          "label": "正午",
+          "label_en": "at noon"
+        },
+        {
+          "text": "in the afternoon",
+          "label": "下午",
+          "label_en": "in the afternoon"
+        },
+        {
+          "text": "at sunset",
+          "label": "日落",
+          "label_en": "at sunset"
+        },
+        {
+          "text": "at dusk",
+          "label": "黄昏",
+          "label_en": "at dusk"
+        },
+        {
+          "text": "at night",
+          "label": "夜晚",
+          "label_en": "at night"
+        },
+        {
+          "text": "at midnight",
+          "label": "午夜",
+          "label_en": "at midnight"
+        }
+      ],
+      "polarity": "positive"
     }
-  ]
+  ],
+  "polarity": "positive"
 }

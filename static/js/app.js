@@ -197,39 +197,140 @@ const App = (function () {
     }
 
     // ---- Templates ----
-    function renderTemplates() {
+    async function renderTemplates() {
         const list = document.getElementById('templates-list');
-        const templates = Templates.getAll();
+        const builtinTemplates = Templates.getAll();
         let html = '';
-        templates.forEach(t => {
-            html += `<div class="template-card" data-template-id="${escapeAttr(t.id)}">
+
+        // Built-in templates section
+        html += `<div class="templates-section-title">${I18n.t('modal.templates_builtin')}</div>`;
+        builtinTemplates.forEach(t => {
+            html += `<div class="template-card" data-template-id="${escapeAttr(t.id)}" data-template-source="builtin">
                 <div class="template-icon">${t.icon}</div>
                 <div class="template-info">
                     <div class="template-name">${escapeHtml(t.name)}</div>
                     <div class="template-desc">${escapeHtml(t.description)}</div>
                     <div class="template-meta">${t.node_count} ${I18n.t('status.nodes_count')} · ${t.edge_count} ${I18n.t('status.edges_count')}</div>
                 </div>
+                <div class="template-actions">
+                    <button class="btn btn-sm btn-template-insert" data-action="insert" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_insert')}</button>
+                    <button class="btn btn-sm btn-template-replace" data-action="replace" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_replace')}</button>
+                </div>
             </div>`;
         });
+
+        // Custom templates section
+        html += `<div class="templates-section-title">${I18n.t('modal.templates_custom')}</div>`;
+        try {
+            const result = await API.listTemplates();
+            const customTemplates = result.templates || [];
+            if (customTemplates.length === 0) {
+                html += `<div class="templates-empty">${I18n.t('modal.templates_no_custom')}</div>`;
+            } else {
+                customTemplates.forEach(t => {
+                    html += `<div class="template-card" data-template-filename="${escapeAttr(t.filename)}" data-template-source="custom">
+                        <div class="template-icon">📋</div>
+                        <div class="template-info">
+                            <div class="template-name">${escapeHtml(t.name)}</div>
+                            <div class="template-desc">${escapeHtml(t.description || '')}</div>
+                            <div class="template-meta">${t.nodes_count} ${I18n.t('status.nodes_count')} · ${t.edges_count} ${I18n.t('status.edges_count')}</div>
+                        </div>
+                        <div class="template-actions">
+                            <button class="btn btn-sm btn-template-insert" data-action="insert" data-filename="${escapeAttr(t.filename)}" data-source="custom">${I18n.t('modal.templates_insert')}</button>
+                            <button class="btn btn-sm btn-template-replace" data-action="replace" data-filename="${escapeAttr(t.filename)}" data-source="custom">${I18n.t('modal.templates_replace')}</button>
+                            <button class="btn btn-sm btn-template-delete" data-action="delete" data-filename="${escapeAttr(t.filename)}" data-source="custom">${I18n.t('modal.templates_delete')}</button>
+                        </div>
+                    </div>`;
+                });
+            }
+        } catch (e) {
+            html += `<div class="templates-empty">${I18n.t('modal.templates_no_custom')}</div>`;
+        }
+
         list.innerHTML = html;
 
-        list.querySelectorAll('.template-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const id = card.dataset.templateId;
-                const graph = Templates.getGraph(id);
-                if (graph) {
+        // Wire up action buttons
+        list.querySelectorAll('[data-action]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const action = btn.dataset.action;
+                const source = btn.dataset.source;
+
+                if (action === 'delete') {
+                    const filename = btn.dataset.filename;
+                    if (!confirm(I18n.t('toast.clear_confirm'))) return;
+                    try {
+                        await API.deleteTemplate(filename);
+                        toast(I18n.t('toast.template_deleted', { name: filename }), 'success');
+                        renderTemplates();
+                    } catch (err) {
+                        toast(err.message, 'error');
+                    }
+                    return;
+                }
+
+                let graph = null;
+                let templateName = '';
+                if (source === 'builtin') {
+                    const id = btn.dataset.id;
+                    graph = Templates.getGraph(id);
+                    const tmpl = Templates.getAll().find(t => t.id === id);
+                    templateName = tmpl ? tmpl.name : id;
+                } else {
+                    const filename = btn.dataset.filename;
+                    try {
+                        graph = await API.loadTemplate(filename);
+                        templateName = graph.name || filename;
+                    } catch (err) {
+                        toast(err.message, 'error');
+                        return;
+                    }
+                }
+
+                if (!graph) return;
+
+                if (action === 'replace') {
                     if (Store.getNodes().length > 0 && !confirm(I18n.t('toast.clear_confirm'))) return;
                     Store.fromGraph(graph);
                     document.getElementById('pipeline-name').value = Store.getPipelineName();
                     Canvas.renderAll();
                     renderInputPanel();
                     hideModal('templates-modal');
-                    const tmpl = Templates.getAll().find(t => t.id === id);
-                    toast(I18n.t('toast.template_loaded', { name: tmpl ? tmpl.name : id }), 'success');
+                    toast(I18n.t('toast.template_loaded', { name: templateName }), 'success');
+                    setTimeout(() => Canvas.autoLayout(), 100);
+                } else if (action === 'insert') {
+                    Store.addGraph(graph);
+                    Canvas.renderAll();
+                    renderInputPanel();
+                    hideModal('templates-modal');
+                    toast(I18n.t('toast.template_inserted', { name: templateName }), 'success');
                     setTimeout(() => Canvas.autoLayout(), 100);
                 }
             });
         });
+    }
+
+    // ---- Save as Template ----
+    async function saveAsTemplate() {
+        const name = document.getElementById('save-template-name').value.trim();
+        if (!name) {
+            toast(I18n.t('modal.save_template_name'), 'warning');
+            return;
+        }
+        if (Store.getNodes().length === 0) {
+            toast(I18n.t('canvas.empty_title'), 'warning');
+            return;
+        }
+        const graph = Store.toGraph();
+        graph.name = name;
+        try {
+            await API.saveTemplate(graph);
+            toast(I18n.t('toast.template_saved', { name }), 'success');
+            document.getElementById('save-template-name').value = '';
+            hideModal('save-template-modal');
+        } catch (err) {
+            toast(err.message, 'error');
+        }
     }
 
     // ---- Shortcuts help ----
@@ -455,6 +556,24 @@ const App = (function () {
         document.getElementById('btn-templates').addEventListener('click', () => {
             renderTemplates();
             showModal('templates-modal');
+        });
+
+        // Save as Template button
+        document.getElementById('btn-save-template').addEventListener('click', () => {
+            if (Store.getNodes().length === 0) {
+                toast(I18n.t('canvas.empty_title'), 'warning');
+                return;
+            }
+            showModal('save-template-modal');
+            setTimeout(() => document.getElementById('save-template-name').focus(), 100);
+        });
+
+        // Save template confirm
+        document.getElementById('btn-save-template-confirm').addEventListener('click', saveAsTemplate);
+
+        // Enter key in save template name field
+        document.getElementById('save-template-name').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveAsTemplate();
         });
 
         // Shortcuts button
