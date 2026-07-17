@@ -386,7 +386,18 @@ def create_app() -> FastAPI:
     # -- Static files & SPA fallback --------------------------------------
 
     if static_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        # Use a custom StaticFiles subclass that sends no-cache headers for
+        # JS/CSS files, so browsers always fetch the latest version after
+        # code updates.  Generated media (images, audio) under /outputs/
+        # can still be cached normally.
+        class NoCacheStaticFiles(StaticFiles):
+            async def get_response(self, path: str, scope):
+                response = await super().get_response(path, scope)
+                if path.endswith((".js", ".css", ".html")):
+                    response.headers["Cache-Control"] = "no-cache, must-revalidate"
+                return response
+
+        app.mount("/static", NoCacheStaticFiles(directory=str(static_dir)), name="static")
 
         # Mount the outputs directory for serving generated media files
         # (images, audio, video thumbnails saved by the executor).
@@ -398,7 +409,8 @@ def create_app() -> FastAPI:
         async def index() -> HTMLResponse:
             index_path = static_dir / "index.html"
             if index_path.exists():
-                return HTMLResponse(content=index_path.read_text(encoding="utf-8"))
+                content = index_path.read_text(encoding="utf-8")
+                return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, must-revalidate"})
             return HTMLResponse(content="<h1>Mosaic Canvas</h1><p>index.html not found.</p>")
 
         # Serve other static files (css, js) via the /static mount above.

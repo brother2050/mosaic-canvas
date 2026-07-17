@@ -474,13 +474,14 @@ const App = (function () {
         document.getElementById('btn-stop').classList.remove('btn-hidden');
         setStatus(I18n.t('status.running'));
 
-        // Initialize streaming results display
-        Results.startStreaming();
-
         const totalNodes = Store.getNodes().length;
         let completedNodes = 0;
 
         try {
+            // Initialize streaming results display (inside try so errors
+            // are caught and the UI is properly restored in finally)
+            Results.startStreaming();
+
             const result = await API.runWebSocket(graph, (event, payload) => {
                 if (event === 'pipeline_start') {
                     setStatus(I18n.t('run.queued', { count: payload.node_count }));
@@ -519,6 +520,7 @@ const App = (function () {
                 toast(I18n.t('toast.run_failed'), 'error');
             }
         } catch (err) {
+            console.error('Pipeline execution error:', err);
             Results.render({ success: false, error: err.message, node_results: [], duration: 0 });
             toast(I18n.t('toast.exec_error') + err.message, 'error');
             setStatus(I18n.t('status.execution_failed'));
