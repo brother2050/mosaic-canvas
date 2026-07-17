@@ -97,6 +97,11 @@ _JSON_FIELDS: frozenset[str] = frozenset({
     "formats",
     "filter_metadata",
     "padding",
+    "labels",
+    "results",
+    "prompts",
+    "metadata",
+    "timestamps",
 })
 
 

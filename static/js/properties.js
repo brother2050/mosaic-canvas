@@ -232,7 +232,10 @@ const Properties = (() => {
 
         // Determine if this field needs a textarea (multi-line JSON input)
         const isJsonField = field.name === 'messages' || field.name === 'formats' ||
-            field.name === 'filter_metadata' || field.name === 'padding';
+            field.name === 'filter_metadata' || field.name === 'padding' ||
+            field.name === 'labels' || field.name === 'results' ||
+            field.name === 'prompts' || field.name === 'metadata' ||
+            field.name === 'timestamps';
 
         let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}" data-field-name="${escapeAttr(field.name)}" data-field-type="${escapeAttr(field.type)}" data-field-default="${defaultStr}" data-field-source="${source}">
             <div class="prop-field-header">
@@ -311,6 +314,11 @@ const Properties = (() => {
             'formats': '["png", "jpg"]',
             'filter_metadata': '{"source": "web"}',
             'padding': '[0, 20, 0, 20]',
+            'labels': '["positive", "negative", "neutral"]',
+            'results': '[{"text": "...", "score": 0.95}]',
+            'prompts': '["frame 1 description", "frame 2 description"]',
+            'metadata': '[{"page": 1, "source": "doc.pdf"}]',
+            'timestamps': '[1.5, 3.0, 5.2]',
         };
         return hints[fieldName] || 'Enter JSON value';
     }
