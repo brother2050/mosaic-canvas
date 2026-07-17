@@ -145,6 +145,24 @@ def create_app() -> FastAPI:
             ]
         })
 
+    @app.get("/api/prompts")
+    def api_get_prompts() -> JSONResponse:
+        """Return the prompt library JSON.
+
+        Loads from ``data/prompt-library.json`` (next to the mosaic_canvas
+        package). If the file is missing or invalid, returns an empty
+        structure so the UI degrades gracefully.
+        """
+        data_dir = Path(__file__).resolve().parent.parent / "data"
+        prompt_file = data_dir / "prompt-library.json"
+        if prompt_file.exists():
+            try:
+                with open(prompt_file, encoding="utf-8") as f:
+                    return JSONResponse(content=json.load(f))
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Failed to load prompt-library.json: %s", exc)
+        return JSONResponse(content={"version": "1.0", "categories": []})
+
     @app.post("/api/validate")
     def api_validate(req: GraphRequest) -> JSONResponse:
         """Validate a graph without executing it."""

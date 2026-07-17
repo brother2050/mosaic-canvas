@@ -283,7 +283,18 @@ const Properties = (() => {
         } else if (field.type === 'float') {
             html += `<input type="number" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" step="any" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
         } else {
-            html += `<input type="text" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
+            // Check if this is a prompt-type field that should have a prompt picker
+            const isPromptField = field.name === 'prompt' || field.name === 'negative_prompt' ||
+                field.name === 'instruction' || field.name === 'message' ||
+                field.name === 'text' || field.name === 'character_description';
+            if (isPromptField) {
+                html += `<div class="prop-input-with-button">
+                    <input type="text" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">
+                    <button class="prop-prompt-btn" data-prompt-picker="${escapeAttr(field.name)}" title="${I18n.t('prompts.picker_title')}">⊞</button>
+                </div>`;
+            } else {
+                html += `<input type="text" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">`;
+            }
         }
 
         // Default badge and reset button
@@ -549,6 +560,16 @@ const Properties = (() => {
                 render();
             });
         }
+
+        // Prompt picker buttons
+        panelEl.querySelectorAll('[data-prompt-picker]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = btn.parentElement.querySelector('.prop-input');
+                if (input) {
+                    Prompts.openPopover(input, btn.dataset.promptPicker);
+                }
+            });
+        });
     }
 
     function toggleHelp(toggle, content) {

@@ -1,0 +1,282 @@
+{
+  "version": "1.0",
+  "categories": [
+    {
+      "id": "character",
+      "name": "人物",
+      "name_en": "Characters",
+      "icon": "人",
+      "subcategories": [
+        {
+          "id": "gender",
+          "name": "性别",
+          "name_en": "Gender",
+          "items": [
+            { "text": "a man", "label": "男人", "label_en": "a man" },
+            { "text": "a woman", "label": "女人", "label_en": "a woman" },
+            { "text": "a young boy", "label": "男孩", "label_en": "a young boy" },
+            { "text": "a young girl", "label": "女孩", "label_en": "a young girl" },
+            { "text": "an elderly man", "label": "老年男性", "label_en": "an elderly man" },
+            { "text": "an elderly woman", "label": "老年女性", "label_en": "an elderly woman" }
+          ]
+        },
+        {
+          "id": "appearance",
+          "name": "外貌",
+          "name_en": "Appearance",
+          "items": [
+            { "text": "short black hair", "label": "黑色短发", "label_en": "short black hair" },
+            { "text": "long flowing blonde hair", "label": "金色长发", "label_en": "long flowing blonde hair" },
+            { "text": "curly brown hair", "label": "棕色卷发", "label_en": "curly brown hair" },
+            { "text": "bald with a beard", "label": "秃头有胡须", "label_en": "bald with a beard" },
+            { "text": "blue eyes", "label": "蓝色眼睛", "label_en": "blue eyes" },
+            { "text": "green eyes", "label": "绿色眼睛", "label_en": "green eyes" },
+            { "text": "fair skin", "label": "白皙皮肤", "label_en": "fair skin" },
+            { "text": "tanned skin", "label": "棕褐色皮肤", "label_en": "tanned skin" },
+            { "text": "dark skin", "label": "深色皮肤", "label_en": "dark skin" }
+          ]
+        },
+        {
+          "id": "expression",
+          "name": "表情",
+          "name_en": "Expression",
+          "items": [
+            { "text": "smiling happily", "label": "开心微笑", "label_en": "smiling happily" },
+            { "text": "serious expression", "label": "严肃表情", "label_en": "serious expression" },
+            { "text": "surprised look", "label": "惊讶表情", "label_en": "surprised look" },
+            { "text": "thoughtful gaze", "label": "沉思眼神", "label_en": "thoughtful gaze" },
+            { "text": "confident smile", "label": "自信微笑", "label_en": "confident smile" }
+          ]
+        },
+        {
+          "id": "clothing",
+          "name": "服装",
+          "name_en": "Clothing",
+          "items": [
+            { "text": "wearing a business suit", "label": "西装", "label_en": "business suit" },
+            { "text": "wearing a casual t-shirt and jeans", "label": "休闲T恤牛仔裤", "label_en": "casual t-shirt and jeans" },
+            { "text": "wearing a traditional hanfu", "label": "汉服", "label_en": "traditional hanfu" },
+            { "text": "wearing a winter coat and scarf", "label": "冬装大衣围巾", "label_en": "winter coat and scarf" },
+            { "text": "wearing a flowing summer dress", "label": "夏日连衣裙", "label_en": "flowing summer dress" }
+          ]
+        },
+        {
+          "id": "pose",
+          "name": "姿势",
+          "name_en": "Pose",
+          "items": [
+            { "text": "standing upright", "label": "站立", "label_en": "standing upright" },
+            { "text": "sitting on a chair", "label": "坐在椅子上", "label_en": "sitting on a chair" },
+            { "text": "walking forward", "label": "向前走", "label_en": "walking forward" },
+            { "text": "looking up at the sky", "label": "仰望天空", "label_en": "looking up at the sky" },
+            { "text": "arms crossed", "label": "双手交叉", "label_en": "arms crossed" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scene",
+      "name": "场景",
+      "name_en": "Scenes",
+      "icon": "景",
+      "subcategories": [
+        {
+          "id": "nature",
+          "name": "自然",
+          "name_en": "Nature",
+          "items": [
+            { "text": "a sun rising over the mountains", "label": "日出山峦", "label_en": "sunrise over mountains" },
+            { "text": "a calm lake reflecting the sky", "label": "平静湖泊", "label_en": "calm lake" },
+            { "text": "a dense forest with sunlight filtering through", "label": "阳光穿过密林", "label_en": "sunlit dense forest" },
+            { "text": "a waterfall cascading down rocks", "label": "瀑布", "label_en": "waterfall" },
+            { "text": "a desert with rolling sand dunes", "label": "沙漠沙丘", "label_en": "desert dunes" },
+            { "text": "a snow-covered mountain peak", "label": "雪山", "label_en": "snowy mountain peak" }
+          ]
+        },
+        {
+          "id": "urban",
+          "name": "城市",
+          "name_en": "Urban",
+          "items": [
+            { "text": "a bustling city street at night with neon lights", "label": "夜晚霓虹街道", "label_en": "neon city street at night" },
+            { "text": "a modern skyscraper skyline", "label": "摩天大楼天际线", "label_en": "modern skyline" },
+            { "text": "an old cobblestone alley", "label": "鹅卵石小巷", "label_en": "cobblestone alley" },
+            { "text": "a cozy cafe interior", "label": "温馨咖啡馆", "label_en": "cozy cafe interior" },
+            { "text": "a rooftop garden overlooking the city", "label": "屋顶花园", "label_en": "rooftop garden" }
+          ]
+        },
+        {
+          "id": "interior",
+          "name": "室内",
+          "name_en": "Interior",
+          "items": [
+            { "text": "a modern living room with large windows", "label": "现代客厅", "label_en": "modern living room" },
+            { "text": "a minimalist bedroom with warm lighting", "label": "极简卧室", "label_en": "minimalist bedroom" },
+            { "text": "a professional kitchen with stainless steel appliances", "label": "专业厨房", "label_en": "professional kitchen" },
+            { "text": "a cozy study room with bookshelves", "label": "书房", "label_en": "cozy study room" }
+          ]
+        },
+        {
+          "id": "weather",
+          "name": "天气",
+          "name_en": "Weather",
+          "items": [
+            { "text": "golden hour sunlight", "label": "黄金时刻", "label_en": "golden hour" },
+            { "text": "heavy rain with dramatic clouds", "label": "暴雨", "label_en": "heavy rain" },
+            { "text": "foggy morning mist", "label": "雾气弥漫", "label_en": "foggy morning" },
+            { "text": "clear blue sky", "label": "晴空", "label_en": "clear blue sky" },
+            { "text": "snow falling gently", "label": "飘雪", "label_en": "gentle snowfall" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "object",
+      "name": "物体",
+      "name_en": "Objects",
+      "icon": "物",
+      "subcategories": [
+        {
+          "id": "table",
+          "name": "桌子",
+          "name_en": "Table",
+          "items": [
+            { "text": "a wooden table", "label": "木桌", "label_en": "wooden table" },
+            { "text": "a round glass table", "label": "圆形玻璃桌", "label_en": "round glass table" },
+            { "text": "a rectangular marble table", "label": "长方形大理石桌", "label_en": "rectangular marble table" },
+            { "text": "a three-legged stool", "label": "三脚凳", "label_en": "three-legged stool" },
+            { "text": "a four-legged dining table", "label": "四腿餐桌", "label_en": "four-legged dining table" },
+            { "text": "a folding table", "label": "折叠桌", "label_en": "folding table" }
+          ]
+        },
+        {
+          "id": "chair",
+          "name": "椅子",
+          "name_en": "Chair",
+          "items": [
+            { "text": "a wooden dining chair", "label": "木质餐椅", "label_en": "wooden dining chair" },
+            { "text": "a leather office chair", "label": "皮质办公椅", "label_en": "leather office chair" },
+            { "text": "a rocking chair", "label": "摇椅", "label_en": "rocking chair" },
+            { "text": "a modern minimalist chair", "label": "现代极简椅", "label_en": "modern minimalist chair" },
+            { "text": "a vintage armchair", "label": "复古扶手椅", "label_en": "vintage armchair" }
+          ]
+        },
+        {
+          "id": "vehicle",
+          "name": "交通工具",
+          "name_en": "Vehicle",
+          "items": [
+            { "text": "a red sports car", "label": "红色跑车", "label_en": "red sports car" },
+            { "text": "a vintage motorcycle", "label": "复古摩托车", "label_en": "vintage motorcycle" },
+            { "text": "a white sailboat", "label": "白色帆船", "label_en": "white sailboat" },
+            { "text": "a small airplane", "label": "小型飞机", "label_en": "small airplane" },
+            { "text": "a city bus", "label": "城市公交", "label_en": "city bus" }
+          ]
+        },
+        {
+          "id": "decoration",
+          "name": "装饰",
+          "name_en": "Decoration",
+          "items": [
+            { "text": "a vase with fresh flowers", "label": "花瓶", "label_en": "vase with flowers" },
+            { "text": "a vintage wall clock", "label": "复古挂钟", "label_en": "vintage wall clock" },
+            { "text": "a crystal chandelier", "label": "水晶吊灯", "label_en": "crystal chandelier" },
+            { "text": "a framed oil painting", "label": "油画", "label_en": "framed oil painting" },
+            { "text": "a potted green plant", "label": "盆栽", "label_en": "potted plant" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "style",
+      "name": "风格",
+      "name_en": "Styles",
+      "icon": "风",
+      "subcategories": [
+        {
+          "id": "art_style",
+          "name": "艺术风格",
+          "name_en": "Art Style",
+          "items": [
+            { "text": "oil painting style", "label": "油画风格", "label_en": "oil painting" },
+            { "text": "watercolor painting", "label": "水彩画", "label_en": "watercolor" },
+            { "text": "anime style", "label": "动漫风格", "label_en": "anime style" },
+            { "text": "photorealistic", "label": "照片级写实", "label_en": "photorealistic" },
+            { "text": "impressionist painting", "label": "印象派", "label_en": "impressionist" },
+            { "text": "pixel art", "label": "像素艺术", "label_en": "pixel art" },
+            { "text": "cyberpunk style", "label": "赛博朋克", "label_en": "cyberpunk" },
+            { "text": "Chinese ink painting", "label": "中国水墨画", "label_en": "Chinese ink painting" }
+          ]
+        },
+        {
+          "id": "lighting",
+          "name": "光照",
+          "name_en": "Lighting",
+          "items": [
+            { "text": "soft natural lighting", "label": "柔和自然光", "label_en": "soft natural light" },
+            { "text": "dramatic side lighting", "label": "戏剧性侧光", "label_en": "dramatic side light" },
+            { "text": "backlit silhouette", "label": "逆光剪影", "label_en": "backlit silhouette" },
+            { "text": "studio lighting", "label": "影棚灯光", "label_en": "studio lighting" },
+            { "text": "candlelight glow", "label": "烛光", "label_en": "candlelight" }
+          ]
+        },
+        {
+          "id": "camera",
+          "name": "镜头",
+          "name_en": "Camera",
+          "items": [
+            { "text": "close-up shot", "label": "特写", "label_en": "close-up" },
+            { "text": "wide angle view", "label": "广角", "label_en": "wide angle" },
+            { "text": "bird's eye view", "label": "鸟瞰", "label_en": "bird's eye view" },
+            { "text": "low angle shot", "label": "低角度", "label_en": "low angle" },
+            { "text": "portrait with bokeh background", "label": "人像虚化背景", "label_en": "portrait bokeh" }
+          ]
+        },
+        {
+          "id": "quality",
+          "name": "画质",
+          "name_en": "Quality",
+          "items": [
+            { "text": "8K resolution, ultra-detailed", "label": "8K超高清", "label_en": "8K ultra-detailed" },
+            { "text": "highly detailed, sharp focus", "label": "高细节锐焦", "label_en": "highly detailed" },
+            { "text": "masterpiece, best quality", "label": "大师作品", "label_en": "masterpiece" },
+            { "text": "cinematic composition", "label": "电影级构图", "label_en": "cinematic" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mood",
+      "name": "氛围",
+      "name_en": "Mood",
+      "icon": "情",
+      "subcategories": [
+        {
+          "id": "emotion",
+          "name": "情感",
+          "name_en": "Emotion",
+          "items": [
+            { "text": "serene and peaceful", "label": "宁静祥和", "label_en": "serene and peaceful" },
+            { "text": "mysterious and dark", "label": "神秘黑暗", "label_en": "mysterious and dark" },
+            { "text": "warm and cozy", "label": "温暖舒适", "label_en": "warm and cozy" },
+            { "text": "energetic and vibrant", "label": "活力四射", "label_en": "energetic and vibrant" },
+            { "text": "melancholic and dreamy", "label": "忧郁梦幻", "label_en": "melancholic and dreamy" }
+          ]
+        },
+        {
+          "id": "color_tone",
+          "name": "色调",
+          "name_en": "Color Tone",
+          "items": [
+            { "text": "warm color palette", "label": "暖色调", "label_en": "warm palette" },
+            { "text": "cool blue tones", "label": "冷蓝调", "label_en": "cool blue tones" },
+            { "text": "monochrome black and white", "label": "黑白单色", "label_en": "monochrome" },
+            { "text": "pastel colors", "label": "粉彩色调", "label_en": "pastel colors" },
+            { "text": "vivid saturated colors", "label": "鲜艳饱和", "label_en": "vivid saturated" },
+            { "text": "sepia toned", "label": "怀旧棕调", "label_en": "sepia toned" }
+          ]
+        }
+      ]
+    }
+  ]
+}

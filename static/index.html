@@ -70,22 +70,31 @@
             <button class="btn btn-icon" id="btn-shortcuts" data-i18n-title="btn.shortcuts">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
             </button>
+            <button class="btn btn-icon" id="btn-guide" data-i18n-title="btn.guide">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
         </div>
     </header>
 
     <!-- ===== Main Body ===== -->
     <div id="main">
-        <!-- Left: Node Palette -->
+        <!-- Left: Node Palette + Prompts (tabbed) -->
         <aside id="palette">
+            <div class="palette-tabs">
+                <button class="palette-tab active" data-tab="palette-list" id="tab-nodes" data-i18n="palette.tab_nodes">Nodes</button>
+                <button class="palette-tab" data-tab="prompts-panel" id="tab-prompts" data-i18n="palette.tab_prompts">Prompts</button>
+            </div>
             <div class="palette-header">
-                <h3 data-i18n="palette.title">Nodes</h3>
                 <div class="palette-search">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="palette-search-input" data-i18n-placeholder="palette.search">
                 </div>
             </div>
-            <div id="palette-list" class="palette-list">
+            <div id="palette-list" class="palette-list palette-tab-content active">
                 <div class="palette-loading" data-i18n="palette.loading">Loading nodes…</div>
+            </div>
+            <div id="prompts-panel" class="palette-list palette-tab-content" style="display:none">
+                <div class="prompts-empty" data-i18n="prompts.loading">Loading prompts…</div>
             </div>
         </aside>
 
@@ -266,6 +275,21 @@
         </div>
     </div>
 
+    <!-- Guide modal -->
+    <div class="modal-overlay" id="guide-modal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 data-i18n="modal.guide_title">User Guide</h3>
+                <button class="modal-close" data-close="guide-modal">×</button>
+            </div>
+            <div class="modal-body" id="guide-content">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" data-close="guide-modal" data-i18n="modal.close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast container -->
     <div id="toast-container"></div>
 
@@ -277,9 +301,11 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/store.js"></script>
     <script src="/static/js/palette.js"></script>
+    <script src="/static/js/prompts.js"></script>
     <script src="/static/js/canvas.js"></script>
     <script src="/static/js/properties.js"></script>
     <script src="/static/js/results.js"></script>
+    <script src="/static/js/guide.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

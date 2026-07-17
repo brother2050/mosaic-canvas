@@ -396,6 +396,15 @@ const App = (function () {
             showModal('shortcuts-modal');
         });
 
+        // Guide button
+        const guideBtn = document.getElementById('btn-guide');
+        if (guideBtn) {
+            guideBtn.addEventListener('click', () => {
+                Guide.render('guide-content');
+                showModal('guide-modal');
+            });
+        }
+
         // Listen for palette's openTemplates event
         document.addEventListener('openTemplates', () => {
             renderTemplates();
@@ -420,6 +429,32 @@ const App = (function () {
             Store.setInput(data);
             renderInputPanel();
         });
+    }
+
+    /** Palette/Prompts tab switcher */
+    function initPaletteTabs() {
+        document.querySelectorAll('.palette-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetId = tab.dataset.tab;
+                // Update tab buttons
+                document.querySelectorAll('.palette-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // Show/hide content panels
+                document.querySelectorAll('.palette-tab-content').forEach(c => {
+                    c.style.display = c.id === targetId ? 'block' : 'none';
+                    c.classList.toggle('active', c.id === targetId);
+                });
+                // Show/hide search bar (only for palette)
+                const search = document.getElementById('palette-search-input');
+                if (search) {
+                    search.parentElement.style.display = targetId === 'palette-list' ? 'flex' : 'none';
+                }
+            });
+        });
+    }
+
+    function initGuide() {
+        // Guide is rendered on-demand when the button is clicked
     }
 
     function showModal(id) { document.getElementById(id).classList.add('active'); }
@@ -504,11 +539,14 @@ const App = (function () {
     async function init() {
         Canvas.init();
         Palette.init();
+        Prompts.init();
         Properties.init();
         Results.init();
         initTabs();
         initToolbar();
         initLanguageSwitcher();
+        initPaletteTabs();
+        initGuide();
 
         // Store subscriptions
         Store.on('change', () => { updateCounts(); Canvas.renderAll(); });
