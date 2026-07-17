@@ -31,12 +31,45 @@ Design notes
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, get_args, get_origin, get_type_hints
 
 logger = logging.getLogger("mosaic_canvas.introspect")
+
+
+def _sanitize_for_json(value: Any) -> Any:
+    """Recursively convert non-JSON-serializable values to strings.
+
+    Handles ``type`` objects (classes), ``torch.dtype``, ``enum.Enum``,
+    and arbitrary objects with ``__name__`` or ``__str__``.
+    """
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, type):
+        return value.__name__
+    if isinstance(value, dict):
+        return {str(k): _sanitize_for_json(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_sanitize_for_json(v) for v in value]
+    # Enum
+    try:
+        import enum
+        if isinstance(value, enum.Enum):
+            return value.value if not isinstance(value.value, type) else str(value.value)
+    except Exception:  # noqa: BLE001
+        pass
+    # Objects with __name__ (functions, classes passed as values)
+    if hasattr(value, '__name__') and not callable(value):
+        return value.__name__
+    # Fallback: stringify
+    try:
+        json.dumps(value)
+        return value
+    except (TypeError, ValueError):
+        return str(value)
 
 __all__ = [
     "ParamSchema",
@@ -358,7 +391,7 @@ class ParamSchema:
             "name": self.name,
             "type": self.type,
             "required": self.required,
-            "default": self.default,
+            "default": _sanitize_for_json(self.default),
             "group": self.group,
         }
         if self.choices is not None:
@@ -390,7 +423,7 @@ class InputField:
             "name": self.name,
             "type": self.type,
             "required": self.required,
-            "default": self.default,
+            "default": _sanitize_for_json(self.default),
             "group": self.group,
         }
         if self.choices is not None:
@@ -425,7 +458,7 @@ class NodeInfo:
             "version": self.version,
             "input_types": self.input_types,
             "output_types": self.output_types,
-            "model_info": self.model_info,
+            "model_info": _sanitize_for_json(self.model_info),
             "params": [p.to_dict() for p in self.params],
             "input_fields": [f.to_dict() for f in self.input_fields],
             "module": self.module,

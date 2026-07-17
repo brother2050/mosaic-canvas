@@ -115,13 +115,13 @@ def create_app() -> FastAPI:
     # -- API routes --------------------------------------------------------
 
     @app.get("/api/nodes")
-    def api_list_nodes(domain: str | None = None) -> dict[str, Any]:
+    def api_list_nodes(domain: str | None = None) -> JSONResponse:
         """List all available nodes with their parameter schemas."""
         nodes = list_all_nodes(domain=domain)
-        return {
+        return JSONResponse(content={
             "count": len(nodes),
             "nodes": [n.to_dict() for n in nodes],
-        }
+        })
 
     @app.get("/api/nodes/{name}")
     def api_get_node(name: str) -> JSONResponse:
@@ -135,15 +135,15 @@ def create_app() -> FastAPI:
         return JSONResponse(content=info.to_dict())
 
     @app.get("/api/domains")
-    def api_list_domains() -> dict[str, Any]:
+    def api_list_domains() -> JSONResponse:
         """List all domains with UI metadata (label, icon, color)."""
         domains = list_domains()
-        return {
+        return JSONResponse(content={
             "domains": [
                 {"name": d, **get_domain_meta(d)}
                 for d in domains
             ]
-        }
+        })
 
     @app.post("/api/validate")
     def api_validate(req: GraphRequest) -> JSONResponse:
