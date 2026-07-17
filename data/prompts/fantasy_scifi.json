@@ -1,0 +1,79 @@
+{
+  "id": "fantasy_scifi",
+  "name": "奇幻科幻",
+  "name_en": "Fantasy & Sci-Fi",
+  "icon": "幻",
+  "version": "1.0",
+  "subcategories": [
+    {
+      "id": "fantasy_world",
+      "name": "奇幻世界",
+      "name_en": "Fantasy World",
+      "items": [
+        { "text": "a floating island in the sky", "label": "天空浮岛", "label_en": "floating island" },
+        { "text": "an enchanted forest with glowing mushrooms", "label": "发光蘑菇森林", "label_en": "enchanted forest" },
+        { "text": "a crystal cave", "label": "水晶洞穴", "label_en": "crystal cave" },
+        { "text": "a dragon's lair", "label": "龙巢", "label_en": "dragon's lair" },
+        { "text": "an ancient ruined temple", "label": "古老废墟神殿", "label_en": "ancient ruins" },
+        { "text": "a magical portal swirling with energy", "label": "魔法传送门", "label_en": "magic portal" },
+        { "text": "a treehouse village", "label": "树屋村庄", "label_en": "treehouse village" },
+        { "text": "an underwater kingdom", "label": "海底王国", "label_en": "underwater kingdom" },
+        { "text": "a volcanic throne room", "label": "火山王座", "label_en": "volcanic throne" },
+        { "text": "a celestial palace in the clouds", "label": "云中天宫", "label_en": "celestial palace" }
+      ]
+    },
+    {
+      "id": "scifi_world",
+      "name": "科幻世界",
+      "name_en": "Sci-Fi World",
+      "items": [
+        { "text": "a futuristic megacity", "label": "未来巨型城市", "label_en": "megacity" },
+        { "text": "a space station interior", "label": "空间站内部", "label_en": "space station" },
+        { "text": "a Mars colony", "label": "火星殖民地", "label_en": "Mars colony" },
+        { "text": "a cyberpunk street market", "label": "赛博朋克市场", "label_en": "cyberpunk market" },
+        { "text": "a robot factory", "label": "机器人工厂", "label_en": "robot factory" },
+        { "text": "a spaceship bridge", "label": "飞船驾驶舱", "label_en": "spaceship bridge" },
+        { "text": "a holographic interface room", "label": "全息界面室", "label_en": "holo room" },
+        { "text": "a cloning facility", "label": "克隆设施", "label_en": "cloning facility" },
+        { "text": "a post-apocalyptic wasteland", "label": "末日废土", "label_en": "wasteland" },
+        { "text": "an alien planet landscape", "label": "外星地表", "label_en": "alien planet" }
+      ]
+    },
+    {
+      "id": "tech",
+      "name": "科技元素",
+      "name_en": "Technology",
+      "items": [
+        { "text": "holographic displays", "label": "全息显示", "label_en": "holographic displays" },
+        { "text": "futuristic HUD interface", "label": "未来HUD", "label_en": "futuristic HUD" },
+        { "text": "neon cybernetic implants", "label": "霓虹义体", "label_en": "cybernetic implants" },
+        { "text": "glowing circuit board patterns", "label": "发光电路", "label_en": "circuit patterns" },
+        { "text": "energy sword", "label": "能量剑", "label_en": "energy sword" },
+        { "text": "plasma rifle", "label": "等离子步枪", "label_en": "plasma rifle" },
+        { "text": "exoskeleton armor", "label": "外骨骼装甲", "label_en": "exoskeleton" },
+        { "text": "jetpack", "label": "喷气背包", "label_en": "jetpack" },
+        { "text": "hover vehicle", "label": "悬浮载具", "label_en": "hover vehicle" },
+        { "text": "AI robot companion", "label": "AI机器人", "label_en": "AI robot" }
+      ]
+    },
+    {
+      "id": "magic_system",
+      "name": "魔法体系",
+      "name_en": "Magic System",
+      "items": [
+        { "text": "elemental fire magic", "label": "火元素魔法", "label_en": "fire magic" },
+        { "text": "elemental water magic", "label": "水元素魔法", "label_en": "water magic" },
+        { "text": "elemental earth magic", "label": "土元素魔法", "label_en": "earth magic" },
+        { "text": "elemental wind magic", "label": "风元素魔法", "label_en": "wind magic" },
+        { "text": "light holy magic", "label": "光明魔法", "label_en": "holy magic" },
+        { "text": "dark shadow magic", "label": "暗影魔法", "label_en": "shadow magic" },
+        { "text": "lightning thunder magic", "label": "雷电魔法", "label_en": "lightning magic" },
+        { "text": "ice frost magic", "label": "冰霜魔法", "label_en": "ice magic" },
+        { "text": "necromancy", "label": "亡灵魔法", "label_en": "necromancy" },
+        { "text": "summoning magic", "label": "召唤魔法", "label_en": "summoning" },
+        { "text": "time manipulation magic", "label": "时间魔法", "label_en": "time magic" },
+        { "text": "gravity magic", "label": "重力魔法", "label_en": "gravity magic" }
+      ]
+    }
+  ]
+}

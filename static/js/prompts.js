@@ -192,7 +192,8 @@ const Prompts = (() => {
     }
 
     function _wireUpChips(container) {
-        container.querySelectorAll('.prompt-chip').forEach(chip => {
+        // Select both panel chips (.prompt-chip) and popover chips (.prompt-chip-sm)
+        container.querySelectorAll('.prompt-chip, .prompt-chip-sm').forEach(chip => {
             if (chip._wired) return;
             chip._wired = true;
             chip.addEventListener('click', () => {
@@ -310,6 +311,14 @@ const Prompts = (() => {
 
         popover.innerHTML = html;
         document.body.appendChild(popover);
+
+        // Prevent mousedown on popover from stealing focus from the target input
+        popover.addEventListener('mousedown', (e) => {
+            // Allow focus on the search input, but prevent default elsewhere
+            if (e.target.id !== 'prompt-popover-search') {
+                e.preventDefault();
+            }
+        });
 
         // Lazy load any categories not yet cached
         for (const cat of categoryList) {

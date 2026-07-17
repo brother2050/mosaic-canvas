@@ -1,0 +1,111 @@
+{
+  "id": "photography",
+  "name": "摄影",
+  "name_en": "Photography",
+  "icon": "摄",
+  "version": "1.0",
+  "subcategories": [
+    {
+      "id": "shot_type",
+      "name": "景别",
+      "name_en": "Shot Type",
+      "items": [
+        { "text": "extreme close-up", "label": "极近特写", "label_en": "extreme close-up" },
+        { "text": "close-up shot", "label": "特写", "label_en": "close-up" },
+        { "text": "medium shot", "label": "中景", "label_en": "medium shot" },
+        { "text": "full body shot", "label": "全身", "label_en": "full body" },
+        { "text": "wide shot", "label": "远景", "label_en": "wide shot" },
+        { "text": "extreme wide establishing shot", "label": "大全景", "label_en": "establishing shot" },
+        { "text": "over-the-shoulder shot", "label": "过肩镜头", "label_en": "over-the-shoulder" },
+        { "text": "point of view shot", "label": "第一人称视角", "label_en": "POV shot" },
+        { "text": "two-shot", "label": "双人镜头", "label_en": "two-shot" }
+      ]
+    },
+    {
+      "id": "angle",
+      "name": "角度",
+      "name_en": "Camera Angle",
+      "items": [
+        { "text": "eye-level angle", "label": "平视", "label_en": "eye-level" },
+        { "text": "low angle shot", "label": "低角度仰拍", "label_en": "low angle" },
+        { "text": "high angle shot", "label": "高角度俯拍", "label_en": "high angle" },
+        { "text": "bird's eye view", "label": "鸟瞰", "label_en": "bird's eye view" },
+        { "text": "worm's eye view", "label": "虫眼视角", "label_en": "worm's eye view" },
+        { "text": "Dutch angle (tilted)", "label": "倾斜构图", "label_en": "Dutch angle" },
+        { "text": "top-down overhead shot", "label": "俯拍", "label_en": "overhead" },
+        { "text": "aerial drone shot", "label": "航拍", "label_en": "aerial drone" }
+      ]
+    },
+    {
+      "id": "lens",
+      "name": "镜头",
+      "name_en": "Lens",
+      "items": [
+        { "text": "50mm portrait lens", "label": "50mm人像镜头", "label_en": "50mm portrait" },
+        { "text": "85mm telephoto", "label": "85mm长焦", "label_en": "85mm telephoto" },
+        { "text": "wide angle 24mm", "label": "24mm广角", "label_en": "24mm wide" },
+        { "text": "fisheye lens", "label": "鱼眼镜头", "label_en": "fisheye" },
+        { "text": "macro lens", "label": "微距镜头", "label_en": "macro" },
+        { "text": "tilt-shift lens", "label": "移轴镜头", "label_en": "tilt-shift" },
+        { "text": "anamorphic lens", "label": "变形宽银幕镜头", "label_en": "anamorphic" },
+        { "text": "shallow depth of field, f/1.4", "label": "浅景深 f/1.4", "label_en": "shallow DOF f/1.4" },
+        { "text": "deep depth of field, f/16", "label": "深景深 f/16", "label_en": "deep DOF f/16" }
+      ]
+    },
+    {
+      "id": "lighting_setup",
+      "name": "布光",
+      "name_en": "Lighting Setup",
+      "items": [
+        { "text": "soft natural lighting", "label": "柔和自然光", "label_en": "soft natural" },
+        { "text": "dramatic side lighting", "label": "戏剧性侧光", "label_en": "dramatic side" },
+        { "text": "backlit silhouette", "label": "逆光剪影", "label_en": "backlit" },
+        { "text": "studio lighting with softbox", "label": "影棚柔光箱", "label_en": "studio softbox" },
+        { "text": "candlelight glow", "label": "烛光", "label_en": "candlelight" },
+        { "text": "neon glow lighting", "label": "霓虹灯光", "label_en": "neon glow" },
+        { "text": "volumetric lighting (god rays)", "label": "体积光", "label_en": "volumetric" },
+        { "text": "rim lighting", "label": "轮廓光", "label_en": "rim lighting" },
+        { "text": "split lighting (half shadow)", "label": "分割光", "label_en": "split lighting" },
+        { "text": "butterfly lighting", "label": "蝴蝶光", "label_en": "butterfly lighting" },
+        { "text": "three-point lighting", "label": "三点布光", "label_en": "three-point" },
+        { "text": "low-key dark lighting", "label": "低调暗光", "label_en": "low-key" },
+        { "text": "high-key bright lighting", "label": "高调亮光", "label_en": "high-key" }
+      ]
+    },
+    {
+      "id": "photo_style",
+      "name": "摄影风格",
+      "name_en": "Photo Style",
+      "items": [
+        { "text": "photorealistic", "label": "照片级写实", "label_en": "photorealistic" },
+        { "text": "cinematic still", "label": "电影剧照", "label_en": "cinematic still" },
+        { "text": "documentary photography", "label": "纪实摄影", "label_en": "documentary" },
+        { "text": "fashion editorial photography", "label": "时尚大片", "label_en": "fashion editorial" },
+        { "text": "street photography", "label": "街头摄影", "label_en": "street photography" },
+        { "text": "landscape photography", "label": "风光摄影", "label_en": "landscape" },
+        { "text": "macro photography", "label": "微距摄影", "label_en": "macro" },
+        { "text": "black and white photography", "label": "黑白摄影", "label_en": "black and white" },
+        { "text": "long exposure photography", "label": "长曝光摄影", "label_en": "long exposure" },
+        { "text": "vintage film photography", "label": "复古胶片", "label_en": "vintage film" },
+        { "text": "polaroid style", "label": "宝丽来", "label_en": "polaroid" },
+        { "text": "golden hour photography", "label": "黄金时刻摄影", "label_en": "golden hour" },
+        { "text": "blue hour photography", "label": "蓝色时刻摄影", "label_en": "blue hour" }
+      ]
+    },
+    {
+      "id": "composition",
+      "name": "构图",
+      "name_en": "Composition",
+      "items": [
+        { "text": "rule of thirds composition", "label": "三分法构图", "label_en": "rule of thirds" },
+        { "text": "centered composition", "label": "居中构图", "label_en": "centered" },
+        { "text": "symmetrical composition", "label": "对称构图", "label_en": "symmetrical" },
+        { "text": "leading lines composition", "label": "引导线构图", "label_en": "leading lines" },
+        { "text": "framing composition", "label": "框架构图", "label_en": "framing" },
+        { "text": "negative space composition", "label": "留白构图", "label_en": "negative space" },
+        { "text": "golden ratio composition", "label": "黄金比例构图", "label_en": "golden ratio" },
+        { "text": "diagonal composition", "label": "对角线构图", "label_en": "diagonal" }
+      ]
+    }
+  ]
+}

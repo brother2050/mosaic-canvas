@@ -1,0 +1,113 @@
+{
+  "id": "animal",
+  "name": "动物",
+  "name_en": "Animals",
+  "icon": "动",
+  "version": "1.0",
+  "subcategories": [
+    {
+      "id": "mammal",
+      "name": "哺乳动物",
+      "name_en": "Mammals",
+      "items": [
+        { "text": "a lion", "label": "狮子", "label_en": "lion" },
+        { "text": "a tiger", "label": "老虎", "label_en": "tiger" },
+        { "text": "a wolf", "label": "狼", "label_en": "wolf" },
+        { "text": "a bear", "label": "熊", "label_en": "bear" },
+        { "text": "a deer", "label": "鹿", "label_en": "deer" },
+        { "text": "a fox", "label": "狐狸", "label_en": "fox" },
+        { "text": "a rabbit", "label": "兔子", "label_en": "rabbit" },
+        { "text": "a horse", "label": "马", "label_en": "horse" },
+        { "text": "a cow", "label": "牛", "label_en": "cow" },
+        { "text": "a sheep", "label": "羊", "label_en": "sheep" },
+        { "text": "a pig", "label": "猪", "label_en": "pig" },
+        { "text": "a cat", "label": "猫", "label_en": "cat" },
+        { "text": "a dog", "label": "狗", "label_en": "dog" },
+        { "text": "an elephant", "label": "大象", "label_en": "elephant" },
+        { "text": "a giraffe", "label": "长颈鹿", "label_en": "giraffe" },
+        { "text": "a zebra", "label": "斑马", "label_en": "zebra" },
+        { "text": "a monkey", "label": "猴子", "label_en": "monkey" },
+        { "text": "a panda", "label": "熊猫", "label_en": "panda" },
+        { "text": "a koala", "label": "考拉", "label_en": "koala" },
+        { "text": "a kangaroo", "label": "袋鼠", "label_en": "kangaroo" },
+        { "text": "a squirrel", "label": "松鼠", "label_en": "squirrel" },
+        { "text": "a hedgehog", "label": "刺猬", "label_en": "hedgehog" }
+      ]
+    },
+    {
+      "id": "bird",
+      "name": "鸟类",
+      "name_en": "Birds",
+      "items": [
+        { "text": "an eagle", "label": "鹰", "label_en": "eagle" },
+        { "text": "a hawk", "label": "猎鹰", "label_en": "hawk" },
+        { "text": "an owl", "label": "猫头鹰", "label_en": "owl" },
+        { "text": "a parrot", "label": "鹦鹉", "label_en": "parrot" },
+        { "text": "a flamingo", "label": "火烈鸟", "label_en": "flamingo" },
+        { "text": "a peacock", "label": "孔雀", "label_en": "peacock" },
+        { "text": "a swan", "label": "天鹅", "label_en": "swan" },
+        { "text": "a crow", "label": "乌鸦", "label_en": "crow" },
+        { "text": "a pigeon", "label": "鸽子", "label_en": "pigeon" },
+        { "text": "a hummingbird", "label": "蜂鸟", "label_en": "hummingbird" },
+        { "text": "a penguin", "label": "企鹅", "label_en": "penguin" },
+        { "text": "a robin", "label": "知更鸟", "label_en": "robin" },
+        { "text": "a phoenix", "label": "凤凰", "label_en": "phoenix" }
+      ]
+    },
+    {
+      "id": "aquatic",
+      "name": "水生动物",
+      "name_en": "Aquatic",
+      "items": [
+        { "text": "a dolphin", "label": "海豚", "label_en": "dolphin" },
+        { "text": "a whale", "label": "鲸鱼", "label_en": "whale" },
+        { "text": "a shark", "label": "鲨鱼", "label_en": "shark" },
+        { "text": "a goldfish", "label": "金鱼", "label_en": "goldfish" },
+        { "text": "a tropical fish", "label": "热带鱼", "label_en": "tropical fish" },
+        { "text": "an octopus", "label": "章鱼", "label_en": "octopus" },
+        { "text": "a jellyfish", "label": "水母", "label_en": "jellyfish" },
+        { "text": "a sea turtle", "label": "海龟", "label_en": "sea turtle" },
+        { "text": "a seahorse", "label": "海马", "label_en": "seahorse" },
+        { "text": "a crab", "label": "螃蟹", "label_en": "crab" },
+        { "text": "a starfish", "label": "海星", "label_en": "starfish" },
+        { "text": "a stingray", "label": "魔鬼鱼", "label_en": "stingray" }
+      ]
+    },
+    {
+      "id": "reptile_insect",
+      "name": "爬行与昆虫",
+      "name_en": "Reptiles & Insects",
+      "items": [
+        { "text": "a snake", "label": "蛇", "label_en": "snake" },
+        { "text": "a lizard", "label": "蜥蜴", "label_en": "lizard" },
+        { "text": "a turtle", "label": "乌龟", "label_en": "turtle" },
+        { "text": "a crocodile", "label": "鳄鱼", "label_en": "crocodile" },
+        { "text": "a chameleon", "label": "变色龙", "label_en": "chameleon" },
+        { "text": "a dragon", "label": "龙", "label_en": "dragon" },
+        { "text": "a butterfly", "label": "蝴蝶", "label_en": "butterfly" },
+        { "text": "a bee", "label": "蜜蜂", "label_en": "bee" },
+        { "text": "a ladybug", "label": "瓢虫", "label_en": "ladybug" },
+        { "text": "a spider", "label": "蜘蛛", "label_en": "spider" },
+        { "text": "a dragonfly", "label": "蜻蜓", "label_en": "dragonfly" },
+        { "text": "a firefly", "label": "萤火虫", "label_en": "firefly" }
+      ]
+    },
+    {
+      "id": "mythical_creature",
+      "name": "神话生物",
+      "name_en": "Mythical Creatures",
+      "items": [
+        { "text": "a fire-breathing dragon", "label": "喷火龙", "label_en": "dragon" },
+        { "text": "a unicorn", "label": "独角兽", "label_en": "unicorn" },
+        { "text": "a griffin", "label": "狮鹫", "label_en": "griffin" },
+        { "text": "a kraken", "label": "北海巨妖", "label_en": "kraken" },
+        { "text": "a basilisk", "label": "蛇怪", "label_en": "basilisk" },
+        { "text": "a wyvern", "label": "双足飞龙", "label_en": "wyvern" },
+        { "text": "a sphinx", "label": "斯芬克斯", "label_en": "sphinx" },
+        { "text": "a kitsune (nine-tailed fox)", "label": "九尾狐", "label_en": "kitsune" },
+        { "text": "a qilin", "label": "麒麟", "label_en": "qilin" },
+        { "text": "a chimera", "label": "奇美拉", "label_en": "chimera" }
+      ]
+    }
+  ]
+}
