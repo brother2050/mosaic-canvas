@@ -47,6 +47,12 @@ const I18n = (() => {
             'palette.loading': 'Loading nodes…',
             'palette.no_nodes': 'No nodes available. Is Mosaic installed?',
             'palette.no_match': 'No nodes match your search.',
+            'palette.compatible_only': 'Compatible only',
+            'palette.compatible': 'Compatible with selected node',
+            'palette.output_type': 'Output',
+            'palette.no_compatible': 'No compatible nodes found',
+            'palette.quick_add_title': 'Add compatible node',
+            'palette.search_placeholder': 'Search…',
             'palette.templates_section': 'Quick Start Templates',
 
             // Canvas
@@ -262,6 +268,12 @@ const I18n = (() => {
             'palette.loading': '正在加载节点…',
             'palette.no_nodes': '无可用节点。请确认 Mosaic 已安装。',
             'palette.no_match': '没有匹配的节点。',
+            'palette.compatible_only': '仅显示兼容',
+            'palette.compatible': '与选中节点兼容',
+            'palette.output_type': '输出类型',
+            'palette.no_compatible': '未找到兼容节点',
+            'palette.quick_add_title': '添加兼容节点',
+            'palette.search_placeholder': '搜索…',
             'palette.templates_section': '快速开始模板',
 
             // Canvas

@@ -536,7 +536,19 @@ const Canvas = (() => {
         } else if (mode === 'connecting') {
             // Use closest() to handle mouseup on port children or SVG overlaps
             const onPort = e.target && e.target.closest && e.target.closest('.input-port');
-            if (!onPort) endConnect();
+            if (onPort) {
+                endConnect();
+            } else {
+                // Dropped on empty canvas → show quick-add menu
+                const sourceId = connectSourceId;  // capture before endConnect clears it
+                const dropPos = screenToCanvas(e.clientX, e.clientY);
+                const screenX = e.clientX;
+                const screenY = e.clientY;
+                endConnect();
+                if (sourceId) {
+                    showQuickAddMenu(sourceId, dropPos, screenX, screenY);
+                }
+            }
         } else if (mode === 'panning') {
             mode = 'idle';
             viewport.classList.remove('panning');
@@ -674,6 +686,119 @@ const Canvas = (() => {
         const id = Store.addNode(type, pos.x - NODE_W / 2 + offsetX, pos.y - 50 + offsetY);
         renderAll();
         Store.selectNode(id);
+    }
+
+    /**
+     * Quick-add popup menu shown when dragging a connection to empty canvas.
+     * Lists only nodes compatible with the source node's output types.
+     * Clicking a node creates it at the drop position and auto-connects.
+     */
+    function showQuickAddMenu(sourceId, canvasPos, screenX, screenY) {
+        const compatible = Palette.getCompatibleNodes(sourceId);
+        if (compatible.length === 0) {
+            App.toast(I18n.t('palette.no_compatible'), 'warning');
+            return;
+        }
+
+        // Remove any existing menu
+        const existing = document.getElementById('quick-add-menu');
+        if (existing) existing.remove();
+
+        // Group by domain
+        const groups = {};
+        compatible.forEach(n => {
+            if (!groups[n.domain]) groups[n.domain] = [];
+            groups[n.domain].push(n);
+        });
+
+        let html = `<div class="quick-add-header">${I18n.t('palette.quick_add_title')}</div>`;
+        html += `<div class="quick-add-search-wrap"><input type="text" id="quick-add-search" class="quick-add-search" placeholder="${I18n.t('palette.search_placeholder')}" autocomplete="off"></div>`;
+        html += `<div class="quick-add-list" id="quick-add-list">`;
+
+        const sortedDomains = Object.keys(groups).sort();
+        sortedDomains.forEach(domain => {
+            const meta = Store.getDomainMeta(domain);
+            html += `<div class="quick-add-group">
+                <div class="quick-add-group-header">
+                    <span class="domain-dot" style="background:${meta.color}"></span>
+                    <span>${I18n.domainLabel(domain)}</span>
+                </div>`;
+            groups[domain].forEach(node => {
+                html += `<div class="quick-add-item" data-node-type="${escapeHtml(node.name)}">
+                    <span class="quick-add-icon" style="background:${meta.color}">${meta.icon}</span>
+                    <span class="quick-add-name">${escapeHtml(I18n.nodeName(node.name))}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        });
+        html += `</div>`;
+
+        const menu = document.createElement('div');
+        menu.id = 'quick-add-menu';
+        menu.className = 'quick-add-menu';
+        menu.innerHTML = html;
+
+        // Position near the drop point, clamped to viewport
+        const menuWidth = 280;
+        const menuHeight = Math.min(400, window.innerHeight);
+        let left = screenX + 10;
+        let top = screenY - 20;
+        if (left + menuWidth > window.innerWidth) left = screenX - menuWidth - 10;
+        if (top + menuHeight > window.innerHeight) top = window.innerHeight - menuHeight - 10;
+        if (top < 0) top = 10;
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+
+        document.body.appendChild(menu);
+
+        // Focus search
+        const search = menu.querySelector('#quick-add-search');
+        if (search) search.focus();
+
+        // Search filter
+        if (search) {
+            search.addEventListener('input', () => {
+                const q = search.value.toLowerCase().trim();
+                menu.querySelectorAll('.quick-add-item').forEach(item => {
+                    const name = item.querySelector('.quick-add-name').textContent.toLowerCase();
+                    const type = item.dataset.nodeType.toLowerCase();
+                    item.style.display = (!q || name.includes(q) || type.includes(q)) ? '' : 'none';
+                });
+                // Hide empty groups
+                menu.querySelectorAll('.quick-add-group').forEach(group => {
+                    const visible = group.querySelectorAll('.quick-add-item:not([style*="none"])').length;
+                    group.style.display = visible > 0 ? '' : 'none';
+                });
+            });
+        }
+
+        // Click to create + connect
+        menu.querySelectorAll('.quick-add-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const type = item.dataset.nodeType;
+                menu.remove();
+                // Create node at drop position
+                const newId = Store.addNode(type, canvasPos.x, canvasPos.y);
+                renderAll();
+                // Auto-connect source → new node
+                Store.addEdge(sourceId, newId);
+                Store.selectNode(newId);
+                renderAll();
+            });
+        });
+
+        // Close on outside click or Escape
+        const closeHandler = (e) => {
+            if (e.type === 'keydown' && e.key !== 'Escape') return;
+            if (e.type === 'mousedown' && menu.contains(e.target)) return;
+            menu.remove();
+            document.removeEventListener('mousedown', closeHandler);
+            document.removeEventListener('keydown', closeHandler);
+        };
+        setTimeout(() => {
+            document.addEventListener('mousedown', closeHandler);
+            document.addEventListener('keydown', closeHandler);
+        }, 50);
     }
 
     function escapeHtml(str) {
