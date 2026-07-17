@@ -20,6 +20,7 @@ const Canvas = (() => {
     let panX = 0, panY = 0;
     let nodeElements = {};   // {nodeId: {el, header, inPort, outPort}}
     let edgeElements = {};   // {edgeId: pathEl}
+    let nodeTooltip = null;  // hover tooltip element
 
     // Interaction state
     let mode = 'idle';       // 'idle' | 'dragging-node' | 'connecting' | 'panning'
@@ -242,6 +243,78 @@ const Canvas = (() => {
         updateTransform();
     }
 
+    // ---- Node hover tooltip ----
+
+    function _showNodeTooltip(node, info, meta, e) {
+        if (!nodeTooltip) {
+            nodeTooltip = document.createElement('div');
+            nodeTooltip.className = 'node-tooltip';
+            nodeTooltip.id = 'node-tooltip';
+            document.body.appendChild(nodeTooltip);
+        }
+
+        const displayName = node.label || I18n.nodeName(node.type);
+        const desc = info ? (info.description || '') : '';
+        const inTypes = info && info.input_types && info.input_types.length
+            ? info.input_types.map(t => `<span class="node-type-tag">${escapeHtml(t)}</span>`).join(' ')
+            : `<span class="node-source-tag">${I18n.t('canvas.source')}</span>`;
+        const outTypes = info && info.output_types && info.output_types.length
+            ? info.output_types.map(t => `<span class="node-type-tag">${escapeHtml(t)}</span>`).join(' ')
+            : '';
+
+        // Output fields summary
+        let outputFieldsHtml = '';
+        if (info && info.output_fields && info.output_fields.length > 0) {
+            const fields = info.output_fields.slice(0, 4).map(f =>
+                `<span class="tooltip-field"><code>${escapeHtml(f.name)}</code> <span class="tooltip-field-type">${escapeHtml(f.type)}</span></span>`
+            ).join('');
+            const more = info.output_fields.length > 4 ? `<span class="tooltip-more">+${info.output_fields.length - 4}</span>` : '';
+            outputFieldsHtml = `<div class="tooltip-section">
+                <span class="tooltip-label">${I18n.t('prop.output_fields')}</span>
+                <div class="tooltip-fields">${fields}${more}</div>
+            </div>`;
+        }
+
+        nodeTooltip.innerHTML = `
+            <div class="tooltip-header">
+                <span class="tooltip-icon" style="background:${meta.color}">${meta.icon}</span>
+                <span class="tooltip-name">${escapeHtml(displayName)}</span>
+            </div>
+            ${desc ? `<div class="tooltip-desc">${escapeHtml(desc)}</div>` : ''}
+            <div class="tooltip-section">
+                <span class="tooltip-label">${I18n.t('canvas.in')}</span>
+                <span class="tooltip-types">${inTypes}</span>
+            </div>
+            ${outTypes ? `<div class="tooltip-section">
+                <span class="tooltip-label">${I18n.t('canvas.out')}</span>
+                <span class="tooltip-types">${outTypes}</span>
+            </div>` : ''}
+            ${outputFieldsHtml}
+        `;
+
+        nodeTooltip.style.display = 'block';
+        _moveNodeTooltip(e);
+    }
+
+    function _moveNodeTooltip(e) {
+        if (!nodeTooltip) return;
+        const x = e.clientX + 14;
+        const y = e.clientY + 14;
+        const rect = nodeTooltip.getBoundingClientRect();
+        let left = x;
+        let top = y;
+        if (left + rect.width > window.innerWidth) left = e.clientX - rect.width - 14;
+        if (top + rect.height > window.innerHeight) top = e.clientY - rect.height - 14;
+        nodeTooltip.style.left = left + 'px';
+        nodeTooltip.style.top = top + 'px';
+    }
+
+    function _hideNodeTooltip() {
+        if (nodeTooltip) {
+            nodeTooltip.style.display = 'none';
+        }
+    }
+
     // ---- Node rendering ----
     function renderNode(node) {
         const info = Store.getNodeInfo(node.type);
@@ -283,6 +356,17 @@ const Canvas = (() => {
             <div class="node-port input-port" data-port="input" data-node="${node.id}" title="${I18n.t('canvas.in')}"></div>
             <div class="node-port output-port" data-port="output" data-node="${node.id}" title="${I18n.t('canvas.out')}"></div>
         `;
+
+        // Node hover tooltip — shows description, I/O types, and output fields
+        div.addEventListener('mouseenter', (e) => {
+            _showNodeTooltip(node, info, meta, e);
+        });
+        div.addEventListener('mousemove', (e) => {
+            _moveNodeTooltip(e);
+        });
+        div.addEventListener('mouseleave', () => {
+            _hideNodeTooltip();
+        });
 
         fo.appendChild(div);
         nodesLayer.appendChild(fo);

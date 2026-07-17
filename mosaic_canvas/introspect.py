@@ -1698,7 +1698,7 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="image", type="image", description="Generated PIL Image preserving face identity."),
         InputField(name="face_embedding", type="array", description="Face embedding vector."),
     ],
-    "style-keepr": [
+    "style-keeper": [
         InputField(name="image", type="image", description="Generated PIL Image preserving reference style."),
     ],
     "cross-frame-consistency": [
