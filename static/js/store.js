@@ -3,6 +3,41 @@
  * Holds the graph (nodes, edges, input), UI state, node catalog metadata,
  * clipboard for copy/paste, and language preference.
  */
+
+/**
+ * Type compatibility matrix from mosaic-helper-nodes.html §3.2.
+ * Key: output type. Value: set of input types that are directly compatible (✓)
+ * or convertible (△). "mosaic" is a wildcard that matches everything.
+ *
+ * Types: text, image, audio, video, subtitle, document, rag_query_result,
+ *        motion, avatar, file, json, mosaic
+ */
+const _COMPATIBLE_TYPES = {
+    'text':              new Set(['text', 'image', 'audio', 'video', 'document', 'json', 'rag_query_result', 'mosaic']),
+    'image':             new Set(['image', 'video', 'avatar', 'json', 'mosaic']),
+    'audio':             new Set(['audio', 'text', 'subtitle', 'json', 'mosaic']),
+    'video':             new Set(['video', 'image', 'json', 'mosaic']),
+    'subtitle':          new Set(['subtitle', 'text', 'json', 'mosaic']),
+    'document':          new Set(['document', 'text', 'json', 'mosaic']),
+    'rag_query_result':  new Set(['rag_query_result', 'text', 'json', 'mosaic']),
+    'motion':            new Set(['motion', 'avatar', 'json', 'mosaic']),
+    'avatar':            new Set(['avatar', 'image', 'audio', 'motion', 'json', 'mosaic']),
+    'file':              new Set(['file', 'text', 'image', 'audio', 'video', 'subtitle', 'document', 'json', 'mosaic']),
+    'json':              new Set(['json', 'text', 'image', 'mosaic']),
+    'mosaic':            new Set(['text', 'image', 'audio', 'video', 'subtitle', 'document', 'rag_query_result', 'motion', 'avatar', 'file', 'json', 'mosaic']),
+};
+
+/**
+ * Check if outputType can be (directly or via conversion) connected to inputType.
+ */
+function _isConvertible(outputType, inputType) {
+    if (outputType === inputType) return true;
+    if (outputType === 'mosaic' || inputType === 'mosaic') return true;
+    const compat = _COMPATIBLE_TYPES[outputType];
+    if (!compat) return false;
+    return compat.has(inputType);
+}
+
 const Store = (() => {
     let _nodeCatalog = [];       // [{name, domain, description, ...}]
     let _domainMeta = {};        // {domain: {label, icon, color}}
@@ -139,6 +174,11 @@ const Store = (() => {
             if (source === target) return { error: 'self' };
             if (_edges.some(e => e.source === source && e.target === target)) return { error: 'duplicate' };
             if (Store.wouldCreateCycle(source, target)) return { error: 'cycle' };
+
+            // Type compatibility check
+            const typeCheck = Store.canConnect(source, target);
+            if (!typeCheck.ok) return { error: 'type_mismatch', details: typeCheck.reason };
+
             const id = `e${Date.now()}${Math.floor(Math.random() * 1000)}`;
             _edges.push({ id, source, target });
             emit('change');
@@ -159,6 +199,67 @@ const Store = (() => {
                 return _edges.filter(e => e.source === node).some(e => dfs(e.target));
             }
             return dfs(target);
+        },
+
+        /**
+         * Check if source node's output types are compatible with target
+         * node's input types, based on the type compatibility matrix from
+         * the mosaic-helper-nodes design doc.
+         *
+         * Rules (in order):
+         * 1. Wildcard: target input_types contains "mosaic" → allow
+         * 2. Exact match: intersection of output/input types → allow
+         * 3. Auto-convertible: output type can be converted to input type → allow
+         * 4. Empty declaration: either side has empty types → allow (backward compat)
+         * 5. Otherwise → reject
+         */
+        canConnect(sourceId, targetId) {
+            const sourceNode = _nodes.find(n => n.id === sourceId);
+            const targetNode = _nodes.find(n => n.id === targetId);
+            if (!sourceNode || !targetNode) return { ok: true }; // can't check, allow
+
+            const sourceInfo = _nodeInfo[sourceNode.type];
+            const targetInfo = _nodeInfo[targetNode.type];
+            if (!sourceInfo || !targetInfo) return { ok: true };
+
+            const outputTypes = sourceInfo.output_types || [];
+            const inputTypes = targetInfo.input_types || [];
+
+            // Rule 4: Empty declaration → skip check (backward compat)
+            if (outputTypes.length === 0 || inputTypes.length === 0) {
+                return { ok: true };
+            }
+
+            // Normalize types: strip "mosaic" for set comparison
+            const normOutput = outputTypes.map(t => t.replace('mosaic', '').trim() || 'mosaic');
+            const normInput = inputTypes.map(t => t.replace('mosaic', '').trim() || 'mosaic');
+
+            // Rule 1: Wildcard — target accepts "mosaic" → allow anything
+            if (inputTypes.includes('mosaic') || normInput.includes('mosaic')) {
+                return { ok: true };
+            }
+
+            // Rule 2: Exact match — intersection of output and input types
+            const outputSet = new Set(normOutput);
+            const inputSet = new Set(normInput);
+            for (const t of outputSet) {
+                if (inputSet.has(t)) return { ok: true };
+            }
+
+            // Rule 3: Auto-convertible — check compatibility matrix
+            for (const outType of normOutput) {
+                for (const inType of normInput) {
+                    if (_isConvertible(outType, inType)) {
+                        return { ok: true, convertible: true };
+                    }
+                }
+            }
+
+            // Rule 5: Type mismatch
+            return {
+                ok: false,
+                reason: `${outputTypes.join(', ')} → ${inputTypes.join(', ')}`,
+            };
         },
 
         // -- Graph: input --

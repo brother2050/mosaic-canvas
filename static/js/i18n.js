@@ -178,6 +178,7 @@ const I18n = (() => {
             'toast.edge_cycle': 'Cannot connect: would create a cycle',
             'toast.edge_duplicate': 'Connection already exists',
             'toast.edge_self': 'Cannot connect a node to itself',
+            'toast.edge_type_mismatch': 'Type mismatch: incompatible output → input types',
             'toast.lang_changed': 'Language switched to {lang}',
 
             // Run progress
@@ -392,6 +393,7 @@ const I18n = (() => {
             'toast.edge_cycle': '无法连接：会形成环路',
             'toast.edge_duplicate': '连接已存在',
             'toast.edge_self': '无法连接到自身',
+            'toast.edge_type_mismatch': '类型不匹配：输出类型与输入类型不兼容',
             'toast.lang_changed': '语言已切换为{lang}',
 
             // Run progress

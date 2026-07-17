@@ -330,8 +330,12 @@ const Canvas = (() => {
                 if (result.id) {
                     renderAll();
                 } else if (result.error) {
-                    const toastKey = 'toast.edge_' + result.error;
-                    App.toast(I18n.t(toastKey), 'warning');
+                    if (result.error === 'type_mismatch') {
+                        App.toast(I18n.t('toast.edge_type_mismatch') + ' (' + (result.details || '') + ')', 'error');
+                    } else {
+                        const toastKey = 'toast.edge_' + result.error;
+                        App.toast(I18n.t(toastKey), 'warning');
+                    }
                 }
                 endConnect();
             }
@@ -493,6 +497,24 @@ const Canvas = (() => {
             if (src && tempEdge) {
                 tempEdge.setAttribute('d', makeEdgePath(src.x, src.y, pos.x, pos.y));
             }
+            // Visual feedback: highlight target input ports
+            // Temporarily hide the temp edge so elementFromPoint can find ports under it
+            if (tempEdge) tempEdge.style.pointerEvents = 'none';
+            const hoverEl = document.elementFromPoint(e.clientX, e.clientY);
+            const hoverNode = hoverEl && hoverEl.closest && hoverEl.closest('[data-node-id]');
+            // Clear previous highlights
+            document.querySelectorAll('.input-port.port-valid, .input-port.port-invalid')
+                .forEach(el => {
+                    el.classList.remove('port-valid', 'port-invalid');
+                });
+            if (hoverNode && hoverNode.dataset.nodeId !== connectSourceId) {
+                const targetId = hoverNode.dataset.nodeId;
+                const check = Store.canConnect(connectSourceId, targetId);
+                const inPort = hoverNode.querySelector('.input-port');
+                if (inPort) {
+                    inPort.classList.add(check.ok ? 'port-valid' : 'port-invalid');
+                }
+            }
         } else if (mode === 'panning') {
             panX = panOrigX + (e.clientX - panStartX);
             panY = panOrigY + (e.clientY - panStartY);
@@ -526,6 +548,9 @@ const Canvas = (() => {
         connectSourceId = null;
         viewport.classList.remove('connecting');
         if (tempEdge) { tempEdge.remove(); tempEdge = null; }
+        // Clear port highlights
+        document.querySelectorAll('.input-port.port-valid, .input-port.port-invalid')
+            .forEach(el => { el.classList.remove('port-valid', 'port-invalid'); });
     }
 
     function onWheel(e) {
