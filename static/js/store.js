@@ -180,7 +180,7 @@ const Store = (() => {
             if (!typeCheck.ok) return { error: 'type_mismatch', details: typeCheck.reason };
 
             const id = `e${Date.now()}${Math.floor(Math.random() * 1000)}`;
-            _edges.push({ id, source, target });
+            _edges.push({ id, source, target, pass_fields: null });
             emit('change');
             return { id };
         },
@@ -315,7 +315,11 @@ const Store = (() => {
                     input_params: { ...(n.input_params || {}) },
                     label: n.label || '',
                 })),
-                edges: _edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+                edges: _edges.map(e => {
+                    const edge = { id: e.id, source: e.source, target: e.target };
+                    if (e.pass_fields) edge.pass_fields = [...e.pass_fields];
+                    return edge;
+                }),
                 input: { data: { ..._input } },
             };
         },
@@ -325,7 +329,10 @@ const Store = (() => {
                 ...n,
                 input_params: n.input_params || {},
             }));
-            _edges = (graph.edges || []).map(e => ({ ...e }));
+            _edges = (graph.edges || []).map(e => ({
+                id: e.id, source: e.source, target: e.target,
+                pass_fields: e.pass_fields || null,
+            }));
             _input = (graph.input && graph.input.data) ? { ...graph.input.data } : {};
             _selectedNodeId = null;
             _selectedEdgeId = null;
@@ -371,6 +378,7 @@ const Store = (() => {
                 id: `te${Date.now()}${Math.floor(Math.random() * 1e4)}_${i}`,
                 source: idMap[e.source],
                 target: idMap[e.target],
+                pass_fields: e.pass_fields || null,
             }));
 
             _nodes = _nodes.concat(newNodes);

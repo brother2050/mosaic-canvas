@@ -74,5 +74,28 @@
       "polarity": "negative"
     }
   ],
+  "presets": [
+    {
+      "id": "content_safety",
+      "name": "内容安全",
+      "name_en": "Content Safety",
+      "polarity": "negative",
+      "items": ["nsfw", "gore", "violence", "scary", "racist", "offensive"]
+    },
+    {
+      "id": "quality_issues",
+      "name": "质量问题",
+      "name_en": "Quality Issues",
+      "polarity": "negative",
+      "items": ["plastic", "artificial", "waxy"]
+    },
+    {
+      "id": "copyright_issues",
+      "name": "版权问题",
+      "name_en": "Copyright Issues",
+      "polarity": "negative",
+      "items": ["copyrighted", "celebrity", "brand"]
+    }
+  ],
   "polarity": "negative"
 }

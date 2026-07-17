@@ -62,14 +62,24 @@ class GraphNode:
 
 @dataclass
 class GraphEdge:
-    """A directed connection from one node's output to another's input."""
+    """A directed connection from one node's output to another's input.
+
+    ``pass_fields`` optionally restricts which output fields flow along
+    this edge.  When ``None`` (default), the executor applies smart
+    filtering based on the target node's declared ``input_fields``.
+    When set to a list of field names, only those fields are passed.
+    """
 
     id: str
     source: str  # source node id
     target: str  # target node id
+    pass_fields: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "source": self.source, "target": self.target}
+        d: dict[str, Any] = {"id": self.id, "source": self.source, "target": self.target}
+        if self.pass_fields:
+            d["pass_fields"] = list(self.pass_fields)
+        return d
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "GraphEdge":
@@ -77,6 +87,7 @@ class GraphEdge:
             id=d["id"],
             source=d["source"],
             target=d["target"],
+            pass_fields=list(d["pass_fields"]) if d.get("pass_fields") else None,
         )
 
 
@@ -134,6 +145,13 @@ class Graph:
     def predecessors(self, node_id: str) -> list[str]:
         """Return ids of nodes with an edge *into* ``node_id``."""
         return [e.source for e in self.edges if e.target == node_id]
+
+    def get_edge(self, source: str, target: str) -> GraphEdge | None:
+        """Return the edge connecting *source* → *target*, if any."""
+        for e in self.edges:
+            if e.source == source and e.target == target:
+                return e
+        return None
 
     def successors(self, node_id: str) -> list[str]:
         """Return ids of nodes with an edge *from* ``node_id``."""

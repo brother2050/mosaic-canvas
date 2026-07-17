@@ -276,6 +276,17 @@ _MAX_AUDIO_SECONDS = 60
 _OUTPUT_DIR: Path = Path(__file__).resolve().parent.parent / "static" / "outputs"
 _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# Media deduplication cache: maps a hash of the encoded image data to the
+# saved URL.  Cleared at the start of each execution to prevent the same
+# image from being saved to disk multiple times when it appears in multiple
+# node outputs (e.g. passed through from a predecessor).
+_media_cache: dict[str, str] = {}
+
+
+def _clear_media_cache() -> None:
+    """Clear the media deduplication cache (called at execution start)."""
+    _media_cache.clear()
+
 
 def _save_media_file(data: bytes, ext: str) -> str:
     """Save binary data to a file in the output directory and return the URL path.
@@ -390,9 +401,18 @@ def _make_image_display(encoded: str) -> dict[str, Any]:
     Saves the image to a file in the output directory and returns an
     HTTP URL instead of a base64 data URI. This keeps the WebSocket
     message small.
+
+    Uses a per-execution deduplication cache so that the same image data
+    appearing in multiple node outputs is only saved once to disk.
     """
     if not encoded or not isinstance(encoded, str):
         return {"__display_type__": "image", "src": "", "error": "empty"}
+
+    # Deduplication: if we've already saved this exact image data during
+    # the current execution, reuse the URL instead of saving another copy.
+    cache_key = encoded
+    if cache_key in _media_cache:
+        return {"__display_type__": "image", "src": _media_cache[cache_key]}
 
     try:
         # Mosaic format: "b64:<fmt>:<data>"
@@ -406,11 +426,13 @@ def _make_image_display(encoded: str) -> dict[str, Any]:
                 if ext == "jpeg":
                     ext = "jpg"
                 url = _save_media_file(raw, ext)
+                _media_cache[cache_key] = url
                 return {"__display_type__": "image", "src": url}
 
         # Already raw base64
         raw = base64.b64decode(encoded)
         url = _save_media_file(raw, "png")
+        _media_cache[cache_key] = url
         return {"__display_type__": "image", "src": url}
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to save image for display: %s", exc)
@@ -542,6 +564,31 @@ class GraphExecutor:
             return {}
         return {f.name: f.type for f in info.input_fields}
 
+    def _get_expected_input_fields(self, node_type: str) -> set[str]:
+        """Return the set of input field names the node declares.
+
+        Used for smart field filtering: when a node has specific declared
+        input fields, only those fields are passed from predecessor outputs,
+        preventing resource duplication (e.g. an image from a chat node
+        leaking into a text-to-image node that only needs ``prompt``).
+
+        Returns an empty set when the node accepts any field (``mosaic``
+        input type or no declared input_fields), signalling the executor
+        to fall back to pass-all behaviour for backward compatibility.
+        """
+        from mosaic_canvas.introspect import get_node_info
+
+        info = get_node_info(node_type)
+        if info is None:
+            return set()
+        # If the node declares "mosaic" as an input type, it accepts
+        # any field — return empty set to signal pass-all.
+        if "mosaic" in (info.input_types or []):
+            return set()
+        if not info.input_fields:
+            return set()
+        return {f.name for f in info.input_fields}
+
     def instantiate_nodes(self) -> dict[str, str]:
         """Instantiate all nodes in the graph.
 
@@ -643,6 +690,9 @@ class GraphExecutor:
 
         t_start = time.perf_counter()
 
+        # Clear media deduplication cache for this execution run
+        _clear_media_cache()
+
         # 1. Instantiate nodes
         inst_errors = self.instantiate_nodes()
         node_results: list[NodeResult] = []
@@ -714,11 +764,35 @@ class GraphExecutor:
                         v = _try_parse_json(v)
                     node_input[k] = v
             else:
+                # Smart field filtering: only pass fields the target node
+                # actually needs.  This prevents resource duplication (e.g.
+                # an image from a text-to-image node leaking into a downstream
+                # exporter that only needs metadata).
+                #
+                # Filtering rules (in priority order):
+                # 1. Edge-level ``pass_fields``: if set, only those fields pass
+                # 2. Target node's declared input_fields: if non-empty, only
+                #    matching fields pass
+                # 3. Fallback: pass all fields (backward compatibility for
+                #    nodes with ``mosaic`` input type or no declared fields)
+                expected_fields = self._get_expected_input_fields(gnode.type)
                 for pid in preds:
                     pred_out = outputs.get(pid)
-                    if pred_out is not None:
-                        # Merge predecessor output keys
-                        if hasattr(pred_out, "items"):
+                    if pred_out is not None and hasattr(pred_out, "items"):
+                        edge = self.graph.get_edge(pid, nid)
+                        pass_fields = edge.pass_fields if edge else None
+                        if pass_fields is not None:
+                            # Edge-level whitelist
+                            for k, v in pred_out.items():
+                                if k in pass_fields:
+                                    node_input[k] = v
+                        elif expected_fields:
+                            # Node-level smart filtering
+                            for k, v in pred_out.items():
+                                if k in expected_fields:
+                                    node_input[k] = v
+                        else:
+                            # Fallback: pass all (backward compat)
                             for k, v in pred_out.items():
                                 node_input[k] = v
                 # Also merge pipeline input (lets users override at pipeline level)

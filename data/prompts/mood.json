@@ -170,5 +170,28 @@
       "polarity": "positive"
     }
   ],
+  "presets": [
+    {
+      "id": "warm_cozy",
+      "name": "温暖舒适",
+      "name_en": "Warm Cozy",
+      "polarity": "positive",
+      "items": ["warm and cozy", "warm color palette", "golden warm tones"]
+    },
+    {
+      "id": "dark_mysterious",
+      "name": "黑暗神秘",
+      "name_en": "Dark Mysterious",
+      "polarity": "positive",
+      "items": ["mysterious and dark", "cool blue tones", "horror atmosphere"]
+    },
+    {
+      "id": "epic_grand",
+      "name": "史诗磅礴",
+      "name_en": "Epic Grand",
+      "polarity": "positive",
+      "items": ["epic and grandiose", "high contrast", "vivid saturated colors"]
+    }
+  ],
   "polarity": "positive"
 }

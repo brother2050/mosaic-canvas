@@ -402,5 +402,42 @@
       "polarity": "negative"
     }
   ],
+  "presets": [
+    {
+      "id": "golden_hour_portrait",
+      "name": "黄金时刻人像",
+      "name_en": "Golden Hour Portrait",
+      "polarity": "positive",
+      "items": ["close-up shot", "50mm portrait lens", "golden hour photography", "shallow depth of field, f/1.4", "soft natural lighting"]
+    },
+    {
+      "id": "studio_portrait",
+      "name": "影棚人像",
+      "name_en": "Studio Portrait",
+      "polarity": "positive",
+      "items": ["close-up shot", "studio lighting with softbox", "three-point lighting", "85mm telephoto", "photorealistic"]
+    },
+    {
+      "id": "street_photography",
+      "name": "街头摄影",
+      "name_en": "Street Photography",
+      "polarity": "positive",
+      "items": ["medium shot", "street photography", "golden ratio composition", "eye-level angle"]
+    },
+    {
+      "id": "cinematic_landscape",
+      "name": "电影风景",
+      "name_en": "Cinematic Landscape",
+      "polarity": "positive",
+      "items": ["wide shot", "landscape photography", "rule of thirds composition", "volumetric lighting (god rays)", "aerial drone shot"]
+    },
+    {
+      "id": "photography_issues",
+      "name": "摄影问题",
+      "name_en": "Photography Issues",
+      "polarity": "negative",
+      "items": ["cropped", "out of frame", "duplicate", "cluttered", "bad composition"]
+    }
+  ],
   "polarity": "positive"
 }

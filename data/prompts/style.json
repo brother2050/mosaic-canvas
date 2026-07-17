@@ -394,5 +394,42 @@
       "polarity": "negative"
     }
   ],
+  "presets": [
+    {
+      "id": "portrait_quality",
+      "name": "人像高质量",
+      "name_en": "Portrait Quality",
+      "polarity": "positive",
+      "items": ["close-up shot", "soft natural lighting", "8K resolution, ultra-detailed", "masterpiece, best quality"]
+    },
+    {
+      "id": "landscape_quality",
+      "name": "风景高质量",
+      "name_en": "Landscape Quality",
+      "polarity": "positive",
+      "items": ["wide angle view", "volumetric lighting", "8K resolution, ultra-detailed", "cinematic composition", "award-winning photography"]
+    },
+    {
+      "id": "anime_quality",
+      "name": "动漫高质量",
+      "name_en": "Anime Quality",
+      "polarity": "positive",
+      "items": ["anime style", "soft natural lighting", "highly detailed, sharp focus", "masterpiece, best quality"]
+    },
+    {
+      "id": "cinematic_quality",
+      "name": "电影质感",
+      "name_en": "Cinematic Quality",
+      "polarity": "positive",
+      "items": ["cinematic composition", "dramatic side lighting", "8K resolution, ultra-detailed", "hyperrealistic"]
+    },
+    {
+      "id": "common_negative",
+      "name": "通用负面",
+      "name_en": "Common Negative",
+      "polarity": "negative",
+      "items": ["low quality", "worst quality", "blurry", "distorted", "jpeg artifacts", "watermark", "signature"]
+    }
+  ],
   "polarity": "positive"
 }

@@ -296,5 +296,28 @@
       "polarity": "positive"
     }
   ],
+  "presets": [
+    {
+      "id": "nature_landscape",
+      "name": "自然风光",
+      "name_en": "Nature Landscape",
+      "polarity": "positive",
+      "items": ["a sun rising over the mountains", "golden hour sunlight", "at dawn"]
+    },
+    {
+      "id": "urban_scene",
+      "name": "城市场景",
+      "name_en": "Urban Scene",
+      "polarity": "positive",
+      "items": ["a bustling city street at night with neon lights", "at night", "a modern skyscraper skyline"]
+    },
+    {
+      "id": "fantasy_environment",
+      "name": "奇幻环境",
+      "name_en": "Fantasy Environment",
+      "polarity": "positive",
+      "items": ["a dense forest with sunlight filtering through", "starry night sky", "a waterfall cascading down rocks"]
+    }
+  ],
   "polarity": "positive"
 }

@@ -34,6 +34,10 @@ const Prompts = (() => {
     let panelEl = null;
     let activeTarget = null;
 
+    // Multi-select state for batch prompt assembly
+    let multiSelectMode = false;
+    let selectedTexts = new Set();
+
     function init() {
         panelEl = document.getElementById('prompts-panel');
         loadCategoryList();
@@ -130,6 +134,20 @@ const Prompts = (() => {
     function _renderCategoryBody(cat) {
         const lang = I18n.getLang();
         let html = '';
+        // Render presets at the top (if any)
+        if (cat.presets && cat.presets.length > 0) {
+            html += '<div class="prompts-subgroup prompts-subgroup-presets">';
+            html += `<div class="prompts-sub-header">${I18n.t('prompts.presets_label')}</div>`;
+            html += '<div class="prompts-items">';
+            cat.presets.forEach(preset => {
+                const presetName = lang === 'zh' ? preset.name : (preset.name_en || preset.name);
+                const combined = (preset.items || []).join(', ');
+                const isNegative = preset.polarity === 'negative';
+                const chipClass = isNegative ? 'prompt-preset-chip prompt-chip-negative' : 'prompt-preset-chip';
+                html += `<div class="${chipClass}" data-prompt-text="${escapeAttr(combined)}" title="${escapeAttr(combined)}">★ ${escapeHtml(presetName)}</div>`;
+            });
+            html += '</div></div>';
+        }
         cat.subcategories.forEach(sub => {
             const subName = lang === 'zh' ? sub.name : (sub.name_en || sub.name);
             const isNegative = sub.polarity === 'negative';
@@ -201,6 +219,28 @@ const Prompts = (() => {
             if (chip._wired) return;
             chip._wired = true;
             chip.addEventListener('click', () => {
+                if (multiSelectMode && activeTarget) {
+                    // Multi-select mode: toggle selection
+                    const text = chip.dataset.promptText;
+                    if (selectedTexts.has(text)) {
+                        selectedTexts.delete(text);
+                        chip.classList.remove('prompt-chip-selected');
+                    } else {
+                        selectedTexts.add(text);
+                        chip.classList.add('prompt-chip-selected');
+                    }
+                    _updateMultiSelectCounter();
+                } else {
+                    insertText(chip.dataset.promptText);
+                    flashChip(chip);
+                }
+            });
+        });
+        // Wire up preset chips (one-click insert all items in preset)
+        container.querySelectorAll('.prompt-preset-chip').forEach(chip => {
+            if (chip._wired) return;
+            chip._wired = true;
+            chip.addEventListener('click', () => {
                 insertText(chip.dataset.promptText);
                 flashChip(chip);
             });
@@ -258,6 +298,9 @@ const Prompts = (() => {
     function openPopover(inputEl, fieldId) {
         closePopover();
         activeTarget = inputEl;
+        // Reset multi-select state on each open
+        multiSelectMode = false;
+        selectedTexts.clear();
         // Determine polarity from fieldId: fields containing "negative" show
         // only negative-polarity prompts; all other fields show positive.
         const polarity = (fieldId && /negative/i.test(fieldId)) ? 'negative' : 'positive';
@@ -287,11 +330,16 @@ const Prompts = (() => {
         popover.style.top = top + 'px';
         popover.style.width = width + 'px';
 
-        // Title reflects polarity
+        // Title reflects polarity; header includes multi-select toggle and
+        // insert-all button for batch prompt assembly.
         const titleKey = polarity === 'negative' ? 'prompts.popover_title_negative' : 'prompts.popover_title';
         let html = `<div class="prompt-popover-header">
             <span>${I18n.t(titleKey)}</span>
-            <button class="prompt-popover-close" id="prompt-popover-close">×</button>
+            <div class="prompt-popover-actions">
+                <button class="prompt-popover-btn" id="prompt-popover-multiselect" title="${I18n.t('prompts.multi_select_hint')}">${I18n.t('prompts.multi_select')}</button>
+                <button class="prompt-popover-btn prompt-popover-insert-all" id="prompt-popover-insert-all" style="display:none">${I18n.t('prompts.insert_all')} (<span id="prompt-selected-count">0</span>)</button>
+                <button class="prompt-popover-close" id="prompt-popover-close">×</button>
+            </div>
         </div>`;
         html += `<div class="prompt-popover-search-wrap">
             <input type="text" id="prompt-popover-search" class="prompt-popover-search"
@@ -317,6 +365,7 @@ const Prompts = (() => {
 
             const cached = categoryCache.get(cat.id);
             if (cached) {
+                html += _renderPopoverPresets(cached, polarity);
                 html += _renderPopoverCatItems(cached, polarity);
             } else {
                 html += `<span class="prompts-cat-loading">${I18n.t('prompts.loading')}</span>`;
@@ -344,7 +393,7 @@ const Prompts = (() => {
                     if (!data) return;
                     const container = popover.querySelector(`#popover-cat-${cat.id}`);
                     if (container) {
-                        container.innerHTML = _renderPopoverCatItems(data, polarity);
+                        container.innerHTML = _renderPopoverPresets(data, polarity) + _renderPopoverCatItems(data, polarity);
                         _wireUpChips(container);
                         _hideEmptyCategories(popover);
                     }
@@ -369,6 +418,39 @@ const Prompts = (() => {
         // Close button
         popover.querySelector('#prompt-popover-close').addEventListener('click', closePopover);
 
+        // Multi-select toggle
+        const msBtn = popover.querySelector('#prompt-popover-multiselect');
+        if (msBtn) {
+            msBtn.addEventListener('click', () => {
+                multiSelectMode = !multiSelectMode;
+                selectedTexts.clear();
+                if (multiSelectMode) {
+                    msBtn.classList.add('active');
+                    popover.querySelector('#prompt-popover-insert-all').style.display = '';
+                } else {
+                    msBtn.classList.remove('active');
+                    popover.querySelector('#prompt-popover-insert-all').style.display = 'none';
+                    popover.querySelectorAll('.prompt-chip-selected').forEach(c => c.classList.remove('prompt-chip-selected'));
+                }
+                _updateMultiSelectCounter();
+            });
+        }
+
+        // Insert all selected
+        const insertAllBtn = popover.querySelector('#prompt-popover-insert-all');
+        if (insertAllBtn) {
+            insertAllBtn.addEventListener('click', () => {
+                if (selectedTexts.size === 0) {
+                    App.toast(I18n.t('prompts.no_selection'), 'warning');
+                    return;
+                }
+                insertMultiple(Array.from(selectedTexts));
+                selectedTexts.clear();
+                multiSelectMode = false;
+                closePopover();
+            });
+        }
+
         // Wire up chips
         _wireUpChips(popover);
 
@@ -381,9 +463,27 @@ const Prompts = (() => {
 
     function _hideEmptyCategories(popover) {
         popover.querySelectorAll('.prompt-popover-cat').forEach(cat => {
-            const visible = cat.querySelectorAll('.prompt-chip-sm:not([style*="none"])').length;
+            const visible = cat.querySelectorAll('.prompt-chip-sm:not([style*="none"]), .prompt-preset-chip:not([style*="none"])').length;
             cat.style.display = visible > 0 ? '' : 'none';
         });
+    }
+
+    function _renderPopoverPresets(cat, polarity) {
+        if (!cat.presets || cat.presets.length === 0) return '';
+        const lang = I18n.getLang();
+        let html = '<div class="prompt-popover-presets">';
+        html += `<div class="prompt-popover-sub">${I18n.t('prompts.presets_label')}:</div>`;
+        cat.presets.forEach(preset => {
+            // Filter by polarity
+            const presetPolarity = preset.polarity || 'positive';
+            if (polarity === 'negative' && presetPolarity !== 'negative') return;
+            if (polarity === 'positive' && presetPolarity === 'negative') return;
+            const presetName = lang === 'zh' ? preset.name : (preset.name_en || preset.name);
+            const combined = (preset.items || []).join(', ');
+            html += `<span class="prompt-preset-chip" data-prompt-text="${escapeAttr(combined)}" title="${escapeAttr(combined)}">★ ${escapeHtml(presetName)}</span>`;
+        });
+        html += '</div>';
+        return html;
     }
 
     function _renderPopoverCatItems(cat, polarity) {
@@ -407,21 +507,28 @@ const Prompts = (() => {
     }
 
     function _filterPopover(popover, q) {
-        popover.querySelectorAll('.prompt-chip-sm').forEach(chip => {
+        popover.querySelectorAll('.prompt-chip-sm, .prompt-preset-chip').forEach(chip => {
             const text = chip.dataset.promptText.toLowerCase();
             const label = chip.textContent.toLowerCase();
             chip.style.display = (!q || text.includes(q) || label.includes(q)) ? '' : 'none';
         });
         popover.querySelectorAll('.prompt-popover-cat').forEach(cat => {
-            const visible = cat.querySelectorAll('.prompt-chip-sm:not([style*="none"])').length;
+            const visible = cat.querySelectorAll('.prompt-chip-sm:not([style*="none"]), .prompt-preset-chip:not([style*="none"])').length;
             cat.style.display = visible > 0 ? '' : 'none';
         });
+    }
+
+    function _updateMultiSelectCounter() {
+        const counter = document.getElementById('prompt-selected-count');
+        if (counter) counter.textContent = String(selectedTexts.size);
     }
 
     function closePopover() {
         const popover = document.getElementById('prompt-popover');
         if (popover) popover.remove();
         activeTarget = null;
+        multiSelectMode = false;
+        selectedTexts.clear();
         document.removeEventListener('mousedown', _outsideClickHandler);
         document.removeEventListener('keydown', _escapeHandler);
     }
@@ -451,6 +558,17 @@ const Prompts = (() => {
             return;
         }
         _insertIntoField(target, text);
+    }
+
+    /**
+     * Insert multiple prompt snippets as a single comma-separated string.
+     * Used by the multi-select "Insert All" button and preset combos to
+     * assemble multiple prompts into a complete positive/negative whole.
+     */
+    function insertMultiple(texts) {
+        if (!texts || texts.length === 0) return;
+        const combined = texts.join(', ');
+        insertText(combined);
     }
 
     function _insertIntoField(field, text) {

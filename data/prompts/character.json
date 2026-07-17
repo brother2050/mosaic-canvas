@@ -1122,5 +1122,42 @@
       "polarity": "negative"
     }
   ],
+  "presets": [
+    {
+      "id": "fantasy_hero",
+      "name": "奇幻英雄",
+      "name_en": "Fantasy Hero",
+      "polarity": "positive",
+      "items": ["an elf with pointed ears", "wearing a wizard robe", "holding a staff", "casting a spell", "determined look"]
+    },
+    {
+      "id": "realistic_portrait",
+      "name": "写实肖像",
+      "name_en": "Realistic Portrait",
+      "polarity": "positive",
+      "items": ["an ordinary human", "a woman", "fair skin", "blue eyes", "wearing a casual t-shirt and jeans", "serious expression"]
+    },
+    {
+      "id": "cute_character",
+      "name": "可爱角色",
+      "name_en": "Cute Character",
+      "polarity": "positive",
+      "items": ["a young girl", "pastel pink hair", "double buns", "smiling happily", "wearing a flowing summer dress"]
+    },
+    {
+      "id": "dark_knight",
+      "name": "黑暗骑士",
+      "name_en": "Dark Knight",
+      "polarity": "positive",
+      "items": ["a man", "short black hair", "wearing medieval armor", "holding a sword", "fighting stance"]
+    },
+    {
+      "id": "character_issues",
+      "name": "角色问题",
+      "name_en": "Character Issues",
+      "polarity": "negative",
+      "items": ["bad anatomy", "bad hands", "extra fingers", "disfigured", "deformed", "bad proportions"]
+    }
+  ],
   "polarity": "positive"
 }

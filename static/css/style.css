@@ -438,6 +438,39 @@ html, body {
     color: var(--text-dim);
     border-bottom: 1px solid var(--border);
 }
+.prompt-popover-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.prompt-popover-btn {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+.prompt-popover-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.prompt-popover-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+.prompt-popover-insert-all {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+}
+.prompt-popover-insert-all:hover {
+    opacity: 0.85;
+}
 .prompt-popover-close {
     background: none; border: none; color: var(--text-dim);
     font-size: 18px; cursor: pointer; padding: 0 4px;
@@ -457,6 +490,32 @@ html, body {
     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;
 }
 .prompt-popover-sub { font-size: 10px; color: var(--text-faint); margin: 4px 0 2px; }
+.prompt-popover-presets {
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border);
+}
+.prompt-preset-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 2px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 10px;
+    font-size: 11px;
+    color: #818cf8;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+.prompt-preset-chip:hover {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.6);
+}
+.prompt-chip-selected {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
 .prompt-chip-sm {
     display: inline-block;
     padding: 2px 7px;

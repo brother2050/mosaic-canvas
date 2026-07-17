@@ -202,6 +202,7 @@ def create_app() -> FastAPI:
                         sub.get("polarity") == "negative"
                         for sub in data.get("subcategories", [])
                     )
+                    preset_count = len(data.get("presets", []))
                     categories.append({
                         "id": data.get("id", f.stem),
                         "name": data.get("name", f.stem),
@@ -212,6 +213,7 @@ def create_app() -> FastAPI:
                         "has_negative": has_negative,
                         "subcategory_count": sub_count,
                         "item_count": item_count,
+                        "preset_count": preset_count,
                     })
                 except (json.JSONDecodeError, OSError) as exc:
                     logger.warning("Failed to read prompt file %s: %s", f, exc)
