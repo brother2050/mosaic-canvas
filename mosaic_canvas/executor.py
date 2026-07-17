@@ -102,6 +102,16 @@ _JSON_FIELDS: frozenset[str] = frozenset({
     "prompts",
     "metadata",
     "timestamps",
+    # Helper node JSON fields
+    "mappings",
+    "conversions",
+    "blueprint",
+    "values",
+    "schema",
+    "aggregations",
+    "headers",
+    "cache_keys",
+    "merge_keys",
 })
 
 
