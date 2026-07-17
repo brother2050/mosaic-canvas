@@ -474,9 +474,8 @@ const App = (function () {
         document.getElementById('btn-stop').classList.remove('btn-hidden');
         setStatus(I18n.t('status.running'));
 
-        document.getElementById('results-panel').innerHTML =
-            `<div class="results-empty"><p>${I18n.t('results.running')}</p>` +
-            '<div class="progress-bar-container"><div class="progress-bar-fill" id="run-progress" style="width:0%"></div></div></div>';
+        // Initialize streaming results display
+        Results.startStreaming();
 
         const totalNodes = Store.getNodes().length;
         let completedNodes = 0;
@@ -493,32 +492,27 @@ const App = (function () {
                     Store.setNodeStatus(payload.node_id, 'success');
                     Canvas.updateSelection();
                     completedNodes++;
-                    const pct = Math.round((completedNodes / totalNodes) * 100);
-                    const bar = document.getElementById('run-progress');
-                    if (bar) bar.style.width = pct + '%';
+                    // Show this node's result immediately
+                    Results.appendNodeResult(payload);
                     setStatus(I18n.t('run.node_done', { name: payload.node_name, duration: payload.duration }));
                 } else if (event === 'node_error') {
                     Store.setNodeStatus(payload.node_id, 'error');
                     Canvas.updateSelection();
+                    // Show error result immediately
+                    Results.appendNodeResult({ ...payload, status: 'error' });
                     setStatus(I18n.t('run.node_error', { name: payload.node_name }));
                     toast(I18n.t('run.node_error', { name: payload.node_name }) + ': ' + payload.error, 'error');
                 } else if (event === 'keepalive') {
-                    // Update the running display with elapsed time
                     const elapsed = payload.elapsed ? Math.round(payload.elapsed) : '?';
-                    const panel = document.getElementById('results-panel');
-                    if (panel) {
-                        const runningEl = panel.querySelector('.results-empty p');
-                        if (runningEl) {
-                            runningEl.textContent = `${I18n.t('results.running')} (${elapsed}s)`;
-                        }
-                    }
+                    setStatus(`${I18n.t('results.running')} (${elapsed}s)`);
                 } else if (event === 'pipeline_complete') {
                     const status = payload.success ? I18n.t('run.complete_status_ok') : I18n.t('run.complete_status_fail');
                     setStatus(I18n.t('run.complete', { status, duration: payload.duration }));
                 }
             });
 
-            Results.render(result);
+            // Finalize: add summary + final output to the streamed results
+            Results.finalizeStreaming(result);
             if (result.success) {
                 toast(I18n.t('toast.run_success'), 'success');
             } else {

@@ -117,6 +117,23 @@ const Properties = (() => {
                     <p class="panel-hint prop-input-hint">${I18n.t('prop.input_fields_hint')}</p>
                 </div>`;
             }
+
+            // Output fields — show what this node produces
+            if (info.output_fields && info.output_fields.length > 0) {
+                html += `<div class="prop-section">
+                    <div class="prop-section-title">${I18n.t('prop.output_fields')}</div>
+                    <div class="prop-io-schema">`;
+                info.output_fields.forEach(f => {
+                    const fieldName = I18n.paramLabel(f.name) !== f.name ? I18n.paramLabel(f.name) : f.name;
+                    const desc = f.description || '';
+                    html += `<div class="prop-schema-row">
+                        <span class="prop-schema-name">${escapeHtml(fieldName)}</span>
+                        <span class="param-type-badge">${escapeHtml(f.type)}</span>
+                        <span class="prop-schema-desc">${escapeHtml(desc)}</span>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            }
         }
 
         // Delete button
@@ -288,8 +305,10 @@ const Properties = (() => {
                 field.name === 'instruction' || field.name === 'message' ||
                 field.name === 'text' || field.name === 'character_description';
             if (isPromptField) {
-                html += `<div class="prop-input-with-button">
-                    <input type="text" class="prop-input" ${dataParam}="${escapeAttr(field.name)}" value="${hasValue ? escapeAttr(String(currentValue)) : ''}" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">
+                // Use textarea for prompt fields (supports multi-line, long prompts)
+                const rows = field.name === 'negative_prompt' ? 3 : 4;
+                html += `<div class="prop-prompt-field">
+                    <textarea class="prop-input prop-textarea" ${dataParam}="${escapeAttr(field.name)}" rows="${rows}" placeholder="${hasDefault ? escapeAttr(String(defaultValue)) : ''}">${hasValue ? escapeHtml(String(currentValue)) : ''}</textarea>
                     <button class="prop-prompt-btn" data-prompt-picker="${escapeAttr(field.name)}" title="${I18n.t('prompts.picker_title')}">⊞</button>
                 </div>`;
             } else {

@@ -447,6 +447,7 @@ class NodeInfo:
     model_info: dict[str, Any] = field(default_factory=dict)
     params: list[ParamSchema] = field(default_factory=list)
     input_fields: list[InputField] = field(default_factory=list)
+    output_fields: list[InputField] = field(default_factory=list)
     module: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -461,6 +462,7 @@ class NodeInfo:
             "model_info": _sanitize_for_json(self.model_info),
             "params": [p.to_dict() for p in self.params],
             "input_fields": [f.to_dict() for f in self.input_fields],
+            "output_fields": [f.to_dict() for f in self.output_fields],
             "module": self.module,
         }
 
@@ -1667,6 +1669,260 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Curated output field descriptions for common node types.
+# These describe the structure of each node's MosaicData output, helping
+# users understand what fields are available for downstream nodes.
+# ---------------------------------------------------------------------------
+_NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
+    # === Image generation ===
+    "text-to-image": [
+        InputField(name="image", type="image", description="Generated PIL Image."),
+    ],
+    "image-to-image": [
+        InputField(name="image", type="image", description="Transformed PIL Image."),
+    ],
+    "inpainting": [
+        InputField(name="image", type="image", description="Inpainted PIL Image."),
+    ],
+    "upscaler": [
+        InputField(name="image", type="image", description="Upscaled high-resolution PIL Image."),
+    ],
+    "background-remover": [
+        InputField(name="image", type="image", description="PIL Image with transparent background."),
+    ],
+    "stylizer": [
+        InputField(name="image", type="image", description="Stylized PIL Image."),
+    ],
+    "identity-keeper": [
+        InputField(name="image", type="image", description="Generated PIL Image preserving face identity."),
+        InputField(name="face_embedding", type="array", description="Face embedding vector."),
+    ],
+    "style-keepr": [
+        InputField(name="image", type="image", description="Generated PIL Image preserving reference style."),
+    ],
+    "cross-frame-consistency": [
+        InputField(name="image", type="image", description="Consistent PIL Image."),
+        InputField(name="keypoints", type="array", description="Facial/keypoint data for consistency."),
+    ],
+    # === Video generation ===
+    "text-to-video": [
+        InputField(name="frames", type="list", description="List of PIL Image frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "image-to-video": [
+        InputField(name="frames", type="list", description="List of PIL Image frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "hunyuan-video": [
+        InputField(name="frames", type="list", description="List of PIL Image frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "ltx-video": [
+        InputField(name="frames", type="list", description="List of PIL Image frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "wan-video": [
+        InputField(name="frames", type="list", description="List of PIL Image frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "video-continuation": [
+        InputField(name="frames", type="list", description="List of PIL Image frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "frame-interpolation": [
+        InputField(name="frames", type="list", description="Interpolated list of PIL Image frames."),
+        InputField(name="fps", type="int", description="Output frames per second."),
+    ],
+    "frame-extractor": [
+        InputField(name="frames", type="list", description="Extracted PIL Image frames."),
+        InputField(name="frame_count", type="int", description="Number of extracted frames."),
+    ],
+    "lip-syncer": [
+        InputField(name="frames", type="list", description="Lip-synced video frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "realtime-renderer": [
+        InputField(name="frames", type="list", description="Rendered video frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    "avatar-driver": [
+        InputField(name="frames", type="list", description="Avatar animation frames."),
+        InputField(name="fps", type="int", description="Frames per second."),
+    ],
+    # === Text / LLM ===
+    "text-generator": [
+        InputField(name="text", type="string", description="Generated text response."),
+        InputField(name="response", type="string", description="Full response (alias of text)."),
+    ],
+    "chat": [
+        InputField(name="text", type="string", description="Chat response text."),
+        InputField(name="response", type="string", description="Full chat response."),
+        InputField(name="messages", type="list", description="Full message history including the response."),
+    ],
+    "text-summarizer": [
+        InputField(name="summary", type="string", description="Summarized text."),
+        InputField(name="text", type="string", description="Summary (alias)."),
+    ],
+    "translator": [
+        InputField(name="text", type="string", description="Translated text."),
+        InputField(name="translation", type="string", description="Translated text (alias)."),
+    ],
+    "text-classifier": [
+        InputField(name="label", type="string", description="Predicted class label."),
+        InputField(name="scores", type="dict", description="Score dictionary for all labels."),
+    ],
+    "text-rewriter": [
+        InputField(name="text", type="string", description="Rewritten text."),
+    ],
+    "text-chunker": [
+        InputField(name="chunks", type="list", description="List of text chunks."),
+        InputField(name="chunk_count", type="int", description="Number of chunks."),
+    ],
+    # === Audio ===
+    "tts": [
+        InputField(name="waveform", type="array", description="Audio waveform as numpy array."),
+        InputField(name="sample_rate", type="int", description="Audio sample rate in Hz."),
+    ],
+    "asr": [
+        InputField(name="text", type="string", description="Transcribed text."),
+        InputField(name="segments", type="list", description="Time-stamped transcription segments."),
+    ],
+    "music-generator": [
+        InputField(name="waveform", type="array", description="Music waveform as numpy array."),
+        InputField(name="sample_rate", type="int", description="Audio sample rate in Hz."),
+    ],
+    "sound-effect-generator": [
+        InputField(name="waveform", type="array", description="Sound effect waveform."),
+        InputField(name="sample_rate", type="int", description="Audio sample rate in Hz."),
+    ],
+    "voice-clone": [
+        InputField(name="waveform", type="array", description="Cloned voice waveform."),
+        InputField(name="sample_rate", type="int", description="Audio sample rate in Hz."),
+    ],
+    # === Subtitle ===
+    "subtitle-generator": [
+        InputField(name="segments", type="list", description="Subtitle segments with {start, end, text}."),
+    ],
+    "subtitle-aligner": [
+        InputField(name="segments", type="list", description="Time-aligned subtitle segments."),
+    ],
+    "subtitle-translator": [
+        InputField(name="segments", type="list", description="Translated subtitle segments."),
+    ],
+    # === Export / Encoding ===
+    "video-encoder": [
+        InputField(name="video_path", type="string", description="Path to encoded video file."),
+        InputField(name="video", type="video", description="Video file reference."),
+    ],
+    "multi-format-exporter": [
+        InputField(name="path", type="string", description="Path to exported file."),
+        InputField(name="content_type", type="string", description="Exported content type."),
+    ],
+    # === Document / RAG ===
+    "document-parser": [
+        InputField(name="text", type="string", description="Extracted text content."),
+        InputField(name="pages", type="list", description="List of page contents."),
+    ],
+    "retriever": [
+        InputField(name="results", type="list", description="Retrieved document chunks."),
+        InputField(name="context", type="string", description="Concatenated context string."),
+        InputField(name="rag_query_result", type="dict", description="Structured retrieval result."),
+    ],
+    "citation-generator": [
+        InputField(name="citations", type="list", description="Generated citation list."),
+        InputField(name="text", type="string", description="Text with inline citations."),
+    ],
+    "vector-indexer": [
+        InputField(name="index", type="dict", description="Vector index object."),
+        InputField(name="vectors", type="list", description="Indexed vectors."),
+    ],
+    # === Motion ===
+    "motion-generator": [
+        InputField(name="motion", type="array", description="Generated motion data."),
+        InputField(name="keypoints", type="array", description="Keypoint sequence."),
+    ],
+    # === Streaming ===
+    "livestreamer": [
+        InputField(name="url", type="string", description="Stream URL."),
+    ],
+    # === Helper: Data transformation ===
+    "field-mapper": [
+        InputField(name="*", type="any", description="Passthrough: all input fields with mapped/renamed keys."),
+    ],
+    "type-converter": [
+        InputField(name="*", type="any", description="Passthrough: all input fields with type conversions applied."),
+    ],
+    "data-merger": [
+        InputField(name="merged", type="dict", description="Merged data dictionary."),
+    ],
+    "data-splitter": [
+        InputField(name="chunks", type="list", description="Split data chunks."),
+    ],
+    "value-injector": [
+        InputField(name="*", type="any", description="Passthrough: input fields plus injected values."),
+    ],
+    "json-builder": [
+        InputField(name="result", type="dict", description="Built JSON object from blueprint."),
+    ],
+    "json-parser": [
+        InputField(name="parsed", type="dict", description="Parsed JSON data."),
+    ],
+    "json-path": [
+        InputField(name="result", type="any", description="Extracted value(s) from JSON path query."),
+    ],
+    "template-renderer": [
+        InputField(name="text", type="string", description="Rendered template output."),
+    ],
+    "aggregator": [
+        InputField(name="result", type="dict", description="Aggregation results."),
+    ],
+    "data-flattener": [
+        InputField(name="flattened", type="dict", description="Flattened key-value pairs."),
+    ],
+    "data-grouper": [
+        InputField(name="groups", type="dict", description="Grouped data."),
+    ],
+    # === Helper: Flow control ===
+    "loop": [
+        InputField(name="results", type="list", description="Results from each loop iteration."),
+    ],
+    "parallel-map": [
+        InputField(name="results", type="list", description="Parallel processing results."),
+    ],
+    "batcher": [
+        InputField(name="batches", type="list", description="List of batches."),
+    ],
+    "switch": [
+        InputField(name="*", type="any", description="Routed data from the matched case."),
+    ],
+    "filter": [
+        InputField(name="*", type="any", description="Filtered data (passthrough if condition met)."),
+    ],
+    # === Helper: I/O ===
+    "file-reader": [
+        InputField(name="text", type="string", description="File content as text (text/json/yaml formats)."),
+        InputField(name="image", type="image", description="Loaded image (image format)."),
+        InputField(name="waveform", type="array", description="Audio waveform (audio format)."),
+        InputField(name="data", type="dict", description="Parsed data (json/yaml/csv formats)."),
+    ],
+    "api-caller": [
+        InputField(name="response", type="dict", description="API response data."),
+        InputField(name="status_code", type="int", description="HTTP status code."),
+    ],
+    "data-injector": [
+        InputField(name="*", type="any", description="Injected static data fields."),
+    ],
+    # === Helper: Monitoring ===
+    "profiler": [
+        InputField(name="perf_metrics", type="dict", description="Performance metrics."),
+    ],
+    "state-store": [
+        InputField(name="state", type="any", description="Current state value."),
+    ],
+}
+
+
 def _merge_input_fields(
     auto_fields: list[InputField],
     curated_fields: list[InputField],
@@ -1747,6 +2003,9 @@ def introspect_node(node_class: type) -> NodeInfo:
     curated_fields = list(_NODE_INPUT_FIELDS.get(name, []))
     input_fields = _merge_input_fields(auto_fields, curated_fields)
 
+    # Curated output fields (describes what the node produces)
+    output_fields = list(_NODE_OUTPUT_FIELDS.get(name, []))
+
     return NodeInfo(
         name=name,
         class_name=node_class.__name__,
@@ -1758,6 +2017,7 @@ def introspect_node(node_class: type) -> NodeInfo:
         model_info=model_info,
         params=params,
         input_fields=input_fields,
+        output_fields=output_fields,
         module=getattr(node_class, "__module__", ""),
     )
 

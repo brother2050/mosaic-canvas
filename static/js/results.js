@@ -12,6 +12,8 @@
 const Results = (() => {
     let panelEl;
     let lastResult = null;
+    let streamingNodes = [];     // accumulated node results during streaming
+    let streamingMode = false;
 
     // Display types that represent a single media object rendered directly.
     // Container types like "mosaic", "audio", "video" (data type tags) are
@@ -36,6 +38,61 @@ const Results = (() => {
         lastResult = result;
         renderContent(result);
         if (result) switchToResultsTab();
+    }
+
+    // ── Streaming mode: show node results incrementally ────
+
+    function startStreaming() {
+        if (!panelEl) panelEl = document.getElementById('results-panel');
+        streamingMode = true;
+        streamingNodes = [];
+        panelEl.innerHTML = `<div class="prop-section-title" style="margin:12px 0 8px">${I18n.t('results.node_results')}</div><div id="results-stream-list"></div>`;
+        switchToResultsTab();
+    }
+
+    function appendNodeResult(payload) {
+        if (!streamingMode) startStreaming();
+        const nr = {
+            node_id: payload.node_id,
+            node_name: payload.node_name,
+            status: payload.status || 'success',
+            duration: payload.duration,
+            output: payload.output,
+            error: payload.error,
+            output_keys: payload.output_keys || [],
+        };
+        streamingNodes.push(nr);
+
+        const list = panelEl.querySelector('#results-stream-list');
+        if (!list) return;
+
+        // Append the card HTML
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = renderNodeResult(nr);
+        const card = wrapper.firstElementChild;
+        if (card) list.appendChild(card);
+
+        // Wire up toggle
+        const header = card && card.querySelector('.result-node-header');
+        if (header) {
+            header.addEventListener('click', () => {
+                const body = header.nextElementSibling;
+                if (body) body.classList.toggle('expanded');
+            });
+        }
+
+        // Auto-scroll to bottom
+        list.scrollTop = list.scrollHeight;
+    }
+
+    function finalizeStreaming(result) {
+        streamingMode = false;
+        lastResult = result;
+        // If the final result has additional info (summary, final_output),
+        // re-render fully. Otherwise keep the streamed cards.
+        if (result && (result.final_output || result.node_results)) {
+            renderContent(result);
+        }
     }
 
     function renderContent(result) {
@@ -372,5 +429,5 @@ const Results = (() => {
         return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
 
-    return { init, render, showRunning };
+    return { init, render, showRunning, startStreaming, appendNodeResult, finalizeStreaming };
 })();

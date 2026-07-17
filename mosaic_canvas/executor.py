@@ -641,6 +641,7 @@ class GraphExecutor:
                         "node_name": node_name,
                         "duration": round(elapsed, 3),
                         "output_keys": output_keys,
+                        "output": _serialize_output(output),
                     })
             except Exception as exc:  # noqa: BLE001
                 elapsed = time.perf_counter() - t0
