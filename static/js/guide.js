@@ -118,7 +118,8 @@ const Guide = (() => {
             <table>
                 <tr><th>Node</th><th>Key Output Fields</th></tr>
                 <tr><td>${n('text-to-image')}</td><td><code>image</code> (PIL Image)</td></tr>
-                <tr><td>${n('chat')} / ${n('text-generator')}</td><td><code>text</code> (string), <code>response</code> (string)</td></tr>
+                <tr><td>${n('chat')}</td><td><code>reply</code> (string), <code>messages</code> (list), <code>input_tokens</code>/<code>output_tokens</code> (int)</td></tr>
+                <tr><td>${n('text-generator')}</td><td><code>text</code> (string), <code>input_tokens</code>/<code>output_tokens</code> (int)</td></tr>
                 <tr><td>${n('tts')}</td><td><code>waveform</code> (numpy array), <code>sample_rate</code> (int)</td></tr>
                 <tr><td>${n('text-to-video')}</td><td><code>frames</code> (list of Images), <code>fps</code> (int)</td></tr>
                 <tr><td>${n('subtitle-generator')}</td><td><code>segments</code> (list of {start, end, text})</td></tr>
@@ -135,14 +136,14 @@ const Guide = (() => {
             <p>When nodes connect, data flows through <strong>MosaicData</strong>. The downstream node reads fields by name. When field names don't match, use helper nodes to bridge the gap.</p>
             <p><strong>Common mismatch examples:</strong></p>
             <ul>
-                <li>${n('chat')} outputs <code>text</code>, but ${n('text-to-image')} expects <code>prompt</code></li>
+                <li>${n('chat')} outputs <code>reply</code>, but ${n('text-to-image')} expects <code>prompt</code></li>
                 <li>${n('translator')} outputs <code>translation</code>, but ${n('tts')} expects <code>text</code></li>
                 <li>${n('asr')} outputs <code>text</code>, but ${n('subtitle-generator')} may expect <code>segments</code></li>
             </ul>
             <p><strong>Solution</strong>: Use helper nodes between them:</p>
             <table>
                 <tr><th>Helper Node</th><th>Use Case</th><th>Example</th></tr>
-                <tr><td>${n('field-mapper')}</td><td>Rename fields</td><td><code>mappings = {"text": "prompt"}</code></td></tr>
+                <tr><td>${n('field-mapper')}</td><td>Rename fields</td><td><code>mapping = {"reply": "prompt"}</code></td></tr>
                 <tr><td>${n('value-injector')}</td><td>Inject static values</td><td><code>values = {"width": 512, "height": 512}</code></td></tr>
                 <tr><td>${n('type-converter')}</td><td>Convert types</td><td><code>conversions = {"count": "int"}</code></td></tr>
                 <tr><td>${n('json-builder')}</td><td>Build structured JSON</td><td><code>blueprint = {"query": "prompt"}</code></td></tr>
@@ -151,7 +152,7 @@ const Guide = (() => {
                 <tr><td>${n('data-merger')}</td><td>Merge multiple inputs</td><td>Combines fields from multiple upstream nodes</td></tr>
                 <tr><td>${n('text-chunker')}</td><td>Split long text</td><td>Break text into chunks for batch processing</td></tr>
             </table>
-            <div class="guide-tip"><strong>Example</strong>: ${n('chat')} → ${n('field-mapper')} → ${n('text-to-image')}. Set ${n('field-mapper')}'s <code>mappings</code> to <code>{"text": "prompt"}</code>. The chat's <code>text</code> becomes <code>prompt</code> for text-to-image.</div>
+            <div class="guide-tip"><strong>Example</strong>: ${n('chat')} → ${n('field-mapper')} → ${n('text-to-image')}. Set ${n('field-mapper')}'s constructor parameter <code>mapping</code> to <code>{"reply": "prompt"}</code>. The chat's <code>reply</code> becomes <code>prompt</code> for text-to-image.</div>
         </div>
 
         <div class="guide-section">
@@ -205,8 +206,8 @@ const Guide = (() => {
             <p><strong>Text / LLM</strong></p>
             <table>
                 <tr><th>Node</th><th>Description</th><th>Output</th></tr>
-                <tr><td>${n('chat')}</td><td>Chat with an LLM (requires messages)</td><td>text, response, messages</td></tr>
-                <tr><td>${n('text-generator')}</td><td>Generate text from instruction</td><td>text, response</td></tr>
+                <tr><td>${n('chat')}</td><td>Chat with an LLM (requires messages)</td><td>reply, messages, input_tokens, output_tokens</td></tr>
+                <tr><td>${n('text-generator')}</td><td>Generate text from instruction</td><td>text, input_tokens, output_tokens</td></tr>
                 <tr><td>${n('text-summarizer')}</td><td>Summarize long text</td><td>summary, text</td></tr>
                 <tr><td>${n('translator')}</td><td>Translate text</td><td>text, translation</td></tr>
                 <tr><td>${n('text-classifier')}</td><td>Classify text into categories</td><td>label, scores</td></tr>
@@ -335,11 +336,11 @@ const Guide = (() => {
             <p>Use LLM to generate a prompt, then pass to image generation.</p>
             <ul>
                 <li>Add ${n('chat')} node → set <code>messages</code> field (required): <code>[{"role": "user", "content": "Describe a sunset over the ocean"}]</code></li>
-                <li>Add ${n('field-mapper')} node → set <code>mappings</code>: <code>{"text": "prompt"}</code></li>
+                <li>Add ${n('field-mapper')} node → set constructor parameter <code>mapping</code>: <code>{"reply": "prompt"}</code></li>
                 <li>Add ${n('text-to-image')} node</li>
                 <li>Connect: ${n('chat')} → ${n('field-mapper')} → ${n('text-to-image')}</li>
             </ul>
-            <div class="guide-tip">${n('chat')} outputs <code>text</code>. ${n('field-mapper')} renames it to <code>prompt</code>. ${n('text-to-image')} reads <code>prompt</code>. Check each node's "Output Data Structure" in the properties panel.</div>
+            <div class="guide-tip">${n('chat')} outputs <code>reply</code>. ${n('field-mapper')} renames it to <code>prompt</code>. ${n('text-to-image')} reads <code>prompt</code>. Check each node's "Output Data Structure" in the properties panel.</div>
 
             <p><strong>10.3 TTS → Lip Syncer</strong></p>
             <ul>
@@ -405,8 +406,8 @@ const Guide = (() => {
         <div class="guide-section">
             <h4>12. Saving & Loading</h4>
             <ul>
-                <li><strong>Save</strong>: Download pipeline as JSON.</li>
-                <li><strong>Load</strong>: Select a saved JSON file.</li>
+                <li><strong>Save</strong>: Save pipeline to server. View and reload saved pipelines anytime.</li>
+                <li><strong>Load</strong>: Browse saved pipelines from server, or upload/paste a JSON file.</li>
                 <li><strong>Templates</strong>: Pre-built example pipelines.</li>
                 <li><strong>Export Python</strong>: Generate a standalone Python script.</li>
             </ul>
@@ -527,7 +528,8 @@ const Guide = (() => {
             <table>
                 <tr><th>节点</th><th>关键输出字段</th></tr>
                 <tr><td>${n('text-to-image')}</td><td><code>image</code>（PIL 图像）</td></tr>
-                <tr><td>${n('chat')} / ${n('text-generator')}</td><td><code>text</code>（字符串），<code>response</code>（字符串）</td></tr>
+                <tr><td>${n('chat')}</td><td><code>reply</code>（字符串），<code>messages</code>（列表），<code>input_tokens</code>/<code>output_tokens</code>（整数）</td></tr>
+                <tr><td>${n('text-generator')}</td><td><code>text</code>（字符串），<code>input_tokens</code>/<code>output_tokens</code>（整数）</td></tr>
                 <tr><td>${n('tts')}</td><td><code>waveform</code>（numpy 数组），<code>sample_rate</code>（整数）</td></tr>
                 <tr><td>${n('text-to-video')}</td><td><code>frames</code>（图像列表），<code>fps</code>（整数）</td></tr>
                 <tr><td>${n('subtitle-generator')}</td><td><code>segments</code>（{start, end, text} 列表）</td></tr>
@@ -544,14 +546,14 @@ const Guide = (() => {
             <p>节点连接后，数据通过 <strong>MosaicData</strong> 流动，下游按名称读取字段。字段名不匹配时，用辅助节点桥接。</p>
             <p><strong>常见不匹配场景：</strong></p>
             <ul>
-                <li>${n('chat')} 输出 <code>text</code>，但 ${n('text-to-image')} 期望 <code>prompt</code></li>
+                <li>${n('chat')} 输出 <code>reply</code>，但 ${n('text-to-image')} 期望 <code>prompt</code></li>
                 <li>${n('translator')} 输出 <code>translation</code>，但 ${n('tts')} 期望 <code>text</code></li>
                 <li>${n('asr')} 输出 <code>text</code>，但 ${n('subtitle-generator')} 可能需要 <code>segments</code></li>
             </ul>
             <p><strong>解决方案</strong>：在中间使用辅助节点：</p>
             <table>
                 <tr><th>辅助节点</th><th>用途</th><th>示例</th></tr>
-                <tr><td>${n('field-mapper')}</td><td>重命名字段</td><td><code>mappings = {"text": "prompt"}</code></td></tr>
+                <tr><td>${n('field-mapper')}</td><td>重命名字段</td><td><code>mapping = {"reply": "prompt"}</code></td></tr>
                 <tr><td>${n('value-injector')}</td><td>注入静态值</td><td><code>values = {"width": 512, "height": 512}</code></td></tr>
                 <tr><td>${n('type-converter')}</td><td>类型转换</td><td><code>conversions = {"count": "int"}</code></td></tr>
                 <tr><td>${n('json-builder')}</td><td>构建结构化 JSON</td><td><code>blueprint = {"query": "prompt"}</code></td></tr>
@@ -560,7 +562,7 @@ const Guide = (() => {
                 <tr><td>${n('data-merger')}</td><td>合并多个输入</td><td>合并多个上游节点的字段</td></tr>
                 <tr><td>${n('text-chunker')}</td><td>长文本分块</td><td>将文本拆分为块，便于批处理</td></tr>
             </table>
-            <div class="guide-tip"><strong>示例</strong>：${n('chat')} → ${n('field-mapper')} → ${n('text-to-image')}。设置 ${n('field-mapper')} 的 <code>mappings</code> 为 <code>{"text": "prompt"}</code>。对话输出的 <code>text</code> 会变成文生图需要的 <code>prompt</code>。</div>
+            <div class="guide-tip"><strong>示例</strong>：${n('chat')} → ${n('field-mapper')} → ${n('text-to-image')}。设置 ${n('field-mapper')} 的构造器参数 <code>mapping</code> 为 <code>{"reply": "prompt"}</code>。对话输出的 <code>reply</code> 会变成文生图需要的 <code>prompt</code>。</div>
         </div>
 
         <div class="guide-section">
@@ -614,8 +616,8 @@ const Guide = (() => {
             <p><strong>文本 / LLM</strong></p>
             <table>
                 <tr><th>节点</th><th>说明</th><th>输出</th></tr>
-                <tr><td>${n('chat')}</td><td>LLM 对话（需要 messages）</td><td>text, response, messages</td></tr>
-                <tr><td>${n('text-generator')}</td><td>根据指令生成文本</td><td>text, response</td></tr>
+                <tr><td>${n('chat')}</td><td>LLM 对话（需要 messages）</td><td>reply, messages, input_tokens, output_tokens</td></tr>
+                <tr><td>${n('text-generator')}</td><td>根据指令生成文本</td><td>text, input_tokens, output_tokens</td></tr>
                 <tr><td>${n('text-summarizer')}</td><td>文本摘要</td><td>summary, text</td></tr>
                 <tr><td>${n('translator')}</td><td>翻译</td><td>text, translation</td></tr>
                 <tr><td>${n('text-classifier')}</td><td>文本分类</td><td>label, scores</td></tr>
@@ -744,11 +746,11 @@ const Guide = (() => {
             <p>用 LLM 生成提示词，再传给图像生成。</p>
             <ul>
                 <li>添加 ${n('chat')} 节点 → 设置 <code>messages</code>（必填）：<code>[{"role": "user", "content": "描述海上日落"}]</code></li>
-                <li>添加 ${n('field-mapper')} 节点 → 设置 <code>mappings</code>：<code>{"text": "prompt"}</code></li>
+                <li>添加 ${n('field-mapper')} 节点 → 设置构造器参数 <code>mapping</code>：<code>{"reply": "prompt"}</code></li>
                 <li>添加 ${n('text-to-image')} 节点</li>
                 <li>连接：${n('chat')} → ${n('field-mapper')} → ${n('text-to-image')}</li>
             </ul>
-            <div class="guide-tip">${n('chat')} 输出 <code>text</code>，${n('field-mapper')} 将其重命名为 <code>prompt</code>，${n('text-to-image')} 读取 <code>prompt</code>。在属性面板查看每个节点的"输出数据结构"。</div>
+            <div class="guide-tip">${n('chat')} 输出 <code>reply</code>，${n('field-mapper')} 将其重命名为 <code>prompt</code>，${n('text-to-image')} 读取 <code>prompt</code>。在属性面板查看每个节点的"输出数据结构"。</div>
 
             <p><strong>10.3 语音合成 → 唇形同步</strong></p>
             <ul>
@@ -814,8 +816,8 @@ const Guide = (() => {
         <div class="guide-section">
             <h4>12. 保存与加载</h4>
             <ul>
-                <li><strong>保存</strong>：下载流水线为 JSON 文件。</li>
-                <li><strong>加载</strong>：选择已保存的 JSON 文件。</li>
+                <li><strong>保存</strong>：将流水线保存到服务器，可随时查看和重新加载。</li>
+                <li><strong>加载</strong>：浏览服务器已保存的流水线，或上传/粘贴 JSON 文件。</li>
                 <li><strong>模板</strong>：预置示例流水线。</li>
                 <li><strong>导出 Python</strong>：生成可独立运行的 Python 脚本。</li>
             </ul>

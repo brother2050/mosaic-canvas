@@ -8,6 +8,10 @@ Exposes the Mosaic Canvas API:
 * ``POST /api/validate``         — validate a graph (cycle detection, etc.)
 * ``POST /api/run``              — execute a graph synchronously
 * ``POST /api/export/python``    — export graph as Python code
+* ``GET  /api/pipelines``        — list saved pipelines
+* ``POST /api/pipelines``        — save a pipeline to server
+* ``GET  /api/pipelines/{name}`` — load a saved pipeline
+* ``DELETE /api/pipelines/{name}`` — delete a saved pipeline
 * ``WS   /ws/run``               — execute a graph with real-time progress
 
 Static files for the frontend are served from ``/``.
@@ -265,6 +269,88 @@ def create_app() -> FastAPI:
         graph = Graph.from_dict(req.model_dump())
         code = export_python(graph)
         return PlainTextResponse(content=code, media_type="text/x-python")
+
+    # -- Pipeline persistence (save / load / list / delete) -------------
+
+    pipelines_dir = Path(__file__).resolve().parent.parent / "data" / "pipelines"
+    pipelines_dir.mkdir(parents=True, exist_ok=True)
+
+    import re
+    _SAFE_NAME_RE = re.compile(r'^[A-Za-z0-9_\-\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff ]+$')
+
+    def _safe_filename(name: str) -> str:
+        """Sanitise a pipeline name into a safe filename (without extension)."""
+        # Replace spaces with underscores, strip to 60 chars
+        safe = name.strip().replace(' ', '_')[:60]
+        if not safe or not _SAFE_NAME_RE.match(name.strip()):
+            safe = "pipeline"
+        return safe
+
+    @app.get("/api/pipelines")
+    def api_list_pipelines() -> JSONResponse:
+        """List all saved pipelines on the server."""
+        result = []
+        for f in sorted(pipelines_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                result.append({
+                    "name": data.get("name", f.stem),
+                    "filename": f.name,
+                    "saved_at": f.stat().st_mtime,
+                    "nodes_count": len(data.get("nodes", [])),
+                    "edges_count": len(data.get("edges", [])),
+                })
+            except Exception:  # noqa: BLE001
+                logger.warning("Failed to read pipeline file %s", f, exc_info=True)
+        return JSONResponse(content={"pipelines": result})
+
+    @app.post("/api/pipelines")
+    def api_save_pipeline(req: GraphRequest) -> JSONResponse:
+        """Save a pipeline to the server."""
+        name = req.name.strip() or "Untitled Pipeline"
+        filename = _safe_filename(name) + ".json"
+        filepath = pipelines_dir / filename
+        data = req.model_dump()
+        data["name"] = name
+        filepath.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info("Saved pipeline '%s' to %s", name, filepath)
+        return JSONResponse(content={
+            "ok": True,
+            "name": name,
+            "filename": filename,
+            "message": f"Pipeline '{name}' saved to server.",
+        })
+
+    @app.get("/api/pipelines/{filename}")
+    def api_load_pipeline(filename: str) -> JSONResponse:
+        """Load a saved pipeline from the server."""
+        # Prevent path traversal
+        if "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(status_code=400, content={"error": "Invalid filename."})
+        if not filename.endswith(".json"):
+            filename += ".json"
+        filepath = pipelines_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": f"Pipeline '{filename}' not found."})
+        try:
+            data = json.loads(filepath.read_text(encoding="utf-8"))
+            return JSONResponse(content=data)
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse(status_code=500, content={"error": f"Failed to load: {exc}"})
+
+    @app.delete("/api/pipelines/{filename}")
+    def api_delete_pipeline(filename: str) -> JSONResponse:
+        """Delete a saved pipeline from the server."""
+        if "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(status_code=400, content={"error": "Invalid filename."})
+        if not filename.endswith(".json"):
+            filename += ".json"
+        filepath = pipelines_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": f"Pipeline '{filename}' not found."})
+        filepath.unlink()
+        logger.info("Deleted pipeline %s", filepath)
+        return JSONResponse(content={"ok": True, "message": "Pipeline deleted."})
 
     # -- WebSocket for real-time execution --------------------------------
 

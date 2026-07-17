@@ -1564,6 +1564,91 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     margin-bottom: 8px;
 }
 
+/* ---- Saved pipelines list (in load modal) ---- */
+.saved-pipelines-section {
+    margin-bottom: 12px;
+}
+.saved-pipelines-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+.saved-pipelines-list {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-0);
+}
+.saved-pipelines-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+}
+.saved-pipeline-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background var(--transition);
+}
+.saved-pipeline-item:last-child { border-bottom: none; }
+.saved-pipeline-item:hover { background: var(--bg-hover); }
+.saved-pipeline-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+.saved-pipeline-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.saved-pipeline-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+}
+.saved-pipeline-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+.btn-pipeline-load {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: #fff;
+}
+.btn-pipeline-load:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.btn-pipeline-delete {
+    background: var(--danger-dim);
+    border-color: var(--danger-dim);
+    color: var(--text-dim);
+    padding: 4px 8px;
+    font-size: 13px;
+}
+.btn-pipeline-delete:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+.load-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+}
+
 /* ---- Toast ---- */
 #toast-container {
     position: fixed;

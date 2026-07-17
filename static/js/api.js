@@ -54,6 +54,30 @@ const API = (() => {
             return resp.text();
         },
 
+        // -- Pipeline persistence (save / load / list / delete) --
+
+        async listPipelines() {
+            return fetchJSON(`${baseUrl}/api/pipelines`);
+        },
+
+        async savePipeline(graph) {
+            return fetchJSON(`${baseUrl}/api/pipelines`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(graph),
+            });
+        },
+
+        async loadPipeline(filename) {
+            return fetchJSON(`${baseUrl}/api/pipelines/${encodeURIComponent(filename)}`);
+        },
+
+        async deletePipeline(filename) {
+            return fetchJSON(`${baseUrl}/api/pipelines/${encodeURIComponent(filename)}`, {
+                method: 'DELETE',
+            });
+        },
+
         /** Run pipeline via WebSocket with real-time progress callbacks. */
         runWebSocket(graph, onEvent) {
             return new Promise((resolve, reject) => {

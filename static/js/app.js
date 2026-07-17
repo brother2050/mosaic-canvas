@@ -274,22 +274,89 @@ const App = (function () {
             toast(I18n.t('toast.new_created'), '');
         });
 
-        document.getElementById('btn-save').addEventListener('click', () => {
+        document.getElementById('btn-save').addEventListener('click', async () => {
+            const name = Store.getPipelineName() || I18n.t('pipeline.untitled');
             const graph = Store.toGraph();
-            const json = JSON.stringify(graph, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = (Store.getPipelineName() || 'pipeline').replace(/\s+/g, '_') + '.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            toast(I18n.t('toast.saved'), 'success');
+            graph.name = name;
+            try {
+                setStatus(I18n.t('status.saving'));
+                const result = await API.savePipeline(graph);
+                toast(result.message || I18n.t('toast.saved'), 'success');
+                setStatus(I18n.t('status.ready'));
+            } catch (err) {
+                toast(I18n.t('toast.save_failed') + err.message, 'error');
+                setStatus(I18n.t('status.ready'));
+            }
         });
 
-        document.getElementById('btn-load').addEventListener('click', () => {
+        document.getElementById('btn-load').addEventListener('click', async () => {
             showModal('load-modal');
+            // Fetch saved pipelines from server
+            try {
+                const result = await API.listPipelines();
+                renderSavedPipelines(result.pipelines || []);
+            } catch (err) {
+                console.error('Failed to list pipelines:', err);
+            }
         });
+
+        function renderSavedPipelines(pipelines) {
+            const container = document.getElementById('saved-pipelines-list');
+            if (!container) return;
+            if (pipelines.length === 0) {
+                container.innerHTML = `<div class="saved-pipelines-empty">${I18n.t('modal.no_saved')}</div>`;
+                return;
+            }
+            container.innerHTML = pipelines.map(p => {
+                const date = new Date(p.saved_at * 1000);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                return `<div class="saved-pipeline-item" data-filename="${escapeHtml(p.filename)}">
+                    <div class="saved-pipeline-info">
+                        <span class="saved-pipeline-name">${escapeHtml(p.name)}</span>
+                        <span class="saved-pipeline-meta">${p.nodes_count} ${I18n.t('status.nodes_count')} · ${dateStr}</span>
+                    </div>
+                    <div class="saved-pipeline-actions">
+                        <button class="btn btn-sm btn-pipeline-load" data-filename="${escapeHtml(p.filename)}" data-i18n-title="modal.load_confirm">${I18n.t('modal.load_confirm')}</button>
+                        <button class="btn btn-sm btn-pipeline-delete" data-filename="${escapeHtml(p.filename)}" data-i18n-title="btn.delete">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Bind load buttons
+            container.querySelectorAll('.btn-pipeline-load').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const filename = btn.dataset.filename;
+                    try {
+                        const graph = await API.loadPipeline(filename);
+                        Store.fromGraph(graph);
+                        nameInput.value = Store.getPipelineName();
+                        Canvas.renderAll();
+                        renderInputPanel();
+                        hideModal('load-modal');
+                        toast(I18n.t('toast.loaded'), 'success');
+                    } catch (err) {
+                        toast(I18n.t('toast.load_failed') + err.message, 'error');
+                    }
+                });
+            });
+
+            // Bind delete buttons
+            container.querySelectorAll('.btn-pipeline-delete').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const filename = btn.dataset.filename;
+                    if (!confirm(I18n.t('toast.delete_confirm'))) return;
+                    try {
+                        await API.deletePipeline(filename);
+                        toast(I18n.t('toast.deleted'), 'success');
+                        // Refresh list
+                        const result = await API.listPipelines();
+                        renderSavedPipelines(result.pipelines || []);
+                    } catch (err) {
+                        toast(I18n.t('toast.delete_failed') + err.message, 'error');
+                    }
+                });
+            });
+        }
 
         document.getElementById('btn-load-confirm').addEventListener('click', () => {
             const textarea = document.getElementById('load-textarea');
