@@ -1,0 +1,80 @@
+{
+  "id": "style",
+  "name": "风格",
+  "name_en": "Styles",
+  "icon": "风",
+  "version": "1.0",
+  "subcategories": [
+    {
+      "id": "art_style",
+      "name": "艺术风格",
+      "name_en": "Art Style",
+      "items": [
+        { "text": "oil painting style", "label": "油画风格", "label_en": "oil painting" },
+        { "text": "watercolor painting", "label": "水彩画", "label_en": "watercolor" },
+        { "text": "anime style", "label": "动漫风格", "label_en": "anime style" },
+        { "text": "photorealistic", "label": "照片级写实", "label_en": "photorealistic" },
+        { "text": "impressionist painting", "label": "印象派", "label_en": "impressionist" },
+        { "text": "pixel art", "label": "像素艺术", "label_en": "pixel art" },
+        { "text": "cyberpunk style", "label": "赛博朋克", "label_en": "cyberpunk" },
+        { "text": "Chinese ink painting", "label": "中国水墨画", "label_en": "Chinese ink painting" },
+        { "text": "digital art", "label": "数字艺术", "label_en": "digital art" },
+        { "text": "concept art", "label": "概念艺术", "label_en": "concept art" },
+        { "text": "3D render", "label": "3D 渲染", "label_en": "3D render" },
+        { "text": "comic book style", "label": "漫画风格", "label_en": "comic book" },
+        { "text": "art nouveau", "label": "新艺术运动", "label_en": "art nouveau" },
+        { "text": "surrealist", "label": "超现实主义", "label_en": "surrealist" },
+        { "text": "minimalist", "label": "极简主义", "label_en": "minimalist" },
+        { "text": "pop art", "label": "波普艺术", "label_en": "pop art" }
+      ]
+    },
+    {
+      "id": "lighting",
+      "name": "光照",
+      "name_en": "Lighting",
+      "items": [
+        { "text": "soft natural lighting", "label": "柔和自然光", "label_en": "soft natural light" },
+        { "text": "dramatic side lighting", "label": "戏剧性侧光", "label_en": "dramatic side light" },
+        { "text": "backlit silhouette", "label": "逆光剪影", "label_en": "backlit silhouette" },
+        { "text": "studio lighting", "label": "影棚灯光", "label_en": "studio lighting" },
+        { "text": "candlelight glow", "label": "烛光", "label_en": "candlelight" },
+        { "text": "neon glow lighting", "label": "霓虹灯光", "label_en": "neon glow" },
+        { "text": "volumetric lighting", "label": "体积光", "label_en": "volumetric light" },
+        { "text": "rim lighting", "label": "轮廓光", "label_en": "rim lighting" },
+        { "text": "split lighting", "label": "分割光", "label_en": "split lighting" },
+        { "text": "butterfly lighting", "label": "蝴蝶光", "label_en": "butterfly lighting" }
+      ]
+    },
+    {
+      "id": "camera",
+      "name": "镜头",
+      "name_en": "Camera",
+      "items": [
+        { "text": "close-up shot", "label": "特写", "label_en": "close-up" },
+        { "text": "wide angle view", "label": "广角", "label_en": "wide angle" },
+        { "text": "bird's eye view", "label": "鸟瞰", "label_en": "bird's eye view" },
+        { "text": "low angle shot", "label": "低角度", "label_en": "low angle" },
+        { "text": "portrait with bokeh background", "label": "人像虚化背景", "label_en": "portrait bokeh" },
+        { "text": "extreme close-up", "label": "极近特写", "label_en": "extreme close-up" },
+        { "text": "aerial drone shot", "label": "航拍", "label_en": "aerial drone" },
+        { "text": "over-the-shoulder shot", "label": "过肩镜头", "label_en": "over-the-shoulder" },
+        { "text": "fisheye lens", "label": "鱼眼镜头", "label_en": "fisheye" },
+        { "text": "telephoto compression", "label": "长焦压缩", "label_en": "telephoto" }
+      ]
+    },
+    {
+      "id": "quality",
+      "name": "画质",
+      "name_en": "Quality",
+      "items": [
+        { "text": "8K resolution, ultra-detailed", "label": "8K超高清", "label_en": "8K ultra-detailed" },
+        { "text": "highly detailed, sharp focus", "label": "高细节锐焦", "label_en": "highly detailed" },
+        { "text": "masterpiece, best quality", "label": "大师作品", "label_en": "masterpiece" },
+        { "text": "cinematic composition", "label": "电影级构图", "label_en": "cinematic" },
+        { "text": "trending on ArtStation", "label": "ArtStation热门", "label_en": "trending on ArtStation" },
+        { "text": "award-winning photography", "label": "获奖摄影", "label_en": "award-winning" },
+        { "text": "hyperrealistic", "label": "超写实", "label_en": "hyperrealistic" }
+      ]
+    }
+  ]
+}

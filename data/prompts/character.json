@@ -1,0 +1,135 @@
+{
+  "id": "character",
+  "name": "人物",
+  "name_en": "Characters",
+  "icon": "人",
+  "version": "1.0",
+  "subcategories": [
+    {
+      "id": "gender",
+      "name": "性别",
+      "name_en": "Gender",
+      "items": [
+        { "text": "a man", "label": "男人", "label_en": "a man" },
+        { "text": "a woman", "label": "女人", "label_en": "a woman" },
+        { "text": "a young boy", "label": "男孩", "label_en": "a young boy" },
+        { "text": "a young girl", "label": "女孩", "label_en": "a young girl" },
+        { "text": "an elderly man", "label": "老年男性", "label_en": "an elderly man" },
+        { "text": "an elderly woman", "label": "老年女性", "label_en": "an elderly woman" },
+        { "text": "a middle-aged man", "label": "中年男性", "label_en": "a middle-aged man" },
+        { "text": "a middle-aged woman", "label": "中年女性", "label_en": "a middle-aged woman" },
+        { "text": "a teenager", "label": "青少年", "label_en": "a teenager" },
+        { "text": "a baby", "label": "婴儿", "label_en": "a baby" }
+      ]
+    },
+    {
+      "id": "appearance_hair",
+      "name": "发型发色",
+      "name_en": "Hair",
+      "items": [
+        { "text": "short black hair", "label": "黑色短发", "label_en": "short black hair" },
+        { "text": "long flowing blonde hair", "label": "金色长发", "label_en": "long flowing blonde hair" },
+        { "text": "curly brown hair", "label": "棕色卷发", "label_en": "curly brown hair" },
+        { "text": "straight silver hair", "label": "银色直发", "label_en": "straight silver hair" },
+        { "text": "wavy red hair", "label": "红色波浪卷", "label_en": "wavy red hair" },
+        { "text": "pixie cut", "label": "精灵短发", "label_en": "pixie cut" },
+        { "text": "buzz cut", "label": "寸头", "label_en": "buzz cut" },
+        { "text": "bald", "label": "光头", "label_en": "bald" },
+        { "text": "braided hair", "label": "编发", "label_en": "braided hair" },
+        { "text": "ponytail", "label": "马尾", "label_en": "ponytail" },
+        { "text": "double buns", "label": "双丸子头", "label_en": "double buns" }
+      ]
+    },
+    {
+      "id": "appearance_face",
+      "name": "面部特征",
+      "name_en": "Facial Features",
+      "items": [
+        { "text": "blue eyes", "label": "蓝色眼睛", "label_en": "blue eyes" },
+        { "text": "green eyes", "label": "绿色眼睛", "label_en": "green eyes" },
+        { "text": "brown eyes", "label": "棕色眼睛", "label_en": "brown eyes" },
+        { "text": "hazel eyes", "label": "琥珀色眼睛", "label_en": "hazel eyes" },
+        { "text": "fair skin", "label": "白皙皮肤", "label_en": "fair skin" },
+        { "text": "tanned skin", "label": "棕褐色皮肤", "label_en": "tanned skin" },
+        { "text": "dark skin", "label": "深色皮肤", "label_en": "dark skin" },
+        { "text": "freckles", "label": "雀斑", "label_en": "freckles" },
+        { "text": "high cheekbones", "label": "高颧骨", "label_en": "high cheekbones" },
+        { "text": "sharp jawline", "label": "清晰下颌线", "label_en": "sharp jawline" },
+        { "text": "full lips", "label": "丰满嘴唇", "label_en": "full lips" },
+        { "text": "with a beard", "label": "有胡须", "label_en": "with a beard" },
+        { "text": "with a mustache", "label": "有胡子", "label_en": "with a mustache" },
+        { "text": "clean-shaven", "label": "刮干净", "label_en": "clean-shaven" }
+      ]
+    },
+    {
+      "id": "expression",
+      "name": "表情",
+      "name_en": "Expression",
+      "items": [
+        { "text": "smiling happily", "label": "开心微笑", "label_en": "smiling happily" },
+        { "text": "serious expression", "label": "严肃表情", "label_en": "serious expression" },
+        { "text": "surprised look", "label": "惊讶表情", "label_en": "surprised look" },
+        { "text": "thoughtful gaze", "label": "沉思眼神", "label_en": "thoughtful gaze" },
+        { "text": "confident smile", "label": "自信微笑", "label_en": "confident smile" },
+        { "text": "sad expression", "label": "悲伤表情", "label_en": "sad expression" },
+        { "text": "angry expression", "label": "愤怒表情", "label_en": "angry expression" },
+        { "text": "laughing out loud", "label": "大笑", "label_en": "laughing out loud" },
+        { "text": "winking", "label": "眨眼", "label_en": "winking" },
+        { "text": "pouting", "label": "嘟嘴", "label_en": "pouting" }
+      ]
+    },
+    {
+      "id": "clothing",
+      "name": "服装",
+      "name_en": "Clothing",
+      "items": [
+        { "text": "wearing a business suit", "label": "西装", "label_en": "business suit" },
+        { "text": "wearing a casual t-shirt and jeans", "label": "休闲T恤牛仔裤", "label_en": "casual t-shirt and jeans" },
+        { "text": "wearing a traditional hanfu", "label": "汉服", "label_en": "traditional hanfu" },
+        { "text": "wearing a winter coat and scarf", "label": "冬装大衣围巾", "label_en": "winter coat and scarf" },
+        { "text": "wearing a flowing summer dress", "label": "夏日连衣裙", "label_en": "flowing summer dress" },
+        { "text": "wearing a kimono", "label": "和服", "label_en": "kimono" },
+        { "text": "wearing a leather jacket", "label": "皮夹克", "label_en": "leather jacket" },
+        { "text": "wearing a hoodie", "label": "连帽衫", "label_en": "hoodie" },
+        { "text": "wearing a uniform", "label": "制服", "label_en": "uniform" },
+        { "text": "wearing sportswear", "label": "运动装", "label_en": "sportswear" },
+        { "text": "wearing an evening gown", "label": "晚礼服", "label_en": "evening gown" },
+        { "text": "wearing a tuxedo", "label": "燕尾服", "label_en": "tuxedo" }
+      ]
+    },
+    {
+      "id": "pose",
+      "name": "姿势",
+      "name_en": "Pose",
+      "items": [
+        { "text": "standing upright", "label": "站立", "label_en": "standing upright" },
+        { "text": "sitting on a chair", "label": "坐在椅子上", "label_en": "sitting on a chair" },
+        { "text": "walking forward", "label": "向前走", "label_en": "walking forward" },
+        { "text": "looking up at the sky", "label": "仰望天空", "label_en": "looking up at the sky" },
+        { "text": "arms crossed", "label": "双手交叉", "label_en": "arms crossed" },
+        { "text": "hands on hips", "label": "叉腰", "label_en": "hands on hips" },
+        { "text": "leaning against a wall", "label": "靠墙", "label_en": "leaning against a wall" },
+        { "text": "kneeling", "label": "跪着", "label_en": "kneeling" },
+        { "text": "jumping mid-air", "label": "跳跃", "label_en": "jumping mid-air" },
+        { "text": "running", "label": "跑步", "label_en": "running" },
+        { "text": "stretching arms", "label": "伸展双臂", "label_en": "stretching arms" }
+      ]
+    },
+    {
+      "id": "accessories",
+      "name": "配饰",
+      "name_en": "Accessories",
+      "items": [
+        { "text": "wearing glasses", "label": "戴眼镜", "label_en": "wearing glasses" },
+        { "text": "wearing sunglasses", "label": "戴墨镜", "label_en": "wearing sunglasses" },
+        { "text": "wearing a hat", "label": "戴帽子", "label_en": "wearing a hat" },
+        { "text": "wearing a scarf", "label": "戴围巾", "label_en": "wearing a scarf" },
+        { "text": "wearing a necklace", "label": "戴项链", "label_en": "wearing a necklace" },
+        { "text": "wearing earrings", "label": "戴耳环", "label_en": "wearing earrings" },
+        { "text": "holding a handbag", "label": "拿手提包", "label_en": "holding a handbag" },
+        { "text": "wearing a watch", "label": "戴手表", "label_en": "wearing a watch" },
+        { "text": "wearing a backpack", "label": "背背包", "label_en": "wearing a backpack" }
+      ]
+    }
+  ]
+}

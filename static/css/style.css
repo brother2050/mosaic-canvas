@@ -381,6 +381,13 @@ html, body {
     border-top: 1px solid var(--border);
     line-height: 1.5;
 }
+.prompts-cat-loading {
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-align: center;
+    font-style: italic;
+}
 
 /* Prompt popover (inline mode) */
 .prompt-popover {

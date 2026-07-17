@@ -73,27 +73,26 @@ const Guide = (() => {
 
         <div class="guide-section">
             <h4>6. Prompt Library</h4>
-            <p>The Prompts tab in the left sidebar provides reusable prompt snippets organized by category (Characters, Scenes, Objects, Styles, Mood).</p>
+            <p>The Prompts tab in the left sidebar provides reusable prompt snippets organized by category (Characters, Scenes, Objects, Styles, Mood). Each category is a separate JSON file, loaded on demand when expanded.</p>
             <ul>
-                <li><strong>Panel mode</strong>: Switch to the "Prompts" tab, search or browse, click a chip to insert it into the currently focused input field.</li>
+                <li><strong>Panel mode</strong>: Switch to the "Prompts" tab, click a category to expand and load its content, search or browse, click a chip to insert it into the currently focused input field.</li>
                 <li><strong>Inline mode</strong>: Click the <code>⊞</code> button next to any prompt field in the properties panel. A compact popover appears with searchable prompts.</li>
             </ul>
-            <div class="guide-tip"><strong>Custom prompts</strong>: Add your own JSON file to <code>data/prompt-library.json</code> to extend the library. The format is:
-            <pre style="margin-top:6px;font-size:11px;background:var(--bg-2);padding:8px;border-radius:4px;overflow-x:auto">{
+            <div class="guide-tip"><strong>Custom prompts</strong>: Add JSON files to <code>data/prompts/</code> — one file per category. Each file is auto-discovered and loaded on demand. File format:
+            <pre style="margin-top:6px;font-size:11px;background:var(--bg-2);padding:8px;border-radius:4px;overflow-x:auto">// data/prompts/my_category.json
+{
+  "id": "my_category",
+  "name": "我的分类",
+  "name_en": "My Category",
+  "icon": "★",
   "version": "1.0",
-  "categories": [{
-    "id": "my_category",
-    "name": "我的分类",
-    "name_en": "My Category",
-    "icon": "★",
-    "subcategories": [{
-      "id": "my_sub",
-      "name": "子类",
-      "name_en": "Subcategory",
-      "items": [
-        { "text": "actual prompt text", "label": "显示名", "label_en": "Label" }
-      ]
-    }]
+  "subcategories": [{
+    "id": "my_sub",
+    "name": "子类",
+    "name_en": "Subcategory",
+    "items": [
+      { "text": "actual prompt text", "label": "显示名", "label_en": "Label" }
+    ]
   }]
 }</pre>
             </div>
@@ -208,27 +207,26 @@ const Guide = (() => {
 
         <div class="guide-section">
             <h4>6. 提示词库</h4>
-            <p>左侧栏的"提示词"标签提供可复用的提示词片段，按分类组织（人物、场景、物体、风格、氛围）。</p>
+            <p>左侧栏的"提示词"标签提供可复用的提示词片段，按分类组织（人物、场景、物体、风格、氛围）。每个大类是一个独立的 JSON 文件，展开时按需加载。</p>
             <ul>
-                <li><strong>面板模式</strong>：切换到"提示词"标签，搜索或浏览，点击标签将文本插入当前聚焦的输入框。</li>
+                <li><strong>面板模式</strong>：切换到"提示词"标签，点击大类展开并加载内容，搜索或浏览，点击标签将文本插入当前聚焦的输入框。</li>
                 <li><strong>内联模式</strong>：点击属性面板中提示词字段旁的 <code>⊞</code> 按钮，弹出可搜索的提示词选择器。</li>
             </ul>
-            <div class="guide-tip"><strong>自定义提示词</strong>：将您自己的 JSON 文件放到 <code>data/prompt-library.json</code> 即可扩展提示词库。格式如下：
-            <pre style="margin-top:6px;font-size:11px;background:var(--bg-2);padding:8px;border-radius:4px;overflow-x:auto">{
+            <div class="guide-tip"><strong>自定义提示词</strong>：将 JSON 文件放入 <code>data/prompts/</code> — 每个文件对应一个大类。系统自动发现并按需加载。文件格式：
+            <pre style="margin-top:6px;font-size:11px;background:var(--bg-2);padding:8px;border-radius:4px;overflow-x:auto">// data/prompts/my_category.json
+{
+  "id": "my_category",
+  "name": "我的分类",
+  "name_en": "My Category",
+  "icon": "★",
   "version": "1.0",
-  "categories": [{
-    "id": "my_category",
-    "name": "我的分类",
-    "name_en": "My Category",
-    "icon": "★",
-    "subcategories": [{
-      "id": "my_sub",
-      "name": "子类",
-      "name_en": "Subcategory",
-      "items": [
-        { "text": "实际提示词文本", "label": "显示名", "label_en": "Label" }
-      ]
-    }]
+  "subcategories": [{
+    "id": "my_sub",
+    "name": "子类",
+    "name_en": "Subcategory",
+    "items": [
+      { "text": "实际提示词文本", "label": "显示名", "label_en": "Label" }
+    ]
   }]
 }</pre>
             </div>

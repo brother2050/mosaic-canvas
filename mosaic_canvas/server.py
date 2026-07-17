@@ -146,22 +146,56 @@ def create_app() -> FastAPI:
         })
 
     @app.get("/api/prompts")
-    def api_get_prompts() -> JSONResponse:
-        """Return the prompt library JSON.
+    def api_list_prompts() -> JSONResponse:
+        """List all available prompt category files (metadata only).
 
-        Loads from ``data/prompt-library.json`` (next to the mosaic_canvas
-        package). If the file is missing or invalid, returns an empty
-        structure so the UI degrades gracefully.
+        Scans ``data/prompts/*.json`` and returns each file's top-level
+        metadata (id, name, name_en, icon, version, subcategory count,
+        item count). The full content is loaded on demand via
+        ``GET /api/prompts/{category_id}``.
         """
-        data_dir = Path(__file__).resolve().parent.parent / "data"
-        prompt_file = data_dir / "prompt-library.json"
+        prompts_dir = Path(__file__).resolve().parent.parent / "data" / "prompts"
+        categories = []
+        if prompts_dir.is_dir():
+            for f in sorted(prompts_dir.glob("*.json")):
+                try:
+                    with open(f, encoding="utf-8") as fh:
+                        data = json.load(fh)
+                    sub_count = len(data.get("subcategories", []))
+                    item_count = sum(
+                        len(sub.get("items", []))
+                        for sub in data.get("subcategories", [])
+                    )
+                    categories.append({
+                        "id": data.get("id", f.stem),
+                        "name": data.get("name", f.stem),
+                        "name_en": data.get("name_en", data.get("name", f.stem)),
+                        "icon": data.get("icon", ""),
+                        "version": data.get("version", "1.0"),
+                        "subcategory_count": sub_count,
+                        "item_count": item_count,
+                    })
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning("Failed to read prompt file %s: %s", f, exc)
+        return JSONResponse(content={"categories": categories})
+
+    @app.get("/api/prompts/{category_id}")
+    def api_get_prompt_category(category_id: str) -> JSONResponse:
+        """Load a single prompt category file by its id.
+
+        Looks for ``data/prompts/{category_id}.json``. Returns the full
+        category content (subcategories with all items).
+        """
+        prompts_dir = Path(__file__).resolve().parent.parent / "data" / "prompts"
+        prompt_file = prompts_dir / f"{category_id}.json"
         if prompt_file.exists():
             try:
                 with open(prompt_file, encoding="utf-8") as f:
                     return JSONResponse(content=json.load(f))
             except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Failed to load prompt-library.json: %s", exc)
-        return JSONResponse(content={"version": "1.0", "categories": []})
+                logger.warning("Failed to load prompt category %s: %s", category_id, exc)
+                return JSONResponse(content={"error": str(exc)}, status_code=500)
+        return JSONResponse(content={"error": "Category not found"}, status_code=404)
 
     @app.post("/api/validate")
     def api_validate(req: GraphRequest) -> JSONResponse:
