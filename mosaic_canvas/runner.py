@@ -43,10 +43,10 @@ import sys
 import time
 import traceback
 
-# Ensure unbuffered stdout so progress events are sent immediately.
-# This is critical — if stdout is buffered, the WebSocket server won't
-# see progress until the buffer fills or the process exits.
-os.environ.setdefault("PYTHONUNBUFFERED", "1")
+# Note: PYTHONUNBUFFERED must be set by the PARENT process before starting
+# this subprocess (via env var or -u flag). Setting it here is too late —
+# Python reads it at interpreter startup, before this code runs.
+# The server (server.py) sets it correctly in _ws_run_subprocess().
 
 # Disable tqdm progress bars — they write to stderr and compete for the
 # tqdm global lock across download threads. In a subprocess we don't need

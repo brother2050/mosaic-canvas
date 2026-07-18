@@ -195,6 +195,28 @@ class TestServerSubprocessMode:
         content = self.server_content.read_text(encoding="utf-8")
         assert "mosaic_canvas.runner" in content
 
+    def test_subprocess_sets_pythonunbuffered(self):
+        """CRITICAL: PYTHONUNBUFFERED=1 must be set in subprocess env.
+
+        Without it, stdout is block-buffered when it's a pipe, so progress
+        events get stuck in the buffer and never reach the WebSocket server.
+        This is the root cause of the 'stuck at 64%' symptom.
+        """
+        content = self.server_content.read_text(encoding="utf-8")
+        assert "PYTHONUNBUFFERED" in content
+        assert 'sub_env["PYTHONUNBUFFERED"]' in content or \
+               'sub_env["PYTHONUNBUFFERED"] = "1"' in content
+
+    def test_subprocess_uses_u_flag(self):
+        """Should pass -u flag to Python for unbuffered stdout."""
+        content = self.server_content.read_text(encoding="utf-8")
+        assert '"-u"' in content or "'-u'" in content
+
+    def test_subprocess_copies_environment(self):
+        """Should copy parent environment (for HF_HOME, etc.)."""
+        content = self.server_content.read_text(encoding="utf-8")
+        assert "os.environ.copy()" in content
+
     def test_subprocess_reads_stdout_lines(self):
         content = self.server_content.read_text(encoding="utf-8")
         assert "proc.stdout.readline" in content or "stdout.readline" in content
@@ -255,7 +277,7 @@ class TestRunnerEnvironment:
         return Path(__file__).resolve().parent.parent / "mosaic_canvas" / "runner.py"
 
     def test_sets_pythonunbuffered(self):
-        """Should set PYTHONUNBUFFERED=1 for immediate stdout flush."""
+        """Should mention PYTHONUNBUFFERED (set by parent, not here)."""
         content = self.runner_content.read_text(encoding="utf-8")
         assert "PYTHONUNBUFFERED" in content
 

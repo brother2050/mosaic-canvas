@@ -554,14 +554,25 @@ def create_app() -> FastAPI:
         import asyncio
         import sys
 
-        # Start the subprocess
+        # Build subprocess environment.
+        # CRITICAL: PYTHONUNBUFFERED=1 must be set BEFORE the subprocess starts,
+        # not inside runner.py — Python reads it at interpreter startup.
+        # Without it, stdout is block-buffered when it's a pipe (not a TTY),
+        # so progress events accumulate in the buffer and never reach the
+        # WebSocket server until the buffer fills or the process exits.
+        # This is what causes the "stuck at 64%" symptom — events are
+        # produced but stuck in the stdout buffer.
+        sub_env = os.environ.copy()
+        sub_env["PYTHONUNBUFFERED"] = "1"
+
+        # Start the subprocess with -u flag (unbuffered) as a belt-and-suspenders
+        # measure. The -u flag forces unbuffered stdout/stderr at the C level.
         proc = await asyncio.create_subprocess_exec(
-            sys.executable, "-m", "mosaic_canvas.runner",
+            sys.executable, "-u", "-m", "mosaic_canvas.runner",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            # Inherit environment (HF_HOME, etc.)
-            env=os.environ.copy(),
+            env=sub_env,
         )
 
         logger.info("Started subprocess (pid=%d) for graph execution", proc.pid)
