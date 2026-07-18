@@ -294,8 +294,8 @@ const Templates = (() => {
             name: { en: 'Chat → Map → Image → Export', zh: '对话 → 映射 → 文生图 → 导出' },
             icon: '💬',
             description: {
-                en: 'Chat generates text, field-mapper renames response→prompt, then generate image and export.',
-                zh: '对话节点生成文本，字段映射将 response 重命名为 prompt，然后生成图片并导出。',
+                en: 'Chat generates text, field-mapper renames reply→prompt, then generate image and export.',
+                zh: '对话节点生成文本，字段映射将 reply 重命名为 prompt，然后生成图片并导出。',
             },
             nodes: [
                 {
@@ -306,7 +306,7 @@ const Templates = (() => {
                 },
                 {
                     id: 'n2', type: 'field-mapper', label: '',
-                    params: { mapping: '{"response": "prompt"}', drop_fields: '["messages"]' },
+                    params: { mapping: '{"reply": "prompt"}', drop_fields: '["messages"]' },
                     input_params: {},
                     ...pos(1, 0),
                 },
@@ -317,18 +317,25 @@ const Templates = (() => {
                     ...pos(2, 0),
                 },
                 {
-                    id: 'n4', type: 'multi-format-exporter', label: '',
+                    id: 'n4', type: 'field-mapper', label: '',
+                    params: { mapping: '{"images": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(3, 0),
+                },
+                {
+                    id: 'n5', type: 'multi-format-exporter', label: '',
                     params: {},
                     input_params: { content_type: 'image', formats: '["png"]' },
-                    ...pos(3, 0),
+                    ...pos(4, 0),
                 },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
                 { id: 'e2', source: 'n2', target: 'n3' },
                 { id: 'e3', source: 'n3', target: 'n4' },
+                { id: 'e4', source: 'n4', target: 'n5' },
             ],
-            input: { message: 'Describe a futuristic city at sunset with flying cars' },
+            input: { message: 'A beautiful sunset over the mountains, golden light, serene landscape' },
         },
         {
             id: 'rag-complete',

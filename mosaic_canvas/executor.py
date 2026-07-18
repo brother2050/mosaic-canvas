@@ -161,6 +161,49 @@ def coerce_param(value: Any, ui_type: str) -> Any:
     return value
 
 
+# Field alias mapping for auto field-mapping.
+# Maps target field name → list of source field names to try (in order).
+# Used when a node needs a field that the predecessor doesn't output
+# directly.  e.g. multi-format-exporter needs 'data', but text-to-image
+# outputs 'images'; this mapping bridges the gap automatically.
+_FIELD_ALIASES: dict[str, list[str]] = {
+    "data": ["images", "image", "video", "audio", "text", "reply", "response"],
+    "prompt": ["reply", "response", "text", "message"],
+    "image": ["images", "data"],
+    "images": ["image", "data"],
+    "text": ["reply", "response", "prompt"],
+    "message": ["text", "reply", "response"],
+}
+
+
+def _apply_field_aliases(
+    pred_out: Any,
+    expected_fields: set[str],
+    node_input: Any,
+) -> None:
+    """Try to fill missing expected fields using common aliases.
+
+    For each expected field that is still missing from *node_input*,
+    look through ``_FIELD_ALIASES`` for known source field names and
+    copy the value from *pred_out* if found.
+
+    This is a safety net — the preferred way is an explicit field-mapper
+    node, but this prevents silent failures when users forget to add one.
+    """
+    for target in expected_fields:
+        if target in node_input:
+            continue  # already have it
+        aliases = _FIELD_ALIASES.get(target, [])
+        for src in aliases:
+            if src in pred_out and pred_out[src] is not None:
+                node_input[target] = pred_out[src]
+                logger.debug(
+                    "Auto field-mapping: %s → %s (value type: %s)",
+                    src, target, type(pred_out[src]).__name__,
+                )
+                break
+
+
 def _coerce_params(
     raw_params: dict[str, Any],
     param_types: dict[str, str],
@@ -623,7 +666,14 @@ class GraphExecutor:
                 node_class = registry.get_class(gnode.type)
                 param_types = self._build_param_types(gnode.type)
                 params = _coerce_params(gnode.params, param_types)
-                self._instances[gnode.id] = node_class(**params)
+                instance = node_class(**params)
+                self._instances[gnode.id] = instance
+                # Disable NSFW safety_checker for image generation nodes.
+                # The safety_checker returns black images for any content it
+                # flags, which blocks legitimate use cases.  Disabled by
+                # default; set MOSAIC_ENABLE_NSFW_CHECK=1 to re-enable.
+                if gnode.type in ("text-to-image", "image-to-image", "inpainting"):
+                    self._disable_safety_checker(instance, gnode.id)
             except Exception as exc:  # noqa: BLE001
                 # Capture full traceback so the user can diagnose the root
                 # cause (e.g. CUDA OOM, missing model files, dtype mismatch).
@@ -656,6 +706,54 @@ class GraphExecutor:
         will not have the attribute.
         """
         return getattr(instance, "_scheduler", None)
+
+    def _disable_safety_checker(self, instance: Any, node_id: str) -> None:
+        """Disable the NSFW safety_checker on a diffusers pipeline.
+
+        Diffusers' ``StableDiffusionSafetyChecker`` returns black images
+        for any content it flags.  For a pipeline-building tool this is
+        counter-productive, so we disable it by default.
+
+        Controlled by env var ``MOSAIC_ENABLE_NSFW_CHECK``: set to ``1``
+        to keep the safety checker active.
+
+        The pipeline object may be stored under different attribute names
+        depending on the node implementation, so we try several common
+        ones: ``pipeline``, ``_pipeline``, ``model``, ``_model``.
+        """
+        import os
+        if os.environ.get("MOSAIC_ENABLE_NSFW_CHECK", "0") == "1":
+            logger.info("NSFW safety_checker kept enabled for node %s", node_id)
+            return
+
+        # Try common attribute names for the diffusers pipeline object
+        for attr_name in ("pipeline", "_pipeline", "model", "_model"):
+            pipeline = getattr(instance, attr_name, None)
+            if pipeline is None:
+                continue
+            # Check if it looks like a diffusers pipeline (has safety_checker)
+            if hasattr(pipeline, "safety_checker"):
+                try:
+                    pipeline.safety_checker = None
+                    if hasattr(pipeline, "requires_safety_checker"):
+                        pipeline.requires_safety_checker = False
+                    logger.info(
+                        "Disabled NSFW safety_checker for node %s (pipeline.%s)",
+                        node_id, attr_name,
+                    )
+                    return
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "Failed to disable safety_checker for node %s: %s",
+                        node_id, exc,
+                    )
+                    return
+        # Pipeline not found or doesn't have safety_checker — this is
+        # normal for some model variants; nothing to do.
+        logger.debug(
+            "No safety_checker found on node %s (attr search exhausted)",
+            node_id,
+        )
 
     def _release_node(self, nid: str, instance: Any) -> None:
         """Release a node's GPU memory.
@@ -853,6 +951,16 @@ class GraphExecutor:
                             for k, v in pred_out.items():
                                 if k in expected_fields:
                                     node_input[k] = v
+                            # Auto field-mapping: if the target node needs a
+                            # field that the predecessor doesn't output
+                            # directly, try common aliases.  This prevents
+                            # silent failures when nodes use different field
+                            # names for the same concept (e.g. text-to-image
+                            # outputs 'images', multi-format-exporter needs
+                            # 'data').
+                            _apply_field_aliases(
+                                pred_out, expected_fields, node_input,
+                            )
                         else:
                             # Fallback: pass all (backward compat)
                             for k, v in pred_out.items():
