@@ -768,6 +768,13 @@ const App = (function () {
             const wsHandle = API.runWebSocket(graph, (event, payload) => {
                 if (event === 'pipeline_start') {
                     setStatus(I18n.t('run.queued', { count: payload.node_count }));
+                } else if (event === 'node_instantiating') {
+                    // Node is being instantiated (constructor may load model)
+                    let msg = I18n.t('run.instantiating', { name: payload.node_name });
+                    if (payload.model) {
+                        msg += ' — ' + I18n.t('run.downloading_model', { model: payload.model });
+                    }
+                    setStatus(msg);
                 } else if (event === 'node_start') {
                     Store.setNodeStatus(payload.node_id, 'running');
                     Canvas.updateSelection();

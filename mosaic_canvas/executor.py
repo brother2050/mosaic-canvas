@@ -589,16 +589,34 @@ class GraphExecutor:
             return set()
         return {f.name for f in info.input_fields}
 
-    def instantiate_nodes(self) -> dict[str, str]:
+    def instantiate_nodes(
+        self,
+        progress: ProgressCallback | None = None,
+    ) -> dict[str, str]:
         """Instantiate all nodes in the graph.
 
         Returns a dict of ``{node_id: error_message}`` for nodes that failed
         to instantiate. Nodes that succeeded are stored in ``self._instances``.
+
+        If *progress* is provided, emits ``node_instantiating`` events before
+        each node is instantiated, so the frontend can show progress during
+        long model-loading constructors.
         """
         from mosaic.core.registry import registry
 
         errors: dict[str, str] = {}
         for gnode in self.graph.nodes:
+            # Emit progress before instantiation — node constructors may
+            # load models (taking minutes), and without this event the
+            # frontend sees no activity between pipeline_start and the
+            # first node_start event.
+            if progress:
+                model_hint = gnode.params.get("model")
+                progress("node_instantiating", {
+                    "node_id": gnode.id,
+                    "node_name": gnode.type,
+                    "model": str(model_hint) if model_hint else None,
+                })
             try:
                 node_class = registry.get_class(gnode.type)
                 param_types = self._build_param_types(gnode.type)
@@ -693,8 +711,17 @@ class GraphExecutor:
         # Clear media deduplication cache for this execution run
         _clear_media_cache()
 
-        # 1. Instantiate nodes
-        inst_errors = self.instantiate_nodes()
+        # Send pipeline_start BEFORE instantiation — node constructors may
+        # load models (taking 10-30 minutes on first run), and without this
+        # event the frontend sees no activity and appears "stuck".
+        if progress:
+            progress("pipeline_start", {
+                "pipeline_name": self.graph.name,
+                "node_count": len(self.graph.nodes),
+            })
+
+        # 1. Instantiate nodes (pass progress so we can report per-node status)
+        inst_errors = self.instantiate_nodes(progress=progress)
         node_results: list[NodeResult] = []
 
         # Report instantiation failures
@@ -729,12 +756,7 @@ class GraphExecutor:
         outputs: dict[str, Any] = {}  # node_id -> MosaicData
         failed = False
 
-        if progress:
-            progress("pipeline_start", {
-                "pipeline_name": self.graph.name,
-                "node_count": len(order),
-            })
-
+        # pipeline_start was already sent before instantiation (above)
         for nid in order:
             gnode = self.graph.get_node(nid)
             assert gnode is not None

@@ -101,7 +101,7 @@ class TestGraphExecutor:
 
         executor._instances = {"a": mock_a, "b": mock_b}
         # Skip real instantiation
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         # Capture progress events
         events = []
@@ -159,7 +159,7 @@ class TestGraphExecutor:
         mock_b._scheduler = None
 
         executor._instances = {"a": mock_a, "b": mock_b}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -192,7 +192,7 @@ class TestGraphExecutor:
         mock_a.run.return_value = MosaicData(result="done")
 
         executor._instances = {"a": mock_a}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -240,7 +240,7 @@ class TestGraphExecutor:
         mock_c.run.return_value = MosaicData(text="c_out")
 
         executor._instances = {"a": mock_a, "b": mock_b, "c": mock_c}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -284,7 +284,7 @@ class TestGraphExecutor:
         mock_a.run.side_effect = RuntimeError("Cannot load model: not cached locally")
 
         executor._instances = {"a": mock_a}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -318,7 +318,7 @@ class TestGraphExecutor:
         mock_a.run.return_value = MosaicData(image="result")
 
         executor._instances = {"a": mock_a}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -353,7 +353,7 @@ class TestGraphExecutor:
         mock_a.run.return_value = MosaicData(result="done")
 
         executor._instances = {"a": mock_a}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -403,7 +403,7 @@ class TestGraphExecutor:
         mock_d.run.return_value = MosaicData(image="final")
 
         executor._instances = {"a": mock_a, "b": mock_b, "c": mock_c, "d": mock_d}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -430,7 +430,7 @@ class TestGraphExecutor:
         )
 
         executor = GraphExecutor(graph)
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
 
@@ -449,7 +449,7 @@ class TestGraphExecutor:
         )
 
         executor = GraphExecutor(graph)
-        executor.instantiate_nodes = lambda: {"a": "ImportError: missing dep"}
+        executor.instantiate_nodes = lambda progress=None: {"a": "ImportError: missing dep"}
 
         result = executor.execute()
 

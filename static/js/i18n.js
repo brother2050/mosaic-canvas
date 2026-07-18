@@ -245,6 +245,7 @@ const I18n = (() => {
 
             // Run progress
             'run.queued': 'Running: {count} nodes queued',
+            'run.instantiating': 'Initializing node: {name}',
             'run.node_start': 'Running: {name}',
             'run.downloading_model': 'Loading model: {model} (first run may download)',
             'run.download_stalled': 'Download may be stalled ({seconds}s without progress). Will auto-retry shortly.',
@@ -526,6 +527,7 @@ const I18n = (() => {
 
             // Run progress
             'run.queued': '运行中：{count} 个节点排队',
+            'run.instantiating': '正在初始化节点：{name}',
             'run.node_start': '运行中：{name}',
             'run.downloading_model': '加载模型：{model}（首次运行可能需要下载）',
             'run.download_stalled': '下载可能已卡住（{seconds}秒无进展）。将自动重试。',

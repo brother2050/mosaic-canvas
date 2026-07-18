@@ -255,7 +255,7 @@ class TestNodeCompletePayload:
             m.run.return_value = mock_outputs.get(nid, MagicMock())
             mocks[nid] = m
         executor._instances = mocks
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
         return executor
 
     def test_node_complete_includes_full_output(self):
@@ -318,7 +318,7 @@ class TestNodeCompletePayload:
         mock_b = MagicMock(); mock_b.name = "mock-b"; mock_b._scheduler = None
         mock_b.run.return_value = MosaicData(text="b output")
         executor._instances = {"a": mock_a, "b": mock_b}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         events = []
         executor.execute(progress=lambda evt, p: events.append((evt, p)))
@@ -555,7 +555,7 @@ class TestEventSequence:
         mock_b = MagicMock(); mock_b.name = "mock-b"; mock_b._scheduler = None
         mock_b.run.return_value = MosaicData(text="b")
         executor._instances = {"a": mock_a, "b": mock_b}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         events = []
         executor.execute(progress=lambda evt, p: events.append(evt))
@@ -585,7 +585,7 @@ class TestEventSequence:
         mock_a.run.side_effect = RuntimeError("crash")
         mock_b = MagicMock(); mock_b.name = "mock-b"; mock_b._scheduler = None
         executor._instances = {"a": mock_a, "b": mock_b}
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         result = executor.execute()
         assert result.success is False
@@ -614,7 +614,7 @@ class TestEventSequence:
             m = MagicMock(); m.name = f"mock-{nid}"; m._scheduler = None
             m.run.return_value = MosaicData(text=nid)
             executor._instances[nid] = m
-        executor.instantiate_nodes = lambda: {}
+        executor.instantiate_nodes = lambda progress=None: {}
 
         events = []
         result = executor.execute(progress=lambda evt, p: events.append((evt, p)))
