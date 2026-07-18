@@ -213,6 +213,7 @@ const App = (function () {
                     <div class="template-meta">${t.node_count} ${I18n.t('status.nodes_count')} · ${t.edge_count} ${I18n.t('status.edges_count')}</div>
                 </div>
                 <div class="template-actions">
+                    <button class="btn btn-sm btn-template-preview" data-action="preview" data-id="${escapeAttr(t.id)}" data-source="builtin" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
                     <button class="btn btn-sm btn-template-insert" data-action="insert" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_insert')}</button>
                     <button class="btn btn-sm btn-template-replace" data-action="replace" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_replace')}</button>
                 </div>
@@ -236,6 +237,7 @@ const App = (function () {
                             <div class="template-meta">${t.nodes_count} ${I18n.t('status.nodes_count')} · ${t.edges_count} ${I18n.t('status.edges_count')}</div>
                         </div>
                         <div class="template-actions">
+                            <button class="btn btn-sm btn-template-preview" data-action="preview" data-filename="${escapeAttr(t.filename)}" data-source="custom" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
                             <button class="btn btn-sm btn-template-insert" data-action="insert" data-filename="${escapeAttr(t.filename)}" data-source="custom">${I18n.t('modal.templates_insert')}</button>
                             <button class="btn btn-sm btn-template-replace" data-action="replace" data-filename="${escapeAttr(t.filename)}" data-source="custom">${I18n.t('modal.templates_replace')}</button>
                             <button class="btn btn-sm btn-template-delete" data-action="delete" data-filename="${escapeAttr(t.filename)}" data-source="custom">${I18n.t('modal.templates_delete')}</button>
@@ -289,6 +291,25 @@ const App = (function () {
 
                 if (!graph) return;
 
+                if (action === 'preview') {
+                    // Show JSON preview in the load-textarea or a toast
+                    const jsonStr = JSON.stringify(graph, null, 2);
+                    // Toggle preview: if card already has preview-open, close it
+                    const card = btn.closest('.template-card');
+                    let previewEl = card.querySelector('.template-json-preview');
+                    if (previewEl) {
+                        previewEl.remove();
+                        btn.textContent = I18n.t('modal.preview');
+                    } else {
+                        previewEl = document.createElement('pre');
+                        previewEl.className = 'template-json-preview';
+                        previewEl.textContent = jsonStr;
+                        card.appendChild(previewEl);
+                        btn.textContent = I18n.t('modal.preview_close');
+                    }
+                    return;
+                }
+
                 if (action === 'replace') {
                     if (Store.getNodes().length > 0 && !confirm(I18n.t('toast.clear_confirm'))) return;
                     Store.fromGraph(graph);
@@ -313,6 +334,7 @@ const App = (function () {
     // ---- Save as Template ----
     async function saveAsTemplate() {
         const name = document.getElementById('save-template-name').value.trim();
+        const desc = document.getElementById('save-template-desc').value.trim();
         if (!name) {
             toast(I18n.t('modal.save_template_name'), 'warning');
             return;
@@ -323,10 +345,12 @@ const App = (function () {
         }
         const graph = Store.toGraph();
         graph.name = name;
+        if (desc) graph.description = desc;
         try {
             await API.saveTemplate(graph);
             toast(I18n.t('toast.template_saved', { name }), 'success');
             document.getElementById('save-template-name').value = '';
+            document.getElementById('save-template-desc').value = '';
             hideModal('save-template-modal');
         } catch (err) {
             toast(err.message, 'error');
@@ -417,6 +441,7 @@ const App = (function () {
                         <span class="saved-pipeline-meta">${p.nodes_count} ${I18n.t('status.nodes_count')} · ${dateStr}</span>
                     </div>
                     <div class="saved-pipeline-actions">
+                        <button class="btn btn-sm btn-pipeline-preview" data-filename="${escapeHtml(p.filename)}" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
                         <button class="btn btn-sm btn-pipeline-load" data-filename="${escapeHtml(p.filename)}" data-i18n-title="modal.load_confirm">${I18n.t('modal.load_confirm')}</button>
                         <button class="btn btn-sm btn-pipeline-delete" data-filename="${escapeHtml(p.filename)}" data-i18n-title="btn.delete">✕</button>
                     </div>
@@ -435,6 +460,21 @@ const App = (function () {
                         renderInputPanel();
                         hideModal('load-modal');
                         toast(I18n.t('toast.loaded'), 'success');
+                    } catch (err) {
+                        toast(I18n.t('toast.load_failed') + err.message, 'error');
+                    }
+                });
+            });
+
+            // Bind preview buttons
+            container.querySelectorAll('.btn-pipeline-preview').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const filename = btn.dataset.filename;
+                    try {
+                        const graph = await API.loadPipeline(filename);
+                        const textarea = document.getElementById('load-textarea');
+                        textarea.value = JSON.stringify(graph, null, 2);
+                        toast(I18n.t('toast.preview_loaded'), 'success');
                     } catch (err) {
                         toast(I18n.t('toast.load_failed') + err.message, 'error');
                     }
@@ -495,6 +535,14 @@ const App = (function () {
             }
         });
 
+        // "View Current JSON" button — fills the textarea with current graph JSON
+        document.getElementById('btn-view-current-json').addEventListener('click', () => {
+            const graph = Store.toGraph();
+            const textarea = document.getElementById('load-textarea');
+            textarea.value = JSON.stringify(graph, null, 2);
+            toast(I18n.t('toast.json_filled'), 'success');
+        });
+
         document.getElementById('btn-validate').addEventListener('click', async () => {
             setStatus(I18n.t('status.validating'));
             try {
@@ -530,6 +578,10 @@ const App = (function () {
             try {
                 const code = await API.exportPython(Store.toGraph());
                 document.getElementById('export-code').textContent = code;
+                // Also populate JSON tab with current graph
+                const graph = Store.toGraph();
+                document.getElementById('export-json').textContent =
+                    JSON.stringify(graph, null, 2);
                 showModal('export-modal');
                 setStatus(I18n.t('status.code_generated'));
             } catch (err) {
@@ -538,13 +590,50 @@ const App = (function () {
             }
         });
 
+        // Export modal tab switching
+        document.querySelectorAll('.export-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.export-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.export-tab-content').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = 'none';
+                });
+                tab.classList.add('active');
+                const targetId = tab.dataset.exportTab === 'code' ? 'export-code' : 'export-json';
+                const target = document.getElementById(targetId);
+                target.classList.add('active');
+                target.style.display = '';
+            });
+        });
+
         document.getElementById('btn-copy-code').addEventListener('click', () => {
-            const code = document.getElementById('export-code').textContent;
-            navigator.clipboard.writeText(code).then(() => {
+            // Copy whichever tab is currently active
+            const codeTab = document.querySelector('.export-tab.active');
+            const targetId = codeTab && codeTab.dataset.exportTab === 'json'
+                ? 'export-json' : 'export-code';
+            const content = document.getElementById(targetId).textContent;
+            navigator.clipboard.writeText(content).then(() => {
                 toast(I18n.t('toast.copied'), 'success');
             }).catch(() => {
                 toast(I18n.t('toast.copy_failed'), 'error');
             });
+        });
+
+        // Download JSON button
+        document.getElementById('btn-download-json').addEventListener('click', () => {
+            const graph = Store.toGraph();
+            const jsonStr = JSON.stringify(graph, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const name = Store.getPipelineName() || 'pipeline';
+            a.download = name.replace(/[^a-zA-Z0-9_-]/g, '_') + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast(I18n.t('toast.downloaded'), 'success');
         });
 
         document.getElementById('btn-run').addEventListener('click', runPipeline);

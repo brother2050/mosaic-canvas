@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mosaic Canvas — Visual Pipeline Editor</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=20260717c">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260718a">
 </head>
 <body>
     <!-- ===== Top Toolbar ===== -->
@@ -202,16 +202,22 @@
     <!-- ===== Modals ===== -->
     <!-- Export modal -->
     <div class="modal-overlay" id="export-modal">
-        <div class="modal">
+        <div class="modal modal-lg">
             <div class="modal-header">
-                <h3 data-i18n="modal.export_title">Exported Python Code</h3>
+                <h3 data-i18n="modal.export_title">Export</h3>
                 <button class="modal-close" data-close="export-modal">×</button>
             </div>
             <div class="modal-body">
-                <pre id="export-code" class="code-block"></pre>
+                <div class="export-tabs">
+                    <button class="export-tab active" data-export-tab="code" data-i18n="modal.export_code">Python Code</button>
+                    <button class="export-tab" data-export-tab="json" data-i18n="modal.export_json">JSON Data</button>
+                </div>
+                <pre id="export-code" class="code-block export-tab-content active"></pre>
+                <pre id="export-json" class="code-block export-tab-content" style="display:none"></pre>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-sm" id="btn-copy-code" data-i18n="modal.copy_clipboard">Copy to clipboard</button>
+                <button class="btn btn-sm" id="btn-download-json" data-i18n="modal.download_json">Download JSON</button>
                 <button class="btn btn-sm" data-close="export-modal" data-i18n="modal.close">Close</button>
             </div>
         </div>
@@ -248,7 +254,10 @@
                     </div>
                 </div>
                 <div class="load-divider"></div>
-                <p class="panel-hint" data-i18n="modal.load_hint">Or paste pipeline JSON / select a file:</p>
+                <div class="load-textarea-header">
+                    <p class="panel-hint" data-i18n="modal.load_hint">Or paste pipeline JSON / select a file:</p>
+                    <button class="btn btn-sm btn-ghost" id="btn-view-current-json" data-i18n="modal.view_current_json">View Current JSON</button>
+                </div>
                 <input type="file" id="load-file-input" accept=".json" class="file-input">
                 <textarea id="load-textarea" class="code-textarea" placeholder='{"name": "...", "nodes": [...], "edges": [...]}'></textarea>
             </div>
@@ -284,9 +293,14 @@
                 <button class="modal-close" data-close="save-template-modal">×</button>
             </div>
             <div class="modal-body">
+                <div class="save-template-hint" data-i18n="modal.save_template_hint">Templates are reusable starting points. Use "Save" for your current work session, "Save as Template" for reusable patterns.</div>
                 <div class="form-group">
                     <label data-i18n="modal.save_template_name">Template name</label>
                     <input type="text" id="save-template-name" class="form-input" data-i18n-placeholder="modal.save_template_name">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="modal.save_template_desc">Description (optional)</label>
+                    <input type="text" id="save-template-desc" class="form-input" data-i18n-placeholder="modal.save_template_desc">
                 </div>
             </div>
             <div class="modal-footer">
@@ -333,17 +347,17 @@
     <!-- Hidden file input for saving -->
     <input type="file" id="save-file-input" nwsaveas="pipeline.json" accept=".json" style="display:none">
 
-    <script src="/static/js/i18n.js?v=20260717c"></script>
-    <script src="/static/js/templates.js?v=20260717c"></script>
-    <script src="/static/js/api.js?v=20260717c"></script>
-    <script src="/static/js/store.js?v=20260717c"></script>
-    <script src="/static/js/palette.js?v=20260717c"></script>
-    <script src="/static/js/prompts.js?v=20260717c"></script>
-    <script src="/static/js/canvas.js?v=20260717c"></script>
-    <script src="/static/js/properties.js?v=20260717c"></script>
-    <script src="/static/js/results.js?v=20260717d"></script>
-    <script src="/static/js/splitter.js?v=20260717d"></script>
-    <script src="/static/js/guide.js?v=20260717d"></script>
-    <script src="/static/js/app.js?v=20260717d"></script>
+    <script src="/static/js/i18n.js?v=20260718a"></script>
+    <script src="/static/js/templates.js?v=20260718a"></script>
+    <script src="/static/js/api.js?v=20260718a"></script>
+    <script src="/static/js/store.js?v=20260718a"></script>
+    <script src="/static/js/palette.js?v=20260718a"></script>
+    <script src="/static/js/prompts.js?v=20260718a"></script>
+    <script src="/static/js/canvas.js?v=20260718a"></script>
+    <script src="/static/js/properties.js?v=20260718a"></script>
+    <script src="/static/js/results.js?v=20260718a"></script>
+    <script src="/static/js/splitter.js?v=20260718a"></script>
+    <script src="/static/js/guide.js?v=20260718a"></script>
+    <script src="/static/js/app.js?v=20260718a"></script>
 </body>
 </html>
