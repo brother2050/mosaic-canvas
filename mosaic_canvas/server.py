@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -463,26 +464,44 @@ def create_app() -> FastAPI:
     async def ws_run(websocket: WebSocket) -> None:
         """Execute a graph with real-time progress streamed over WebSocket.
 
+        执行模式（通过 ``MOSAIC_CANVAS_EXEC_MODE`` 环境变量选择）：
+
+        ``subprocess`` (默认):
+            在独立子进程中执行流水线。子进程有自己的 GIL，
+            HuggingFace 的 8 个下载线程不会与 asyncio 事件循环
+            竞争 GIL，彻底解决下载卡死问题（如 64% 卡住）。
+            进度通过 stdout JSON Lines 传输。
+
+        ``thread`` (回退):
+            在 daemon 线程中执行（旧模式）。当子进程模式不可用
+            （如受限环境）时使用。
+
         超时策略：
-          - 默认超时 3600s（1小时），通过 ``MOSAIC_CANVAS_EXEC_TIMEOUT``
-            环境变量可配置。设为 0 表示无超时限制。
-          - 超时不会强制中断模型下载——worker 线程是 daemon=True，
-            即使 WebSocket 断开，后台下载仍会继续完成，下次执行时
-            可直接使用已缓存的模型。
-          - 用户可通过发送 ``{"action": "cancel"}`` 消息主动取消执行。
+          - 默认 3600s，通过 ``MOSAIC_CANVAS_EXEC_TIMEOUT`` 配置
+          - 设为 0 表示无超时限制
+          - 超时后终止子进程（模型下载也会中断）
+          - 用户可通过 ``{"action": "cancel"}`` 取消
         """
         from mosaic_canvas.config import (
+            EXEC_MODE,
             EXEC_TIMEOUT_SEC,
             KEEPALIVE_INTERVAL_SEC,
-            POLL_INTERVAL_SEC,
-            WORKER_JOIN_TIMEOUT_SEC,
         )
 
         await websocket.accept()
         try:
             raw = await websocket.receive_text()
             data = json.loads(raw)
-            graph = Graph.from_dict(data)
+
+            # Validate graph structure early
+            try:
+                graph = Graph.from_dict(data)
+            except Exception as exc:  # noqa: BLE001
+                await websocket.send_json({"event": "error", "payload": {
+                    "error": f"Invalid graph: {exc}",
+                }})
+                await websocket.close()
+                return
 
             if not graph.nodes:
                 await websocket.send_json({"event": "error", "payload": {
@@ -491,148 +510,15 @@ def create_app() -> FastAPI:
                 await websocket.close()
                 return
 
-            # Progress callback that sends events over the WebSocket
-            import asyncio
-
-            loop = asyncio.get_event_loop()
-            # Track send errors so the worker thread can detect connection failures
-            send_error: list[Exception] = []
-            # Cancellation flag shared between the WebSocket reader and the waiter
-            cancel_flag: dict[str, bool] = {"cancelled": False}
-
-            def progress(event_type: str, payload: dict[str, Any]) -> None:
-                # Schedule the send on the event loop (we're in a worker thread)
-                try:
-                    fut = asyncio.run_coroutine_threadsafe(
-                        websocket.send_json({"event": event_type, "payload": payload}),
-                        loop,
-                    )
-                    # Check the result so exceptions don't get silently swallowed
-                    fut.add_done_callback(lambda f: _on_send_done(f, send_error))
-                except Exception:  # noqa: BLE001
-                    pass  # Connection may have been closed
-
-            def _on_send_done(fut: "asyncio.Future[None]", err_list: list[Exception]) -> None:
-                """Callback to capture send exceptions instead of silently dropping them."""
-                try:
-                    fut.result()
-                except Exception as exc:  # noqa: BLE001
-                    err_list.append(exc)
-                    logger.warning("WebSocket send failed: %s", exc)
-
-            # Run execution in a background thread
-            result_holder: dict[str, Any] = {}
-
-            def run() -> None:
-                try:
-                    result_holder["result"] = execute_graph(graph, progress=progress)
-                except Exception as exc:  # noqa: BLE001
-                    result_holder["error"] = exc
-                    logger.exception("Worker thread execution error: %s", exc)
-
-            worker = threading.Thread(target=run, daemon=True)
-            worker.start()
-
-            # Wait for completion while sending keepalive pings to prevent
-            # the WebSocket connection from timing out during long model loads.
-            #
-            # 超时策略改进：
-            #   - 旧方案：硬编码 600s (10min) → 初次下载大模型必然超时
-            #   - 新方案：默认 3600s (1h)，可通过环境变量配置，设为 0 无限制
-            #   - 超时后不强制终止 daemon 线程，模型下载在后台继续完成
-            keepalive_interval_count = int(KEEPALIVE_INTERVAL_SEC / POLL_INTERVAL_SEC)
-            if keepalive_interval_count < 1:
-                keepalive_interval_count = 1
-            max_wait_iterations = int(EXEC_TIMEOUT_SEC / POLL_INTERVAL_SEC) if EXEC_TIMEOUT_SEC > 0 else 0
-
-            iteration = 0
-            while worker.is_alive():
-                # Check for cancellation messages from the client (non-blocking)
-                try:
-                    # Poll for incoming messages without blocking
-                    msg = await asyncio.wait_for(
-                        websocket.receive_text(),
-                        timeout=0.01,  # Very short poll — just check if a message is waiting
-                    )
-                    try:
-                        msg_data = json.loads(msg)
-                        if msg_data.get("action") == "cancel":
-                            cancel_flag["cancelled"] = True
-                            logger.info("Execution cancelled by user.")
-                            break
-                    except (json.JSONDecodeError, KeyError):
-                        pass
-                except asyncio.TimeoutError:
-                    pass  # No message waiting — continue
-                except WebSocketDisconnect:
-                    break
-
-                await asyncio.sleep(POLL_INTERVAL_SEC)
-                iteration += 1
-
-                # Send keepalive ping at the configured interval
-                if iteration % keepalive_interval_count == 0:
-                    elapsed = iteration * POLL_INTERVAL_SEC
-                    try:
-                        await websocket.send_json({"event": "keepalive", "payload": {
-                            "elapsed": elapsed,
-                            "timeout": EXEC_TIMEOUT_SEC if EXEC_TIMEOUT_SEC > 0 else None,
-                        }})
-                    except Exception:  # noqa: BLE001
-                        break  # Connection closed
-
-                # Check send errors (connection may have dropped)
-                if send_error:
-                    logger.warning("WebSocket send errors detected, aborting wait.")
-                    break
-
-                # Check configurable timeout (0 = no timeout)
-                if max_wait_iterations > 0 and iteration >= max_wait_iterations:
-                    logger.warning(
-                        "Execution timed out after %d seconds (configurable via "
-                        "MOSAIC_CANVAS_EXEC_TIMEOUT). Worker thread continues in "
-                        "background to allow model download to complete.",
-                        EXEC_TIMEOUT_SEC,
-                    )
-                    break
-
-            # Wait for worker to finish (with configurable join timeout)
-            worker.join(timeout=WORKER_JOIN_TIMEOUT_SEC)
-
-            # Handle cancellation
-            if cancel_flag["cancelled"]:
-                await websocket.send_json({"event": "error", "payload": {
-                    "error": "Execution cancelled by user. "
-                    "Model downloads may continue in the background.",
-                }})
-            # If worker is still alive after timeout, report it but don't kill
-            # the daemon thread — model downloads continue in background.
-            elif worker.is_alive():
-                timeout_msg = (
-                    f"Execution timed out after {EXEC_TIMEOUT_SEC} seconds. "
-                    "The model is likely still downloading in the background. "
-                    "Please wait a few minutes and try again — the model "
-                    "will be cached for subsequent runs."
-                    if EXEC_TIMEOUT_SEC > 0
-                    else "Execution is still running in the background."
-                )
-                await websocket.send_json({"event": "error", "payload": {
-                    "error": timeout_msg,
-                }})
-
-            # Check for errors from the worker thread
-            if "error" in result_holder:
-                exc = result_holder["error"]
-                await websocket.send_json({"event": "error", "payload": {
-                    "error": f"{type(exc).__name__}: {exc}",
-                }})
-            elif "result" in result_holder:
-                result = result_holder["result"]
-                await websocket.send_json({"event": "done", "payload": result.to_dict()})
-            elif not cancel_flag["cancelled"] and not worker.is_alive():
-                await websocket.send_json({"event": "error", "payload": {
-                    "error": "Execution failed with no result.",
-                }})
+            # Choose execution mode
+            if EXEC_MODE == "thread":
+                # Fallback: thread-based execution (legacy mode)
+                await _ws_run_thread(websocket, graph, EXEC_TIMEOUT_SEC,
+                                     KEEPALIVE_INTERVAL_SEC)
+            else:
+                # Default: subprocess-based execution
+                await _ws_run_subprocess(websocket, data, EXEC_TIMEOUT_SEC,
+                                         KEEPALIVE_INTERVAL_SEC)
 
         except WebSocketDisconnect:
             logger.info("WebSocket client disconnected during execution.")
@@ -649,6 +535,316 @@ def create_app() -> FastAPI:
                 await websocket.close()
             except Exception:  # noqa: BLE001
                 pass
+
+    # -- Subprocess execution (default mode) -------------------------------
+
+    async def _ws_run_subprocess(
+        websocket: WebSocket,
+        graph_data: dict[str, Any],
+        exec_timeout: int,
+        keepalive_interval: float,
+    ) -> None:
+        """Execute graph in a subprocess, streaming progress via stdout.
+
+        The subprocess runs ``python -m mosaic_canvas.runner``, reads the
+        graph JSON from stdin, and writes progress events as JSON Lines to
+        stdout. This gives the execution its own GIL, preventing download
+        threads from competing with the asyncio event loop.
+        """
+        import asyncio
+        import sys
+
+        # Start the subprocess
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable, "-m", "mosaic_canvas.runner",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            # Inherit environment (HF_HOME, etc.)
+            env=os.environ.copy(),
+        )
+
+        logger.info("Started subprocess (pid=%d) for graph execution", proc.pid)
+
+        # Write graph JSON to stdin and close it
+        graph_json = json.dumps(graph_data)
+        assert proc.stdin is not None
+        proc.stdin.write(graph_json.encode("utf-8"))
+        await proc.stdin.drain()
+        proc.stdin.close()
+
+        # Track state
+        cancelled = False
+        done_event_sent = False
+        start_time = time.time()
+
+        async def _read_stdout() -> None:
+            """Read JSON Lines from subprocess stdout, forward to WebSocket."""
+            nonlocal done_event_sent
+            assert proc.stdout is not None
+            while True:
+                try:
+                    line = await proc.stdout.readline()
+                except Exception:  # noqa: BLE001
+                    break
+                if not line:
+                    break  # EOF — subprocess closed stdout
+                line_str = line.decode("utf-8", errors="replace").strip()
+                if not line_str:
+                    continue
+                try:
+                    msg = json.loads(line_str)
+                    event = msg.get("event", "unknown")
+                    payload = msg.get("payload", {})
+                    if event in ("done", "error"):
+                        done_event_sent = True
+                    await websocket.send_json({"event": event, "payload": payload})
+                except json.JSONDecodeError:
+                    logger.warning("Subprocess stdout (non-JSON): %s", line_str[:200])
+                except Exception:  # noqa: BLE001
+                    # WebSocket may have closed
+                    break
+
+        async def _read_stderr() -> None:
+            """Read subprocess stderr, log it."""
+            assert proc.stderr is not None
+            while True:
+                try:
+                    line = await proc.stderr.readline()
+                except Exception:  # noqa: BLE001
+                    break
+                if not line:
+                    break
+                line_str = line.decode("utf-8", errors="replace").strip()
+                if line_str:
+                    logger.info("[runner pid=%d] %s", proc.pid, line_str)
+
+        async def _read_cancel() -> None:
+            """Read WebSocket messages for cancel requests."""
+            nonlocal cancelled
+            while True:
+                try:
+                    msg = await websocket.receive_text()
+                    try:
+                        msg_data = json.loads(msg)
+                        if msg_data.get("action") == "cancel":
+                            cancelled = True
+                            logger.info("Execution cancelled by user (pid=%d)", proc.pid)
+                            return
+                    except (json.JSONDecodeError, KeyError):
+                        pass
+                except WebSocketDisconnect:
+                    return
+                except Exception:  # noqa: BLE001
+                    return
+
+        async def _keepalive() -> None:
+            """Send periodic keepalive pings with elapsed time."""
+            while True:
+                await asyncio.sleep(keepalive_interval)
+                elapsed = time.time() - start_time
+                try:
+                    await websocket.send_json({"event": "keepalive", "payload": {
+                        "elapsed": round(elapsed, 1),
+                        "timeout": exec_timeout if exec_timeout > 0 else None,
+                    }})
+                except Exception:  # noqa: BLE001
+                    return
+
+        # Run all tasks concurrently
+        stdout_task = asyncio.create_task(_read_stdout())
+        stderr_task = asyncio.create_task(_read_stderr())
+        cancel_task = asyncio.create_task(_read_cancel())
+        keepalive_task = asyncio.create_task(_keepalive())
+
+        # Timeout watchdog (0 = no timeout)
+        timeout_task = None
+        if exec_timeout > 0:
+            async def _timeout_watchdog():
+                await asyncio.sleep(exec_timeout)
+                logger.warning("Execution timed out after %d seconds (pid=%d)",
+                               exec_timeout, proc.pid)
+            timeout_task = asyncio.create_task(_timeout_watchdog())
+
+        all_tasks = [stdout_task, stderr_task, cancel_task, keepalive_task]
+        if timeout_task:
+            all_tasks.append(timeout_task)
+
+        try:
+            # Wait for stdout reader to finish (subprocess done) OR
+            # cancel OR timeout
+            wait_set = {stdout_task, cancel_task}
+            if timeout_task:
+                wait_set.add(timeout_task)
+
+            done, pending = await asyncio.wait(
+                wait_set,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            # Handle cancellation
+            if cancelled:
+                _kill_subprocess(proc)
+                await websocket.send_json({"event": "error", "payload": {
+                    "error": "Execution cancelled by user.",
+                }})
+
+            # Handle timeout
+            elif timeout_task and timeout_task in done:
+                _kill_subprocess(proc)
+                await websocket.send_json({"event": "error", "payload": {
+                    "error": f"Execution timed out after {exec_timeout} seconds. "
+                    "The model may still be downloading. Please try again later.",
+                }})
+
+            # If stdout finished but no done/error event was sent,
+            # the subprocess crashed. Check stderr for details.
+            elif stdout_task in done and not done_event_sent:
+                # Wait briefly for stderr to flush
+                await asyncio.sleep(0.1)
+                return_code = proc.returncode
+                if return_code is not None and return_code != 0:
+                    await websocket.send_json({"event": "error", "payload": {
+                        "error": f"Subprocess exited with code {return_code}. "
+                        "Check server logs for details.",
+                    }})
+                else:
+                    await websocket.send_json({"event": "error", "payload": {
+                        "error": "Execution ended unexpectedly (no result received).",
+                    }})
+
+        finally:
+            # Clean up: cancel all pending tasks and kill subprocess
+            _kill_subprocess(proc)
+            for task in all_tasks:
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                        pass
+
+    def _kill_subprocess(proc: Any) -> None:
+        """Kill a subprocess if it's still running."""
+        if proc.returncode is None:
+            try:
+                proc.kill()
+            except (ProcessLookupError, OSError):
+                pass  # Already dead
+
+    # -- Thread execution (fallback mode) ----------------------------------
+
+    async def _ws_run_thread(
+        websocket: WebSocket,
+        graph: Graph,
+        exec_timeout: int,
+        keepalive_interval: float,
+    ) -> None:
+        """Execute graph in a daemon thread (legacy fallback mode).
+
+        This is the old execution path. It's kept as a fallback for
+        environments where subprocess execution is not available.
+        """
+        import asyncio
+        from mosaic_canvas.config import POLL_INTERVAL_SEC, WORKER_JOIN_TIMEOUT_SEC
+
+        loop = asyncio.get_event_loop()
+        send_error: list[Exception] = []
+        cancel_flag: dict[str, bool] = {"cancelled": False}
+
+        def progress(event_type: str, payload: dict[str, Any]) -> None:
+            try:
+                fut = asyncio.run_coroutine_threadsafe(
+                    websocket.send_json({"event": event_type, "payload": payload}),
+                    loop,
+                )
+                fut.add_done_callback(lambda f: _on_send_done(f, send_error))
+            except Exception:  # noqa: BLE001
+                pass
+
+        def _on_send_done(fut: "asyncio.Future[None]", err_list: list[Exception]) -> None:
+            try:
+                fut.result()
+            except Exception as exc:  # noqa: BLE001
+                err_list.append(exc)
+                logger.warning("WebSocket send failed: %s", exc)
+
+        result_holder: dict[str, Any] = {}
+
+        def run() -> None:
+            try:
+                result_holder["result"] = execute_graph(graph, progress=progress)
+            except Exception as exc:  # noqa: BLE001
+                result_holder["error"] = exc
+                logger.exception("Worker thread execution error: %s", exc)
+
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+
+        poll_interval = POLL_INTERVAL_SEC
+        keepalive_count = int(keepalive_interval / poll_interval)
+        if keepalive_count < 1:
+            keepalive_count = 1
+        max_iterations = int(exec_timeout / poll_interval) if exec_timeout > 0 else 0
+
+        iteration = 0
+        while worker.is_alive():
+            try:
+                msg = await asyncio.wait_for(
+                    websocket.receive_text(), timeout=0.01,
+                )
+                try:
+                    msg_data = json.loads(msg)
+                    if msg_data.get("action") == "cancel":
+                        cancel_flag["cancelled"] = True
+                        break
+                except (json.JSONDecodeError, KeyError):
+                    pass
+            except asyncio.TimeoutError:
+                pass
+            except WebSocketDisconnect:
+                break
+
+            await asyncio.sleep(poll_interval)
+            iteration += 1
+
+            if iteration % keepalive_count == 0:
+                elapsed = iteration * poll_interval
+                try:
+                    await websocket.send_json({"event": "keepalive", "payload": {
+                        "elapsed": elapsed,
+                        "timeout": exec_timeout if exec_timeout > 0 else None,
+                    }})
+                except Exception:  # noqa: BLE001
+                    break
+
+            if send_error:
+                break
+
+            if max_iterations > 0 and iteration >= max_iterations:
+                break
+
+        worker.join(timeout=WORKER_JOIN_TIMEOUT_SEC)
+
+        if cancel_flag["cancelled"]:
+            await websocket.send_json({"event": "error", "payload": {
+                "error": "Execution cancelled by user.",
+            }})
+        elif worker.is_alive():
+            await websocket.send_json({"event": "error", "payload": {
+                "error": f"Execution timed out after {exec_timeout} seconds.",
+            }})
+        elif "error" in result_holder:
+            exc = result_holder["error"]
+            await websocket.send_json({"event": "error", "payload": {
+                "error": f"{type(exc).__name__}: {exc}",
+            }})
+        elif "result" in result_holder:
+            await websocket.send_json({"event": "done", "payload": result_holder["result"].to_dict()})
+        else:
+            await websocket.send_json({"event": "error", "payload": {
+                "error": "Execution failed with no result.",
+            }})
 
     # -- Static files & SPA fallback --------------------------------------
 

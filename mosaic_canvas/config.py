@@ -54,6 +54,16 @@ POLL_INTERVAL_SEC: float = _env_float("MOSAIC_CANVAS_POLL_INTERVAL", 0.5)
 #: 取消执行后等待 worker 线程退出的时间。
 WORKER_JOIN_TIMEOUT_SEC: float = _env_float("MOSAIC_CANVAS_WORKER_JOIN_TIMEOUT", 10.0)
 
+#: 执行模式：``"subprocess"`` (默认) 或 ``"thread"``。
+#:
+#: ``subprocess``: 在独立子进程中执行流水线，子进程有自己的 GIL，
+#: HuggingFace 下载线程不会与 asyncio 事件循环竞争 GIL。
+#: 彻底解决大模型下载卡死问题（如 64% 卡住）。
+#:
+#: ``thread``: 在 daemon 线程中执行（旧模式），作为回退。
+#: 当子进程模式不可用时使用。
+EXEC_MODE: str = os.environ.get("MOSAIC_CANVAS_EXEC_MODE", "subprocess")
+
 # ---------------------------------------------------------------------------
 # 前端超时（通过 API 传递）
 # ---------------------------------------------------------------------------
