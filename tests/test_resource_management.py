@@ -214,7 +214,7 @@ class TestResourceBulkDeleteAPI:
             files_to_delete.append(f"bulk_delete_{i}.png")
         resp = client.post(
             "/api/resources/bulk-delete",
-            json=files_to_delete,
+            json={"filenames": files_to_delete},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -226,7 +226,7 @@ class TestResourceBulkDeleteAPI:
         """Should report failed deletions for non-existent files."""
         resp = client.post(
             "/api/resources/bulk-delete",
-            json=["nonexistent1.png", "nonexistent2.png"],
+            json={"filenames": ["nonexistent1.png", "nonexistent2.png"]},
         )
         assert resp.status_code == 200
         data = resp.json()

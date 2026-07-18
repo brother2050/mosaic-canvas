@@ -29,7 +29,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -249,8 +249,22 @@ def create_app() -> FastAPI:
         Looks for ``data/prompts/{category_id}.json``. Returns the full
         category content (subcategories with all items).
         """
+        # Path traversal check
+        if "/" in category_id or "\\" in category_id or ".." in category_id:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid category id"},
+            )
         prompts_dir = _get_data_dir("prompts")
         prompt_file = prompts_dir / f"{category_id}.json"
+        # Verify resolved path is within prompts_dir
+        try:
+            prompt_file.resolve().relative_to(prompts_dir.resolve())
+        except (ValueError, RuntimeError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid category id"},
+            )
         if prompt_file.exists():
             try:
                 with open(prompt_file, encoding="utf-8") as f:
@@ -761,7 +775,9 @@ def create_app() -> FastAPI:
         })
 
     @app.post("/api/resources/bulk-delete")
-    async def delete_resources_bulk(filenames: list[str]) -> JSONResponse:
+    async def delete_resources_bulk(
+        filenames: list[str] = Body(..., embed=True),
+    ) -> JSONResponse:
         """Delete multiple resource files at once."""
         static_dir = Path(__file__).resolve().parent.parent / "static"
         outputs_dir = static_dir / "outputs"

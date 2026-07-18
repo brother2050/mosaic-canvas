@@ -435,15 +435,15 @@ const App = (function () {
             container.innerHTML = pipelines.map(p => {
                 const date = new Date(p.saved_at * 1000);
                 const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-                return `<div class="saved-pipeline-item" data-filename="${escapeHtml(p.filename)}">
+                return `<div class="saved-pipeline-item" data-filename="${escapeAttr(p.filename)}">
                     <div class="saved-pipeline-info">
                         <span class="saved-pipeline-name">${escapeHtml(p.name)}</span>
                         <span class="saved-pipeline-meta">${p.nodes_count} ${I18n.t('status.nodes_count')} · ${dateStr}</span>
                     </div>
                     <div class="saved-pipeline-actions">
-                        <button class="btn btn-sm btn-pipeline-preview" data-filename="${escapeHtml(p.filename)}" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
-                        <button class="btn btn-sm btn-pipeline-load" data-filename="${escapeHtml(p.filename)}" data-i18n-title="modal.load_confirm">${I18n.t('modal.load_confirm')}</button>
-                        <button class="btn btn-sm btn-pipeline-delete" data-filename="${escapeHtml(p.filename)}" data-i18n-title="btn.delete">✕</button>
+                        <button class="btn btn-sm btn-pipeline-preview" data-filename="${escapeAttr(p.filename)}" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
+                        <button class="btn btn-sm btn-pipeline-load" data-filename="${escapeAttr(p.filename)}" data-i18n-title="modal.load_confirm">${I18n.t('modal.load_confirm')}</button>
+                        <button class="btn btn-sm btn-pipeline-delete" data-filename="${escapeAttr(p.filename)}" data-i18n-title="btn.delete">✕</button>
                     </div>
                 </div>`;
             }).join('');

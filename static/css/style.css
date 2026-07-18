@@ -1429,7 +1429,7 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     word-break: break-word;
 }
 .result-field-value { font-size: 12px; }
-.result-number { font-family: var(--font-mono); color: var(--primary); font-weight: 500; }
+.result-number { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
 .result-bool { font-weight: 500; }
 .result-meta { color: var(--text-faint); font-style: italic; font-size: 11px; }
 .result-empty { color: var(--text-faint); }

@@ -218,10 +218,13 @@ _ENUM_CHOICES: dict[str, list[str]] = {
     "op": ["append", "extend", "remove", "sort", "dedupe", "slice", "flatten",
            "filter", "map", "reverse", "unique_by",
            "merge", "delete", "update", "pick", "get_path", "set_path",
-           "rename_keys", "filter_values",
-           "split", "join", "replace", "regex_replace", "regex_extract",
-           "strip", "upper", "lower", "format", "truncate", "encode", "decode"],
-    "backend": ["memory", "disk", "redis"],
+    "rename_keys", "filter_values",
+    "split", "join", "replace", "regex_replace", "regex_extract",
+    "strip", "upper", "lower", "format", "truncate", "encode", "decode"],
+    # NOTE: "backend" is intentionally NOT here. TTS nodes use
+    # backend=["auto","edge_tts",...] (defined above on line ~186) while
+    # result-cache uses backend=["memory","disk","redis"] (inline choices
+    # in the node definition). Putting it here would overwrite the TTS list.
     "engine": ["jinja2", "fstring"],
     "on_timeout": ["raise", "default"],
     "backoff": ["fixed", "exponential", "linear"],

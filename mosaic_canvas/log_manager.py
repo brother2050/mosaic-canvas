@@ -139,19 +139,11 @@ class ExecutionLogHandler:
         self._graph_name = graph_name
         self._node_count = node_count
 
-        # Create file handler
-        self.handler = logging.FileHandler(self.filepath, encoding="utf-8")
-        self.handler.setLevel(_get_log_level())
-        self.handler.setFormatter(logging.Formatter(
-            "%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        ))
-
-        # Attach to root logger so ALL module logs are captured
-        root_logger = logging.getLogger()
-        root_logger.addHandler(self.handler)
-
-        # Write header
+        # Write header FIRST (before creating FileHandler) to avoid
+        # handler/fd conflicts. Previous code created a handler, added it
+        # to root_logger, then truncated the file with write_text (while
+        # the handler still held the fd), then closed and re-created the
+        # handler — leaking the first closed handler on root_logger forever.
         header = (
             f"{'=' * 60}\n"
             f"Execution ID: {self.execution_id}\n"
@@ -161,16 +153,17 @@ class ExecutionLogHandler:
             f"{'=' * 60}\n"
         )
         self.filepath.write_text(header, encoding="utf-8")
-        # Re-open in append mode (the FileHandler above will append)
-        # Actually, FileHandler already opened the file. The write_text above
-        # wrote the header. We need to close and re-open to avoid conflicts.
-        self.handler.close()
+
+        # Now create a single FileHandler in append mode
         self.handler = logging.FileHandler(self.filepath, mode="a", encoding="utf-8")
         self.handler.setLevel(_get_log_level())
         self.handler.setFormatter(logging.Formatter(
             "%(asctime)s [%(name)s] %(levelname)s: %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         ))
+
+        # Attach to root logger so ALL module logs are captured
+        root_logger = logging.getLogger()
         root_logger.addHandler(self.handler)
 
         with self._lock:
@@ -549,9 +542,19 @@ def search_logs(
 
     # Determine which files to search
     if log_file:
-        files = [log_dir / "executions" / log_file]
-        if not files[0].exists():
-            files = [log_dir / log_file]
+        # Path traversal check: only allow files within the executions dir
+        exec_dir = (log_dir / "executions").resolve()
+        candidate = (log_dir / "executions" / log_file).resolve()
+        try:
+            candidate.relative_to(exec_dir)
+        except (ValueError, RuntimeError):
+            # Invalid path — skip this file
+            files = []
+        else:
+            files = [Path(candidate)]
+            if not files[0].exists():
+                # Don't fall back to log_dir root for arbitrary filenames
+                files = []
     else:
         files = [log_dir / "canvas.log"]
         files.extend(sorted(

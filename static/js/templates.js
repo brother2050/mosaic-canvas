@@ -335,7 +335,7 @@ const Templates = (() => {
                 { id: 'e3', source: 'n3', target: 'n4' },
                 { id: 'e4', source: 'n4', target: 'n5' },
             ],
-            input: { message: 'A beautiful sunset over the mountains, golden light, serene landscape' },
+            input: { messages: '[{"role":"user","content":"A beautiful sunset over the mountains, golden light, serene landscape"}]' },
         },
         {
             id: 'rag-complete',
@@ -642,7 +642,7 @@ const Templates = (() => {
             icon: '✏️',
             description: { en: 'Rewrite text with a different style (example 01).', zh: '以不同风格改写文本（示例01）。' },
             nodes: [
-                { id: 'n1', type: 'text-rewriter', label: '', params: {}, input_params: { style: 'formal' }, ...pos(0, 0) },
+                { id: 'n1', type: 'text-rewriter', label: '', params: {}, input_params: { instruction: 'Rewrite in a formal style' }, ...pos(0, 0) },
             ],
             edges: [],
             input: { text: 'The weather is nice today so lets go outside and play.' },
@@ -690,7 +690,7 @@ const Templates = (() => {
             icon: '🎬',
             description: { en: 'Generate video with WanVideo, then encode as MP4 (example 03).', zh: '用 WanVideo 生成视频后编码为 MP4（示例03）。' },
             nodes: [
-                { id: 'n1', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '49', resolution: '480p' }, ...pos(0, 0) },
+                { id: 'n1', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '49', width: '832', height: '480' }, ...pos(0, 0) },
                 { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: { fps: '16' }, ...pos(1, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
@@ -750,7 +750,7 @@ const Templates = (() => {
             icon: '🖼️',
             description: { en: 'Extract frames from a video (example 03).', zh: '从视频中提取帧（示例03）。' },
             nodes: [
-                { id: 'n1', type: 'frame-extractor', label: '', params: {}, input_params: { fps: '2' }, ...pos(0, 0) },
+                { id: 'n1', type: 'frame-extractor', label: '', params: {}, input_params: { mode: 'interval', interval: '2' }, ...pos(0, 0) },
             ],
             edges: [],
             input: { video: '/path/to/video.mp4' },
@@ -1091,7 +1091,7 @@ const Templates = (() => {
             icon: '📡',
             description: { en: 'Stream video to RTMP/SRT endpoint (example 13).', zh: '推流到 RTMP/SRT 地址（示例13）。' },
             nodes: [
-                { id: 'n1', type: 'livestreamer', label: '', params: {}, input_params: { url: 'rtmp://localhost/live/stream' }, ...pos(0, 0) },
+                { id: 'n1', type: 'livestreamer', label: '', params: {}, input_params: { stream_url: 'rtmp://localhost/live/stream' }, ...pos(0, 0) },
             ],
             edges: [],
             input: { video: '/path/to/video.mp4' },

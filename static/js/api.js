@@ -51,6 +51,7 @@ const API = (() => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(graph),
             });
+            if (!resp.ok) throw new Error(`Export failed: ${resp.status}`);
             return resp.text();
         },
 
@@ -84,6 +85,7 @@ const API = (() => {
 
         async downloadLog(filename) {
             const resp = await fetch(`${baseUrl}/api/logs/download/${encodeURIComponent(filename)}`);
+            if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
             return resp.text();
         },
 
@@ -91,6 +93,7 @@ const API = (() => {
             const resp = await fetch(`${baseUrl}/api/logs/executions/${encodeURIComponent(filename)}`, {
                 method: 'DELETE',
             });
+            if (!resp.ok) throw new Error(`Delete failed: ${resp.status}`);
             return resp.json();
         },
 
@@ -99,6 +102,7 @@ const API = (() => {
             if (maxAgeDays !== null) qs += `?max_age_days=${maxAgeDays}`;
             if (maxCount !== null) qs += `${qs ? '&' : '?'}max_count=${maxCount}`;
             const resp = await fetch(`${baseUrl}/api/logs/cleanup${qs}`, { method: 'POST' });
+            if (!resp.ok) throw new Error(`Cleanup failed: ${resp.status}`);
             return resp.json();
         },
 
@@ -119,6 +123,7 @@ const API = (() => {
                 `${baseUrl}/api/resources/${encodeURIComponent(filename)}`,
                 { method: 'DELETE' },
             );
+            if (!resp.ok) throw new Error(`Delete failed: ${resp.status}`);
             return resp.json();
         },
 
@@ -126,8 +131,9 @@ const API = (() => {
             const resp = await fetch(`${baseUrl}/api/resources/bulk-delete`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(filenames),
+                body: JSON.stringify({ filenames }),
             });
+            if (!resp.ok) throw new Error(`Bulk delete failed: ${resp.status}`);
             return resp.json();
         },
 
@@ -136,6 +142,7 @@ const API = (() => {
             if (maxAgeDays !== null) qs += `?max_age_days=${maxAgeDays}`;
             if (maxCount !== null) qs += `${qs ? '&' : '?'}max_count=${maxCount}`;
             const resp = await fetch(`${baseUrl}/api/resources/cleanup${qs}`, { method: 'POST' });
+            if (!resp.ok) throw new Error(`Cleanup failed: ${resp.status}`);
             return resp.json();
         },
 

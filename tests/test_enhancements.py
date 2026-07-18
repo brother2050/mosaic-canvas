@@ -380,7 +380,8 @@ class TestNewTemplates:
         idx = templates_js_content.index("chat-fieldmapper-text-to-image")
         section = templates_js_content[idx:idx+2000]
         assert "mapping" in section
-        assert "response" in section
+        # Chat nodes output 'reply'; field-mapper renames reply→prompt.
+        assert "reply" in section
         assert "prompt" in section
 
 

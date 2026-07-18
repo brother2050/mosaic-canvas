@@ -17,9 +17,7 @@ from __future__ import annotations
 import base64
 import io
 import logging
-import os
 import time
-import traceback
 import uuid
 import wave
 import struct
@@ -168,12 +166,16 @@ def coerce_param(value: Any, ui_type: str) -> Any:
 # outputs 'images'; this mapping bridges the gap automatically.
 _FIELD_ALIASES: dict[str, list[str]] = {
     "data": ["image", "images", "video", "audio", "text", "reply", "response",
-             "frames", "subtitles", "subtitle"],
-    "prompt": ["reply", "response", "text", "message", "summary"],
+             "frames", "subtitles", "subtitle", "segments", "waveform",
+             "document", "pages"],
+    "prompt": ["reply", "response", "text", "message", "summary", "query",
+               "question", "results", "context"],
     "image": ["images", "data", "face_image", "source_image"],
     "images": ["image", "data"],
-    "text": ["reply", "response", "prompt", "summary", "transcript"],
+    "text": ["reply", "response", "prompt", "summary", "transcript",
+             "results", "context"],
     "message": ["text", "reply", "response"],
+    "messages": ["message", "text", "reply", "response"],
     # video-encoder needs 'frames'
     "frames": ["video", "images", "image", "frame_list", "data"],
     # lip-syncer needs 'face_image'
@@ -181,15 +183,23 @@ _FIELD_ALIASES: dict[str, list[str]] = {
     # realtime-renderer needs 'source_image'
     "source_image": ["image", "images", "avatar", "face_image", "data"],
     # realtime-renderer needs 'input_stream'
-    "input_stream": ["audio", "text", "video", "data"],
+    "input_stream": ["audio", "text", "video", "data", "frames"],
     # inpainting needs 'mask_image' (templates use 'mask')
     "mask_image": ["mask", "mask_path", "mask_image_path"],
     # document-parser needs 'file_path'
     "file_path": ["file", "path", "document", "filename"],
     # retriever needs 'query'
     "query": ["question", "search_query", "text"],
-    # lip-syncer needs 'audio'
-    "audio": ["audio_path", "audio_data", "voice"],
+    # lip-syncer needs 'audio' (tts outputs 'waveform')
+    "audio": ["audio_path", "audio_data", "voice", "waveform"],
+    # subtitle-translator / subtitle-aligner need 'subtitle' (generator outputs 'segments')
+    "subtitle": ["segments", "subtitles", "subtitle_data"],
+    # vector-indexer needs 'document' (document-parser outputs 'text'/'pages')
+    "document": ["text", "pages", "content", "data"],
+    # citation-generator needs 'results' (retriever/text-generator output)
+    "results": ["context", "text", "rag_query_result", "reply", "response"],
+    # livestreamer needs 'stream_url' (templates use 'url')
+    "stream_url": ["url", "rtmp_url", "stream"],
 }
 
 
@@ -882,6 +892,7 @@ class GraphExecutor:
                 download_monitor.start()
 
             # Assemble input from predecessors + pipeline input
+            t0 = time.perf_counter()
             node_input = MosaicData()
             preds = self.graph.predecessors(nid)
 
@@ -948,6 +959,7 @@ class GraphExecutor:
                 coerced_input_params = _coerce_params(
                     gnode.input_params, input_field_types,
                 )
+
                 for k, v in coerced_input_params.items():
                     node_input[k] = v
 
@@ -956,7 +968,6 @@ class GraphExecutor:
             # check and LRU eviction.  Calling __call__ would bypass the
             # scheduler and load the model directly, risking OOM in
             # multi-model pipelines.
-            t0 = time.perf_counter()
             try:
                 output = instance.run(node_input)
                 elapsed = time.perf_counter() - t0

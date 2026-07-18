@@ -243,17 +243,19 @@
                     const graphName = log.graph_name ? escapeHtml(log.graph_name) : '(unnamed)';
                     const status = log.status || 'unknown';
                     const time = log.modified.replace('T', ' ').substring(0, 19);
+                    const safeFilename = escapeHtml(log.filename);
+                    const safeFilenameAttr = escapeAttr(log.filename);
                     return `
-                    <div class="sidebar-item" onclick="loadExecutionLog('${log.filename}', event)">
+                    <div class="sidebar-item" onclick="loadExecutionLog('${safeFilenameAttr}', event)">
                         <div class="graph-name">${graphName}</div>
                         <div class="meta">
                             <span class="status-badge status-${status}">${status}</span>
                             ${log.size_human} • ${time}
                         </div>
-                        <div class="filename" style="font-size:10px;color:var(--text-dim);margin-top:2px">${log.filename}</div>
+                        <div class="filename" style="font-size:10px;color:var(--text-dim);margin-top:2px">${safeFilename}</div>
                         <div class="actions">
-                            <button onclick="event.stopPropagation();downloadLog('${log.filename}')" title="Download">⬇ Download</button>
-                            <button class="delete" onclick="event.stopPropagation();deleteLog('${log.filename}')" title="Delete">🗑 Delete</button>
+                            <button onclick="event.stopPropagation();downloadLog('${safeFilenameAttr}')" title="Download">⬇ Download</button>
+                            <button class="delete" onclick="event.stopPropagation();deleteLog('${safeFilenameAttr}')" title="Delete">🗑 Delete</button>
                         </div>
                     </div>`;
                 }).join('');
@@ -261,13 +263,13 @@
                     sidebar.innerHTML = '<div style="padding:8px 16px;color:var(--green);font-size:12px;">● Active:</div>' +
                         data.active.map(a => `
                             <div class="sidebar-item" style="border-left:3px solid var(--green)">
-                                <div class="filename">${a.filename}</div>
-                                <div class="meta">${a.graph_name} • ${a.status} • ${a.elapsed?.toFixed(0)}s</div>
+                                <div class="filename">${escapeHtml(a.filename || '')}</div>
+                                <div class="meta">${escapeHtml(a.graph_name || '')} • ${escapeHtml(a.status || '')} • ${a.elapsed?.toFixed(0) || 0}s</div>
                             </div>
                         `).join('') + sidebar.innerHTML;
                 }
             } catch (e) {
-                sidebar.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+                sidebar.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -282,17 +284,17 @@
             try {
                 const data = await API.readExecutionLog(filename, 0, 0, null);
                 if (data.error) {
-                    content.innerHTML = `<div class="empty">${data.error}</div>`;
+                    content.innerHTML = `<div class="empty">${escapeHtml(data.error)}</div>`;
                     return;
                 }
                 renderLogLines(data.lines, content);
                 // Add download button
                 const dl = document.createElement('div');
                 dl.style.cssText = 'padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel)';
-                dl.innerHTML = `<button onclick="downloadLog('${filename}')" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:4px;cursor:pointer;">⬇ Download</button> <span style="color:var(--text-dim);font-size:12px;margin-left:8px">${data.total_lines} lines</span>`;
+                dl.innerHTML = `<button onclick="downloadLog('${escapeAttr(filename)}')" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:4px;cursor:pointer;">⬇ Download</button> <span style="color:var(--text-dim);font-size:12px;margin-left:8px">${escapeHtml(data.total_lines)} lines</span>`;
                 content.insertBefore(dl, content.firstChild);
             } catch (e) {
-                content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+                content.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -329,12 +331,12 @@
             try {
                 const data = await API.readMainLog(500, level);
                 if (data.error) {
-                    content.innerHTML = `<div class="empty">${data.error}</div>`;
+                    content.innerHTML = `<div class="empty">${escapeHtml(data.error)}</div>`;
                     return;
                 }
                 renderLogLines(data.lines, content);
             } catch (e) {
-                content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+                content.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -370,7 +372,7 @@
 
             try {
                 const data = await API.searchLogs(query, null, 200);
-                let html = `<div style="padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);font-size:13px">${data.count} results for "${query}"</div>`;
+                let html = `<div style="padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);font-size:13px">${data.count} results for "${escapeHtml(query)}"</div>`;
                 html += '<div class="log-viewer">';
                 data.results.forEach(r => {
                     html += `<div class="log-line"><span class="ts">${r.filename}:${r.line_number}</span> ${escapeHtml(r.line)}</div>`;
@@ -378,7 +380,7 @@
                 html += '</div>';
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+                content.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -407,6 +409,10 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function escapeAttr(text) {
+            return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
         async function downloadLog(filename) {

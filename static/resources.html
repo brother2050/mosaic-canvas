@@ -397,25 +397,46 @@
                 }
 
                 return `
-                <div class="resource-card ${isSelected ? 'selected' : ''}" data-filename="${escapeAttr(r.filename)}">
-                    <div class="checkbox" onclick="event.stopPropagation();toggleSelect('${escapeAttr(r.filename)}')">${isSelected ? '✓' : ''}</div>
-                    <div class="preview" onclick="openLightbox('${escapeAttr(r.filename)}', '${escapeAttr(r.url)}', '${escapeAttr(r.type)}')">
+                <div class="resource-card ${isSelected ? 'selected' : ''}" data-filename="${escapeAttr(r.filename)}" data-url="${escapeAttr(r.url)}" data-type="${escapeAttr(r.type)}">
+                    <div class="checkbox" data-action="select" data-filename="${escapeAttr(r.filename)}">${isSelected ? '✓' : ''}</div>
+                    <div class="preview" data-action="lightbox" data-filename="${escapeAttr(r.filename)}" data-url="${escapeAttr(r.url)}" data-type="${escapeAttr(r.type)}">
                         ${preview}
-                        <span class="type-badge">${r.type}</span>
+                        <span class="type-badge">${escapeHtml(r.type)}</span>
                     </div>
                     <div class="info">
                         <div class="filename" title="${escapeAttr(r.filename)}">${escapeHtml(r.filename)}</div>
                         <div class="meta">
-                            <span>${r.size_human}</span>
-                            <span>${formatTime(r.modified)}</span>
+                            <span>${escapeHtml(r.size_human)}</span>
+                            <span>${escapeHtml(formatTime(r.modified))}</span>
                         </div>
                     </div>
                     <div class="actions">
-                        <button onclick="event.stopPropagation();downloadFile('${escapeAttr(r.url)}', '${escapeAttr(r.filename)}')">⬇ Download</button>
-                        <button class="delete" onclick="event.stopPropagation();deleteFile('${escapeAttr(r.filename)}')">🗑 Delete</button>
+                        <button data-action="download" data-url="${escapeAttr(r.url)}" data-filename="${escapeAttr(r.filename)}">⬇ Download</button>
+                        <button class="delete" data-action="delete" data-filename="${escapeAttr(r.filename)}">🗑 Delete</button>
                     </div>
                 </div>`;
             }).join('');
+
+            // Attach event listeners via delegation (avoids XSS from inline onclick)
+            attachCardListeners();
+        }
+
+        function attachCardListeners() {
+            document.querySelectorAll('.resource-card').forEach(card => {
+                card.querySelectorAll('[data-action]').forEach(el => {
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        const action = el.dataset.action;
+                        const filename = el.dataset.filename;
+                        const url = el.dataset.url;
+                        const type = el.dataset.type;
+                        if (action === 'select') toggleSelect(filename);
+                        else if (action === 'lightbox') openLightbox(filename, url, type);
+                        else if (action === 'download') downloadFile(url, filename);
+                        else if (action === 'delete') deleteFile(filename);
+                    };
+                });
+            });
         }
 
         function filterType(type) {

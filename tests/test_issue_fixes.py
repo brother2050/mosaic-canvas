@@ -107,7 +107,8 @@ class TestTemplateInputFix:
     def test_template_has_reasonable_default_input(self):
         """Template should have a sensible default input."""
         content = self.templates_path.read_text(encoding="utf-8")
-        assert "message:" in content
+        # Templates now use 'messages' (list[dict] chat format) instead of 'message' (string).
+        assert "messages:" in content
         assert "sunset" in content.lower() or "landscape" in content.lower()
 
 
