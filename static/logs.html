@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosaic Canvas — Logs</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --bg-panel: #1a1d27;
+            --bg-hover: #252836;
+            --border: #2d3142;
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --accent: #6c8eef;
+            --green: #4ec9b0;
+            --yellow: #dcdcaa;
+            --red: #f44747;
+            --orange: #ce9178;
+            --mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        header h1 { font-size: 18px; font-weight: 500; }
+        header a { color: var(--accent); text-decoration: none; font-size: 13px; }
+        header a:hover { text-decoration: underline; }
+        .stats {
+            margin-left: auto;
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .stats span { display: flex; gap: 4px; }
+        .stats span b { color: var(--text); font-weight: 500; }
+
+        .toolbar {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .toolbar button {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .toolbar button:hover { border-color: var(--accent); }
+        .toolbar button.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .toolbar select, .toolbar input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .toolbar input { flex: 1; min-width: 200px; }
+        .toolbar .spacer { flex: 1; }
+
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            background: var(--bg-panel);
+        }
+        .sidebar-item {
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .sidebar-item:hover { background: var(--bg-hover); }
+        .sidebar-item.active { background: var(--bg-hover); border-left: 3px solid var(--accent); }
+        .sidebar-item .filename { font-family: var(--mono); font-size: 12px; }
+        .sidebar-item .meta { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+
+        .content {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+        }
+        .log-viewer {
+            font-family: var(--mono);
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            padding: 12px 16px;
+        }
+        .log-line { padding: 1px 0; }
+        .log-line.ERROR { color: var(--red); }
+        .log-line.WARNING { color: var(--yellow); }
+        .log-line.DEBUG { color: var(--text-dim); }
+        .log-line.INFO { color: var(--text); }
+        .log-line .ts { color: var(--text-dim); }
+        .log-line .level-ERROR { color: var(--red); font-weight: bold; }
+        .log-line .level-WARNING { color: var(--yellow); font-weight: bold; }
+        .log-line .level-INFO { color: var(--green); }
+        .log-line .level-DEBUG { color: var(--text-dim); }
+        .log-line .module { color: var(--accent); }
+
+        .empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📋 Mosaic Canvas Logs</h1>
+        <a href="/">← Back to Canvas</a>
+        <div class="stats" id="stats"></div>
+    </header>
+
+    <div class="toolbar">
+        <button id="btn-executions" class="active" onclick="showExecutions()">Execution Logs</button>
+        <button id="btn-main" onclick="showMainLog()">Server Log</button>
+        <button id="btn-search" onclick="showSearch()">Search</button>
+        <div class="spacer"></div>
+        <select id="level-filter" onchange="applyFilter()" style="display:none">
+            <option value="">All Levels</option>
+            <option value="ERROR">ERROR</option>
+            <option value="WARNING">WARNING</option>
+            <option value="INFO">INFO</option>
+            <option value="DEBUG">DEBUG</option>
+        </select>
+        <button onclick="refresh()">🔄 Refresh</button>
+    </div>
+
+    <div class="main">
+        <div class="sidebar" id="sidebar">
+            <div class="empty">Loading...</div>
+        </div>
+        <div class="content" id="content">
+            <div class="empty">Select a log file to view</div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'executions';
+        let currentLogFile = null;
+
+        async function loadStats() {
+            try {
+                const stats = await API.getLogStats();
+                document.getElementById('stats').innerHTML = `
+                    <span>Total: <b>${stats.total_size}</b></span>
+                    <span>Executions: <b>${stats.execution_log_count}</b></span>
+                    <span>Active: <b>${stats.active_executions}</b></span>
+                    <span>Server log: <b>${stats.main_log_size}</b></span>
+                `;
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        async function showExecutions() {
+            currentView = 'executions';
+            document.getElementById('btn-executions').classList.add('active');
+            document.getElementById('btn-main').classList.remove('active');
+            document.getElementById('btn-search').classList.remove('active');
+            document.getElementById('level-filter').style.display = 'none';
+
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const data = await API.listExecutionLogs(50);
+                if (data.logs.length === 0) {
+                    sidebar.innerHTML = '<div class="empty">No execution logs yet</div>';
+                    return;
+                }
+                sidebar.innerHTML = data.logs.map(log => `
+                    <div class="sidebar-item" onclick="loadExecutionLog('${log.filename}')">
+                        <div class="filename">${log.filename}</div>
+                        <div class="meta">${log.size_human} • ${log.modified.replace('T', ' ').substring(0, 19)}</div>
+                    </div>
+                `).join('');
+                if (data.active && data.active.length > 0) {
+                    sidebar.innerHTML = '<div style="padding:8px 16px;color:var(--green);font-size:12px;">● Active:</div>' +
+                        data.active.map(a => `
+                            <div class="sidebar-item" style="border-left:3px solid var(--green)">
+                                <div class="filename">${a.filename}</div>
+                                <div class="meta">${a.graph_name} • ${a.status} • ${a.elapsed?.toFixed(0)}s</div>
+                            </div>
+                        `).join('') + sidebar.innerHTML;
+                }
+            } catch (e) {
+                sidebar.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function loadExecutionLog(filename) {
+            currentLogFile = filename;
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            event?.target?.closest('.sidebar-item')?.classList.add('active');
+
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const data = await API.readExecutionLog(filename, 0, 0, null);
+                if (data.error) {
+                    content.innerHTML = `<div class="empty">${data.error}</div>`;
+                    return;
+                }
+                renderLogLines(data.lines, content);
+                // Add download button
+                const dl = document.createElement('div');
+                dl.style.cssText = 'padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel)';
+                dl.innerHTML = `<button onclick="downloadLog('${filename}')" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:4px;cursor:pointer;">⬇ Download</button> <span style="color:var(--text-dim);font-size:12px;margin-left:8px">${data.total_lines} lines</span>`;
+                content.insertBefore(dl, content.firstChild);
+            } catch (e) {
+                content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function showMainLog() {
+            currentView = 'main';
+            document.getElementById('btn-main').classList.add('active');
+            document.getElementById('btn-executions').classList.remove('active');
+            document.getElementById('btn-search').classList.remove('active');
+            document.getElementById('level-filter').style.display = '';
+
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <div class="sidebar-item active" onclick="loadMainLog()">
+                    <div class="filename">canvas.log</div>
+                    <div class="meta">Main server log (all modules)</div>
+                </div>
+                <div class="sidebar-item" onclick="loadMainLog('ERROR')">
+                    <div class="filename">canvas.log (ERROR)</div>
+                    <div class="meta">Errors only</div>
+                </div>
+                <div class="sidebar-item" onclick="loadMainLog('WARNING')">
+                    <div class="filename">canvas.log (WARNING+)</div>
+                    <div class="meta">Warnings and errors</div>
+                </div>
+            `;
+
+            loadMainLog();
+        }
+
+        async function loadMainLog(level = null) {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const data = await API.readMainLog(500, level);
+                if (data.error) {
+                    content.innerHTML = `<div class="empty">${data.error}</div>`;
+                    return;
+                }
+                renderLogLines(data.lines, content);
+            } catch (e) {
+                content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        function showSearch() {
+            currentView = 'search';
+            document.getElementById('btn-search').classList.add('active');
+            document.getElementById('btn-executions').classList.remove('active');
+            document.getElementById('btn-main').classList.remove('active');
+            document.getElementById('level-filter').style.display = 'none';
+
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <div style="padding:16px">
+                    <input type="text" id="search-input" placeholder="Search regex..." 
+                        style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:4px;font-size:13px"
+                        onkeypress="if(event.key==='Enter')doSearch()">
+                    <button onclick="doSearch()" style="width:100%;margin-top:8px;background:var(--accent);border:none;color:white;padding:8px;border-radius:4px;cursor:pointer;">Search</button>
+                    <div style="color:var(--text-dim);font-size:11px;margin-top:12px;">
+                        Searches across all log files. Supports regex.
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('content').innerHTML = '<div class="empty">Enter a search query</div>';
+        }
+
+        async function doSearch() {
+            const query = document.getElementById('search-input').value;
+            if (!query) return;
+
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Searching...</div>';
+
+            try {
+                const data = await API.searchLogs(query, null, 200);
+                let html = `<div style="padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);font-size:13px">${data.count} results for "${query}"</div>`;
+                html += '<div class="log-viewer">';
+                data.results.forEach(r => {
+                    html += `<div class="log-line"><span class="ts">${r.filename}:${r.line_number}</span> ${escapeHtml(r.line)}</div>`;
+                });
+                html += '</div>';
+                content.innerHTML = html;
+            } catch (e) {
+                content.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        function renderLogLines(lines, container) {
+            let html = '<div class="log-viewer">';
+            lines.forEach(line => {
+                const levelMatch = line.match(/\b(ERROR|WARNING|INFO|DEBUG|CRITICAL)\b/);
+                const level = levelMatch ? levelMatch[1] : '';
+                // Highlight log components
+                const highlighted = escapeHtml(line)
+                    .replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/g, '<span class="ts">$1</span>')
+                    .replace(/\[(mosaic[^\]]*)\]/g, '<span class="module">[$1]</span>')
+                    .replace(/\b(ERROR|CRITICAL)\b/g, '<span class="level-ERROR">$1</span>')
+                    .replace(/\bWARNING\b/g, '<span class="level-WARNING">$1</span>')
+                    .replace(/\bINFO\b/g, '<span class="level-INFO">$1</span>')
+                    .replace(/\bDEBUG\b/g, '<span class="level-DEBUG">$1</span>');
+                html += `<div class="log-line ${level}">${highlighted}</div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            // Scroll to bottom (tail behavior)
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function downloadLog(filename) {
+            const text = await API.downloadLog(filename);
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function applyFilter() {
+            if (currentView === 'main') {
+                const level = document.getElementById('level-filter').value;
+                loadMainLog(level || null);
+            }
+        }
+
+        function refresh() {
+            loadStats();
+            if (currentView === 'executions') showExecutions();
+            else if (currentView === 'main') loadMainLog(document.getElementById('level-filter').value || null);
+        }
+
+        // Initial load
+        loadStats();
+        showExecutions();
+        // Auto-refresh stats every 10s
+        setInterval(loadStats, 10000);
+    </script>
+</body>
+</html>

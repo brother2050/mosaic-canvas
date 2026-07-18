@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -137,6 +137,10 @@ def _get_data_dir(subdir: str) -> Path:
 # ---------------------------------------------------------------------------
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
+    # Initialize unified logging system
+    from mosaic_canvas.log_manager import setup_logging
+    setup_logging()
+
     static_dir = Path(__file__).resolve().parent.parent / "static"
 
     app = FastAPI(
@@ -458,6 +462,81 @@ def create_app() -> FastAPI:
         logger.info("Deleted template %s", filepath)
         return JSONResponse(content={"ok": True, "message": "Template deleted."})
 
+    # -- Log management API ------------------------------------------------
+
+    @app.get("/api/logs/stats")
+    async def log_stats() -> JSONResponse:
+        """Get log directory statistics."""
+        from mosaic_canvas.log_manager import get_log_stats
+        return JSONResponse(content=get_log_stats())
+
+    @app.get("/api/logs/executions")
+    async def list_execution_logs(limit: int = 50) -> JSONResponse:
+        """List execution log files, newest first."""
+        from mosaic_canvas.log_manager import list_execution_logs, ExecutionLogHandler
+        files = list_execution_logs(limit=limit)
+        active = ExecutionLogHandler.list_active()
+        return JSONResponse(content={
+            "logs": files,
+            "active": active,
+        })
+
+    @app.get("/api/logs/executions/{filename}")
+    async def read_execution_log_api(
+        filename: str,
+        lines: int = 0,
+        offset: int = 0,
+        filter: str | None = None,
+    ) -> JSONResponse:
+        """Read an execution log file."""
+        from mosaic_canvas.log_manager import read_execution_log
+        result = read_execution_log(filename, lines=lines, offset=offset,
+                                     filter_pattern=filter)
+        return JSONResponse(content=result)
+
+    @app.get("/api/logs/main")
+    async def read_main_log_api(lines: int = 200, level: str | None = None) -> JSONResponse:
+        """Read the main canvas.log (tail)."""
+        from mosaic_canvas.log_manager import read_main_log
+        result = read_main_log(lines=lines, level=level)
+        return JSONResponse(content=result)
+
+    @app.get("/api/logs/search")
+    async def search_logs_api(
+        q: str,
+        log_file: str | None = None,
+        limit: int = 100,
+    ) -> JSONResponse:
+        """Search across log files for a pattern."""
+        from mosaic_canvas.log_manager import search_logs
+        results = search_logs(q, log_file=log_file, limit=limit)
+        return JSONResponse(content={
+            "query": q,
+            "results": results,
+            "count": len(results),
+        })
+
+    @app.get("/api/logs/download/{filename}")
+    async def download_log_api(filename: str) -> Response:
+        """Download a log file."""
+        from mosaic_canvas.log_manager import get_log_dir
+        log_dir = get_log_dir()
+        # Try executions dir first, then root
+        filepath = log_dir / "executions" / filename
+        if not filepath.exists():
+            filepath = log_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": "Log file not found"})
+        # Prevent path traversal
+        if not filepath.resolve().is_relative_to(log_dir.resolve()):
+            return JSONResponse(status_code=400, content={"error": "Invalid filename"})
+        content = filepath.read_text(encoding="utf-8", errors="replace")
+        return Response(
+            content=content,
+            media_type="text/plain",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
     # -- WebSocket for real-time execution --------------------------------
 
     @app.websocket("/ws/run")
@@ -554,6 +633,17 @@ def create_app() -> FastAPI:
         import asyncio
         import sys
 
+        # Create per-execution log
+        from mosaic_canvas.log_manager import create_execution_log
+        execution_id = uuid.uuid4().hex[:12]
+        graph_name = graph_data.get("name", "unnamed")
+        node_count = len(graph_data.get("nodes", []))
+        exec_log = create_execution_log(execution_id, graph_name, node_count)
+        logger.info(
+            "Execution %s started: graph=%s, nodes=%d, log=%s",
+            execution_id, graph_name, node_count, exec_log.filename,
+        )
+
         # Build subprocess environment.
         # CRITICAL: PYTHONUNBUFFERED=1 must be set BEFORE the subprocess starts,
         # not inside runner.py — Python reads it at interpreter startup.
@@ -576,6 +666,7 @@ def create_app() -> FastAPI:
         )
 
         logger.info("Started subprocess (pid=%d) for graph execution", proc.pid)
+        exec_log.set_subprocess_pid(proc.pid)
 
         # Write graph JSON to stdin and close it
         graph_json = json.dumps(graph_data)
@@ -612,12 +703,13 @@ def create_app() -> FastAPI:
                     await websocket.send_json({"event": event, "payload": payload})
                 except json.JSONDecodeError:
                     logger.warning("Subprocess stdout (non-JSON): %s", line_str[:200])
+                    exec_log.append_subprocess_output("stdout", line_str)
                 except Exception:  # noqa: BLE001
                     # WebSocket may have closed
                     break
 
         async def _read_stderr() -> None:
-            """Read subprocess stderr, log it."""
+            """Read subprocess stderr, log it and capture in execution log."""
             assert proc.stderr is not None
             while True:
                 try:
@@ -629,6 +721,7 @@ def create_app() -> FastAPI:
                 line_str = line.decode("utf-8", errors="replace").strip()
                 if line_str:
                     logger.info("[runner pid=%d] %s", proc.pid, line_str)
+                    exec_log.append_subprocess_output("stderr", line_str)
 
         async def _read_cancel() -> None:
             """Read WebSocket messages for cancel requests."""
@@ -734,6 +827,11 @@ def create_app() -> FastAPI:
                         await task
                     except (asyncio.CancelledError, Exception):  # noqa: BLE001
                         pass
+            # Close execution log
+            status = "cancelled" if cancelled else (
+                "timeout" if (timeout_task and timeout_task in done) else "completed"
+            )
+            exec_log.finish(status=status)
 
     def _kill_subprocess(proc: Any) -> None:
         """Kill a subprocess if it's still running."""

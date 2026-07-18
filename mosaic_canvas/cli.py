@@ -39,14 +39,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    logging.basicConfig(
-        level=getattr(logging, args.log_level.upper()),
-        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    )
+    # Initialize unified logging system
+    from mosaic_canvas.log_manager import setup_logging, get_log_dir
+    setup_logging(level=args.log_level)
 
-    print(f"\n  Mosaic Canvas starting at http://{args.host}:{args.port}\n")
-    print("  Open the URL above in your browser to start building pipelines.")
-    print("  Press Ctrl+C to stop.\n")
+    log_dir = get_log_dir()
+    print(f"\n  Mosaic Canvas starting at http://{args.host}:{args.port}")
+    print(f"  Logs: {log_dir}")
+    print(f"  Open the URL above in your browser to start building pipelines.")
+    print(f"  Press Ctrl+C to stop.\n")
 
     try:
         import uvicorn

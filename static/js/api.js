@@ -54,6 +54,39 @@ const API = (() => {
             return resp.text();
         },
 
+        // -- Log management --
+
+        async getLogStats() {
+            return fetchJSON(`${baseUrl}/api/logs/stats`);
+        },
+
+        async listExecutionLogs(limit = 50) {
+            return fetchJSON(`${baseUrl}/api/logs/executions?limit=${limit}`);
+        },
+
+        async readExecutionLog(filename, lines = 0, offset = 0, filter = null) {
+            let qs = `?lines=${lines}&offset=${offset}`;
+            if (filter) qs += `&filter=${encodeURIComponent(filter)}`;
+            return fetchJSON(`${baseUrl}/api/logs/executions/${encodeURIComponent(filename)}${qs}`);
+        },
+
+        async readMainLog(lines = 200, level = null) {
+            let qs = `?lines=${lines}`;
+            if (level) qs += `&level=${level}`;
+            return fetchJSON(`${baseUrl}/api/logs/main${qs}`);
+        },
+
+        async searchLogs(query, logFile = null, limit = 100) {
+            let qs = `?q=${encodeURIComponent(query)}&limit=${limit}`;
+            if (logFile) qs += `&log_file=${encodeURIComponent(logFile)}`;
+            return fetchJSON(`${baseUrl}/api/logs/search${qs}`);
+        },
+
+        async downloadLog(filename) {
+            const resp = await fetch(`${baseUrl}/api/logs/download/${encodeURIComponent(filename)}`);
+            return resp.text();
+        },
+
         // -- Pipeline persistence (save / load / list / delete) --
 
         async listPipelines() {
