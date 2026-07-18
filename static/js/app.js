@@ -638,7 +638,12 @@ const App = (function () {
 
         document.getElementById('btn-run').addEventListener('click', runPipeline);
         document.getElementById('btn-stop').addEventListener('click', () => {
-            toast(I18n.t('toast.stop_unsupported'), 'warning');
+            if (currentRunHandle) {
+                currentRunHandle.cancel();
+                toast(I18n.t('toast.cancelling'), 'success');
+            } else {
+                toast(I18n.t('toast.stop_unsupported'), 'warning');
+            }
         });
 
         // Templates button
@@ -736,6 +741,9 @@ const App = (function () {
     function hideModal(id) { document.getElementById(id).classList.remove('active'); }
 
     // ---- Pipeline execution ----
+    // Handle for the currently running WebSocket execution (for cancel support)
+    let currentRunHandle = null;
+
     async function runPipeline() {
         const graph = Store.toGraph();
         if (Store.getNodes().length === 0) {
@@ -757,13 +765,18 @@ const App = (function () {
             // are caught and the UI is properly restored in finally)
             Results.startStreaming();
 
-            const result = await API.runWebSocket(graph, (event, payload) => {
+            const wsHandle = API.runWebSocket(graph, (event, payload) => {
                 if (event === 'pipeline_start') {
                     setStatus(I18n.t('run.queued', { count: payload.node_count }));
                 } else if (event === 'node_start') {
                     Store.setNodeStatus(payload.node_id, 'running');
                     Canvas.updateSelection();
-                    setStatus(I18n.t('run.node_start', { name: payload.node_name }));
+                    let statusMsg = I18n.t('run.node_start', { name: payload.node_name });
+                    // Show model download hint if the node has a model
+                    if (payload.model) {
+                        statusMsg += ' — ' + I18n.t('run.downloading_model', { model: payload.model });
+                    }
+                    setStatus(statusMsg);
                 } else if (event === 'node_complete') {
                     Store.setNodeStatus(payload.node_id, 'success');
                     Canvas.updateSelection();
@@ -780,12 +793,27 @@ const App = (function () {
                     toast(I18n.t('run.node_error', { name: payload.node_name }) + ': ' + payload.error, 'error');
                 } else if (event === 'keepalive') {
                     const elapsed = payload.elapsed ? Math.round(payload.elapsed) : '?';
-                    setStatus(`${I18n.t('results.running')} (${elapsed}s)`);
+                    let msg = `${I18n.t('results.running')} (${elapsed}s)`;
+                    // Show timeout info if configured
+                    if (payload.timeout && payload.timeout > 0) {
+                        const remaining = Math.max(0, payload.timeout - elapsed);
+                        if (remaining < 300) {  // Show countdown in last 5 minutes
+                            msg += ` — ${Math.round(remaining)}s ${I18n.t('run.remaining')}`;
+                        }
+                    } else {
+                        msg += ` — ${I18n.t('run.no_timeout')}`;
+                    }
+                    setStatus(msg);
                 } else if (event === 'pipeline_complete') {
                     const status = payload.success ? I18n.t('run.complete_status_ok') : I18n.t('run.complete_status_fail');
                     setStatus(I18n.t('run.complete', { status, duration: payload.duration }));
                 }
             });
+
+            // Store the cancel handle so the stop button can use it
+            currentRunHandle = wsHandle;
+
+            const result = await wsHandle.promise;
 
             // Finalize: add summary + final output to the streamed results
             Results.finalizeStreaming(result);
@@ -801,6 +829,7 @@ const App = (function () {
             setStatus(I18n.t('status.execution_failed'));
         } finally {
             Store.setRunning(false);
+            currentRunHandle = null;
             document.getElementById('btn-run').classList.remove('btn-hidden');
             document.getElementById('btn-stop').classList.add('btn-hidden');
         }

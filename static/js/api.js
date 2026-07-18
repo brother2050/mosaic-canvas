@@ -102,12 +102,16 @@ const API = (() => {
             });
         },
 
-        /** Run pipeline via WebSocket with real-time progress callbacks. */
+        /** Run pipeline via WebSocket with real-time progress callbacks.
+         *  Returns an object with a promise and a cancel() method.
+         */
         runWebSocket(graph, onEvent) {
-            return new Promise((resolve, reject) => {
+            let ws = null;
+            let settled = false;
+
+            const promise = new Promise((resolve, reject) => {
                 const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const ws = new WebSocket(`${proto}//${location.host}/ws/run`);
-                let settled = false;
+                ws = new WebSocket(`${proto}//${location.host}/ws/run`);
 
                 ws.onopen = () => {
                     ws.send(JSON.stringify(graph));
@@ -125,7 +129,9 @@ const API = (() => {
                             reject(new Error(msg.payload.error || 'Execution failed'));
                             ws.close();
                         } else if (msg.event === 'keepalive') {
-                            // Server keepalive ping — ignore
+                            // Server keepalive ping — forward to callback
+                            // so the UI can display elapsed time and timeout info
+                            onEvent('keepalive', msg.payload);
                         } else {
                             onEvent(msg.event, msg.payload);
                         }
@@ -156,6 +162,16 @@ const API = (() => {
                     }
                 };
             });
+
+            // Return both the promise and a cancel function
+            return {
+                promise,
+                cancel() {
+                    if (ws && ws.readyState === WebSocket.OPEN && !settled) {
+                        ws.send(JSON.stringify({ action: 'cancel' }));
+                    }
+                },
+            };
         },
     };
 })();

@@ -461,7 +461,23 @@ def create_app() -> FastAPI:
 
     @app.websocket("/ws/run")
     async def ws_run(websocket: WebSocket) -> None:
-        """Execute a graph with real-time progress streamed over WebSocket."""
+        """Execute a graph with real-time progress streamed over WebSocket.
+
+        超时策略：
+          - 默认超时 3600s（1小时），通过 ``MOSAIC_CANVAS_EXEC_TIMEOUT``
+            环境变量可配置。设为 0 表示无超时限制。
+          - 超时不会强制中断模型下载——worker 线程是 daemon=True，
+            即使 WebSocket 断开，后台下载仍会继续完成，下次执行时
+            可直接使用已缓存的模型。
+          - 用户可通过发送 ``{"action": "cancel"}`` 消息主动取消执行。
+        """
+        from mosaic_canvas.config import (
+            EXEC_TIMEOUT_SEC,
+            KEEPALIVE_INTERVAL_SEC,
+            POLL_INTERVAL_SEC,
+            WORKER_JOIN_TIMEOUT_SEC,
+        )
+
         await websocket.accept()
         try:
             raw = await websocket.receive_text()
@@ -481,6 +497,8 @@ def create_app() -> FastAPI:
             loop = asyncio.get_event_loop()
             # Track send errors so the worker thread can detect connection failures
             send_error: list[Exception] = []
+            # Cancellation flag shared between the WebSocket reader and the waiter
+            cancel_flag: dict[str, bool] = {"cancelled": False}
 
             def progress(event_type: str, payload: dict[str, Any]) -> None:
                 # Schedule the send on the event loop (we're in a worker thread)
@@ -517,31 +535,89 @@ def create_app() -> FastAPI:
 
             # Wait for completion while sending keepalive pings to prevent
             # the WebSocket connection from timing out during long model loads.
-            # Total timeout: 10 minutes (model downloads can be slow).
-            keepalive_counter = 0
-            max_wait_iterations = 1200  # 1200 * 0.5s = 600s = 10 min
+            #
+            # 超时策略改进：
+            #   - 旧方案：硬编码 600s (10min) → 初次下载大模型必然超时
+            #   - 新方案：默认 3600s (1h)，可通过环境变量配置，设为 0 无限制
+            #   - 超时后不强制终止 daemon 线程，模型下载在后台继续完成
+            keepalive_interval_count = int(KEEPALIVE_INTERVAL_SEC / POLL_INTERVAL_SEC)
+            if keepalive_interval_count < 1:
+                keepalive_interval_count = 1
+            max_wait_iterations = int(EXEC_TIMEOUT_SEC / POLL_INTERVAL_SEC) if EXEC_TIMEOUT_SEC > 0 else 0
+
+            iteration = 0
             while worker.is_alive():
-                await asyncio.sleep(0.5)
-                keepalive_counter += 1
-                # Send a keepalive ping every 5 seconds
-                if keepalive_counter % 10 == 0:
+                # Check for cancellation messages from the client (non-blocking)
+                try:
+                    # Poll for incoming messages without blocking
+                    msg = await asyncio.wait_for(
+                        websocket.receive_text(),
+                        timeout=0.01,  # Very short poll — just check if a message is waiting
+                    )
+                    try:
+                        msg_data = json.loads(msg)
+                        if msg_data.get("action") == "cancel":
+                            cancel_flag["cancelled"] = True
+                            logger.info("Execution cancelled by user.")
+                            break
+                    except (json.JSONDecodeError, KeyError):
+                        pass
+                except asyncio.TimeoutError:
+                    pass  # No message waiting — continue
+                except WebSocketDisconnect:
+                    break
+
+                await asyncio.sleep(POLL_INTERVAL_SEC)
+                iteration += 1
+
+                # Send keepalive ping at the configured interval
+                if iteration % keepalive_interval_count == 0:
+                    elapsed = iteration * POLL_INTERVAL_SEC
                     try:
                         await websocket.send_json({"event": "keepalive", "payload": {
-                            "elapsed": keepalive_counter * 0.5,
+                            "elapsed": elapsed,
+                            "timeout": EXEC_TIMEOUT_SEC if EXEC_TIMEOUT_SEC > 0 else None,
                         }})
                     except Exception:  # noqa: BLE001
                         break  # Connection closed
-                # Timeout: if execution takes more than 10 minutes, abort
-                if keepalive_counter >= max_wait_iterations:
-                    logger.warning("Execution timed out after %d seconds", max_wait_iterations * 0.5)
+
+                # Check send errors (connection may have dropped)
+                if send_error:
+                    logger.warning("WebSocket send errors detected, aborting wait.")
                     break
 
-            worker.join(timeout=5)
+                # Check configurable timeout (0 = no timeout)
+                if max_wait_iterations > 0 and iteration >= max_wait_iterations:
+                    logger.warning(
+                        "Execution timed out after %d seconds (configurable via "
+                        "MOSAIC_CANVAS_EXEC_TIMEOUT). Worker thread continues in "
+                        "background to allow model download to complete.",
+                        EXEC_TIMEOUT_SEC,
+                    )
+                    break
 
-            # If worker is still alive after timeout, report it
-            if worker.is_alive():
+            # Wait for worker to finish (with configurable join timeout)
+            worker.join(timeout=WORKER_JOIN_TIMEOUT_SEC)
+
+            # Handle cancellation
+            if cancel_flag["cancelled"]:
                 await websocket.send_json({"event": "error", "payload": {
-                    "error": "Execution timed out (10 minutes). The model may be too large to load or the network is too slow. Try selecting a smaller model or checking your network connection.",
+                    "error": "Execution cancelled by user. "
+                    "Model downloads may continue in the background.",
+                }})
+            # If worker is still alive after timeout, report it but don't kill
+            # the daemon thread — model downloads continue in background.
+            elif worker.is_alive():
+                timeout_msg = (
+                    f"Execution timed out after {EXEC_TIMEOUT_SEC} seconds. "
+                    "The model is likely still downloading in the background. "
+                    "Please wait a few minutes and try again — the model "
+                    "will be cached for subsequent runs."
+                    if EXEC_TIMEOUT_SEC > 0
+                    else "Execution is still running in the background."
+                )
+                await websocket.send_json({"event": "error", "payload": {
+                    "error": timeout_msg,
                 }})
 
             # Check for errors from the worker thread
@@ -553,7 +629,7 @@ def create_app() -> FastAPI:
             elif "result" in result_holder:
                 result = result_holder["result"]
                 await websocket.send_json({"event": "done", "payload": result.to_dict()})
-            else:
+            elif not cancel_flag["cancelled"] and not worker.is_alive():
                 await websocket.send_json({"event": "error", "payload": {
                     "error": "Execution failed with no result.",
                 }})

@@ -750,7 +750,18 @@ class GraphExecutor:
                 break
 
             if progress:
-                progress("node_start", {"node_id": nid, "node_name": node_name})
+                # Determine if this node may need to download a model.
+                # Include model info so the frontend can show a helpful
+                # "downloading model" hint during long first-run waits.
+                model_hint = None
+                model_name = gnode.params.get("model")
+                if model_name:
+                    model_hint = str(model_name)
+                progress("node_start", {
+                    "node_id": nid,
+                    "node_name": node_name,
+                    "model": model_hint,
+                })
 
             # Assemble input from predecessors + pipeline input
             node_input = MosaicData()

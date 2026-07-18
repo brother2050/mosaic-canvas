@@ -450,7 +450,7 @@ const Guide = (() => {
                 <tr><td>Cannot connect two nodes</td><td>Types incompatible. Check I/O types in properties. Use ${n('type-converter')} if needed.</td></tr>
                 <tr><td>Downstream gets empty input</td><td>Field name mismatch. Check upstream's Output Data Structure, use ${n('field-mapper')} to rename.</td></tr>
                 <tr><td>${n('chat')} node fails</td><td><code>messages</code> is required. Set it to <code>[{"role": "user", "content": "your question"}]</code>.</td></tr>
-                <tr><td>Model loading timeout</td><td>Try smaller model or check network. Timeout: 10 minutes.</td></tr>
+                <tr><td>Model loading timeout</td><td>First run downloads models (can take 30+ minutes for large models). Default timeout: 60 minutes (configurable via <code>MOSAIC_CANVAS_EXEC_TIMEOUT</code> env var). The download continues in background even if timeout occurs — just run again after it finishes. Use the Stop button to cancel.</td></tr>
                 <tr><td>Low quality images</td><td>Add negative prompts: "low quality, blurry, worst quality". Increase resolution.</td></tr>
                 <tr><td>Prompt picker (⊞) not inserting</td><td>Click the target field first, then ⊞, then select a prompt.</td></tr>
                 <tr><td>Run button no response</td><td>Hard refresh browser (Ctrl+Shift+R) to clear cached JS.</td></tr>
@@ -860,7 +860,7 @@ const Guide = (() => {
                 <tr><td>两个节点无法连接</td><td>类型不兼容。在属性面板查看 I/O 类型。需要时用 ${n('type-converter')}。</td></tr>
                 <tr><td>下游收到空输入</td><td>字段名不匹配。查看上游"输出数据结构"，用 ${n('field-mapper')} 重命名。</td></tr>
                 <tr><td>${n('chat')} 节点失败</td><td><code>messages</code> 是必填字段。设置为 <code>[{"role": "user", "content": "你的问题"}]</code>。</td></tr>
-                <tr><td>模型加载超时</td><td>尝试更小模型或检查网络。超时限制 10 分钟。</td></tr>
+                <tr><td>模型加载超时</td><td>首次运行需下载模型（大模型可能需要30分钟以上）。默认超时：60分钟（可通过 <code>MOSAIC_CANVAS_EXEC_TIMEOUT</code> 环境变量配置）。即使超时，下载仍在后台继续——完成后再次运行即可。可使用"停止"按钮取消。</td></tr>
                 <tr><td>图片质量低</td><td>添加负面提示词："low quality, blurry, worst quality"。提高分辨率。</td></tr>
                 <tr><td>提示词选择器（⊞）不插入</td><td>先点击目标输入框，再点击 ⊞，然后选择提示词。</td></tr>
                 <tr><td>运行按钮无反应</td><td>强制刷新浏览器（Ctrl+Shift+R）清除缓存的 JS。</td></tr>
