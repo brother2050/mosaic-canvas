@@ -605,7 +605,7 @@ class GraphExecutor:
         from mosaic.core.registry import registry
 
         errors: dict[str, str] = {}
-        for gnode in self.graph.nodes:
+        for idx, gnode in enumerate(self.graph.nodes):
             # Emit progress before instantiation — node constructors may
             # load models (taking minutes), and without this event the
             # frontend sees no activity between pipeline_start and the
@@ -616,6 +616,8 @@ class GraphExecutor:
                     "node_id": gnode.id,
                     "node_name": gnode.type,
                     "model": str(model_hint) if model_hint else None,
+                    "_index": idx,
+                    "_total": len(self.graph.nodes),
                 })
             try:
                 node_class = registry.get_class(gnode.type)

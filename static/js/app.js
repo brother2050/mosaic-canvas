@@ -759,6 +759,22 @@ const App = (function () {
 
         const totalNodes = Store.getNodes().length;
         let completedNodes = 0;
+        let totalNodeCount = totalNodes;  // from pipeline_start event
+        let currentPhase = 'starting';    // 'instantiating' | 'executing' | 'done'
+        let instantiatingIndex = 0;       // which node is being instantiated
+
+        // Helper: build progress prefix like "[2/5] (40%)"
+        function progressPrefix() {
+            if (totalNodeCount <= 0) return '';
+            // During instantiation phase, count instantiation progress
+            // During execution phase, count completed nodes
+            let done = completedNodes;
+            if (currentPhase === 'instantiating') {
+                done = instantiatingIndex;
+            }
+            const pct = Math.round((done / totalNodeCount) * 100);
+            return `[${done}/${totalNodeCount}] (${pct}%) `;
+        }
 
         try {
             // Initialize streaming results display (inside try so errors
@@ -767,18 +783,24 @@ const App = (function () {
 
             const wsHandle = API.runWebSocket(graph, (event, payload) => {
                 if (event === 'pipeline_start') {
-                    setStatus(I18n.t('run.queued', { count: payload.node_count }));
+                    totalNodeCount = payload.node_count || totalNodes;
+                    currentPhase = 'instantiating';
+                    instantiatingIndex = 0;
+                    setStatus(`${progressPrefix()}${I18n.t('run.queued', { count: totalNodeCount })}`);
                 } else if (event === 'node_instantiating') {
                     // Node is being instantiated (constructor may load model)
-                    let msg = I18n.t('run.instantiating', { name: payload.node_name });
+                    currentPhase = 'instantiating';
+                    instantiatingIndex = (payload._index !== undefined) ? payload._index : instantiatingIndex + 1;
+                    let msg = `${progressPrefix()}${I18n.t('run.instantiating', { name: payload.node_name })}`;
                     if (payload.model) {
                         msg += ' — ' + I18n.t('run.downloading_model', { model: payload.model });
                     }
                     setStatus(msg);
                 } else if (event === 'node_start') {
+                    currentPhase = 'executing';
                     Store.setNodeStatus(payload.node_id, 'running');
                     Canvas.updateSelection();
-                    let statusMsg = I18n.t('run.node_start', { name: payload.node_name });
+                    let statusMsg = `${progressPrefix()}${I18n.t('run.node_start', { name: payload.node_name })}`;
                     // Show model download hint if the node has a model
                     if (payload.model) {
                         statusMsg += ' — ' + I18n.t('run.downloading_model', { model: payload.model });
@@ -787,7 +809,7 @@ const App = (function () {
                 } else if (event === 'download_progress') {
                     // Download progress event from the monitor
                     const downloadedMB = (payload.downloaded_bytes / 1048576).toFixed(1);
-                    let msg = I18n.t('run.downloading_model', { model: payload.node_name || '' });
+                    let msg = `${progressPrefix()}${I18n.t('run.downloading_model', { model: payload.node_name || '' })}`;
                     msg += ` (${downloadedMB} MB)`;
                     if (payload.stalled) {
                         msg = '⚠️ ' + I18n.t('run.download_stalled', { seconds: Math.round(payload.stall_seconds) });
@@ -799,17 +821,17 @@ const App = (function () {
                     completedNodes++;
                     // Show this node's result immediately
                     Results.appendNodeResult(payload);
-                    setStatus(I18n.t('run.node_done', { name: payload.node_name, duration: payload.duration }));
+                    setStatus(`${progressPrefix()}${I18n.t('run.node_done', { name: payload.node_name, duration: payload.duration })}`);
                 } else if (event === 'node_error') {
                     Store.setNodeStatus(payload.node_id, 'error');
                     Canvas.updateSelection();
                     // Show error result immediately
                     Results.appendNodeResult({ ...payload, status: 'error' });
-                    setStatus(I18n.t('run.node_error', { name: payload.node_name }));
+                    setStatus(`${progressPrefix()}${I18n.t('run.node_error', { name: payload.node_name })}`);
                     toast(I18n.t('run.node_error', { name: payload.node_name }) + ': ' + payload.error, 'error');
                 } else if (event === 'keepalive') {
                     const elapsed = payload.elapsed ? Math.round(payload.elapsed) : '?';
-                    let msg = `${I18n.t('results.running')} (${elapsed}s)`;
+                    let msg = `${progressPrefix()}${I18n.t('results.running')} (${elapsed}s)`;
                     // Show timeout info if configured
                     if (payload.timeout && payload.timeout > 0) {
                         const remaining = Math.max(0, payload.timeout - elapsed);
@@ -821,6 +843,7 @@ const App = (function () {
                     }
                     setStatus(msg);
                 } else if (event === 'pipeline_complete') {
+                    currentPhase = 'done';
                     const status = payload.success ? I18n.t('run.complete_status_ok') : I18n.t('run.complete_status_fail');
                     setStatus(I18n.t('run.complete', { status, duration: payload.duration }));
                 }

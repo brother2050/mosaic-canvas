@@ -105,6 +105,30 @@
         .sidebar-item.active { background: var(--bg-hover); border-left: 3px solid var(--accent); }
         .sidebar-item .filename { font-family: var(--mono); font-size: 12px; }
         .sidebar-item .meta { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+        .sidebar-item .actions { margin-top: 4px; display: flex; gap: 6px; }
+        .sidebar-item .actions button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .sidebar-item .actions button:hover { color: var(--text); border-color: var(--accent); }
+        .sidebar-item .actions button.delete:hover { color: var(--red); border-color: var(--red); }
+        .status-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .status-completed { background: rgba(78,201,176,0.2); color: var(--green); }
+        .status-failed, .status-error { background: rgba(244,71,71,0.2); color: var(--red); }
+        .status-cancelled, .status-timeout { background: rgba(220,220,170,0.2); color: var(--yellow); }
+        .status-running, .status-unknown { background: rgba(136,136,136,0.2); color: var(--text-dim); }
+        .graph-name { color: var(--accent); font-size: 12px; font-weight: 500; }
 
         .content {
             flex: 1;
@@ -168,6 +192,7 @@
             <option value="DEBUG">DEBUG</option>
         </select>
         <button onclick="refresh()">🔄 Refresh</button>
+        <button onclick="cleanupOldLogs()" title="Delete logs older than 7 days">🧹 Cleanup</button>
     </div>
 
     <div class="main">
@@ -214,12 +239,24 @@
                     sidebar.innerHTML = '<div class="empty">No execution logs yet</div>';
                     return;
                 }
-                sidebar.innerHTML = data.logs.map(log => `
-                    <div class="sidebar-item" onclick="loadExecutionLog('${log.filename}')">
-                        <div class="filename">${log.filename}</div>
-                        <div class="meta">${log.size_human} • ${log.modified.replace('T', ' ').substring(0, 19)}</div>
-                    </div>
-                `).join('');
+                sidebar.innerHTML = data.logs.map(log => {
+                    const graphName = log.graph_name ? escapeHtml(log.graph_name) : '(unnamed)';
+                    const status = log.status || 'unknown';
+                    const time = log.modified.replace('T', ' ').substring(0, 19);
+                    return `
+                    <div class="sidebar-item" onclick="loadExecutionLog('${log.filename}', event)">
+                        <div class="graph-name">${graphName}</div>
+                        <div class="meta">
+                            <span class="status-badge status-${status}">${status}</span>
+                            ${log.size_human} • ${time}
+                        </div>
+                        <div class="filename" style="font-size:10px;color:var(--text-dim);margin-top:2px">${log.filename}</div>
+                        <div class="actions">
+                            <button onclick="event.stopPropagation();downloadLog('${log.filename}')" title="Download">⬇ Download</button>
+                            <button class="delete" onclick="event.stopPropagation();deleteLog('${log.filename}')" title="Delete">🗑 Delete</button>
+                        </div>
+                    </div>`;
+                }).join('');
                 if (data.active && data.active.length > 0) {
                     sidebar.innerHTML = '<div style="padding:8px 16px;color:var(--green);font-size:12px;">● Active:</div>' +
                         data.active.map(a => `
@@ -234,10 +271,10 @@
             }
         }
 
-        async function loadExecutionLog(filename) {
+        async function loadExecutionLog(filename, ev) {
             currentLogFile = filename;
             document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-            event?.target?.closest('.sidebar-item')?.classList.add('active');
+            if (ev && ev.currentTarget) ev.currentTarget.classList.add('active');
 
             const content = document.getElementById('content');
             content.innerHTML = '<div class="loading">Loading...</div>';
@@ -381,6 +418,36 @@
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        async function deleteLog(filename) {
+            if (!confirm(`Delete log file "${filename}"?`)) return;
+            try {
+                const result = await API.deleteExecutionLog(filename);
+                if (result.success) {
+                    // Clear content if it was the current log
+                    if (currentLogFile === filename) {
+                        document.getElementById('content').innerHTML = '<div class="empty">Select a log file to view</div>';
+                        currentLogFile = null;
+                    }
+                    refresh();
+                } else {
+                    alert('Delete failed: ' + result.message);
+                }
+            } catch (e) {
+                alert('Delete failed: ' + e.message);
+            }
+        }
+
+        async function cleanupOldLogs() {
+            if (!confirm('Delete all logs older than 7 days (keeping max 100 files)?')) return;
+            try {
+                const result = await API.cleanupLogs(7, 100);
+                alert(`Cleanup complete: deleted ${result.deleted_count} files, ${result.remaining_count} remaining.`);
+                refresh();
+            } catch (e) {
+                alert('Cleanup failed: ' + e.message);
+            }
         }
 
         function applyFilter() {

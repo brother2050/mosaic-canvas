@@ -138,8 +138,16 @@ def _get_data_dir(subdir: str) -> Path:
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     # Initialize unified logging system
-    from mosaic_canvas.log_manager import setup_logging
+    from mosaic_canvas.log_manager import setup_logging, cleanup_old_logs
     setup_logging()
+
+    # Auto-cleanup old logs on startup (keep 7 days, max 100 files)
+    cleanup_result = cleanup_old_logs(max_age_days=7, max_count=100)
+    if cleanup_result["deleted_count"] > 0:
+        logger.info(
+            "Startup log cleanup: deleted %d old log files, %d remaining",
+            cleanup_result["deleted_count"], cleanup_result["remaining_count"],
+        )
 
     static_dir = Path(__file__).resolve().parent.parent / "static"
 
@@ -536,6 +544,31 @@ def create_app() -> FastAPI:
             media_type="text/plain",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
+
+    @app.delete("/api/logs/executions/{filename}")
+    async def delete_execution_log_api(filename: str) -> JSONResponse:
+        """Delete a single execution log file."""
+        from mosaic_canvas.log_manager import delete_execution_log
+        result = delete_execution_log(filename)
+        return JSONResponse(content=result)
+
+    @app.post("/api/logs/cleanup")
+    async def cleanup_logs_api(
+        max_age_days: int | None = None,
+        max_count: int | None = None,
+    ) -> JSONResponse:
+        """Clean up old execution log files.
+
+        Without parameters, uses defaults: max_age_days=7, max_count=100.
+        """
+        from mosaic_canvas.log_manager import cleanup_old_logs
+        if max_age_days is None and max_count is None:
+            max_age_days = 7
+            max_count = 100
+        result = cleanup_old_logs(max_age_days=max_age_days, max_count=max_count)
+        logger.info("Log cleanup: deleted %d, remaining %d",
+                    result["deleted_count"], result["remaining_count"])
+        return JSONResponse(content=result)
 
     # -- WebSocket for real-time execution --------------------------------
 

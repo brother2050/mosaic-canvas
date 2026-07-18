@@ -87,6 +87,21 @@ const API = (() => {
             return resp.text();
         },
 
+        async deleteExecutionLog(filename) {
+            const resp = await fetch(`${baseUrl}/api/logs/executions/${encodeURIComponent(filename)}`, {
+                method: 'DELETE',
+            });
+            return resp.json();
+        },
+
+        async cleanupLogs(maxAgeDays = null, maxCount = null) {
+            let qs = '';
+            if (maxAgeDays !== null) qs += `?max_age_days=${maxAgeDays}`;
+            if (maxCount !== null) qs += `${qs ? '&' : '?'}max_count=${maxCount}`;
+            const resp = await fetch(`${baseUrl}/api/logs/cleanup${qs}`, { method: 'POST' });
+            return resp.json();
+        },
+
         // -- Pipeline persistence (save / load / list / delete) --
 
         async listPipelines() {

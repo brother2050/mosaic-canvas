@@ -114,11 +114,17 @@ class ExecutionLogHandler:
     _active: dict[str, "ExecutionLogHandler"] = {}
     _lock = threading.Lock()
 
-    def __init__(self, execution_id: str, log_dir: Path) -> None:
+    def __init__(self, execution_id: str, log_dir: Path, graph_name: str = "") -> None:
         self.execution_id = execution_id
         self.log_dir = log_dir
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.filename = f"{timestamp}_{execution_id}.log"
+        # Include sanitized graph name in filename for easy identification.
+        # e.g. "20260718_153012_text-to-video_a1b2c3d4.log"
+        safe_name = _sanitize_name(graph_name)
+        if safe_name:
+            self.filename = f"{timestamp}_{safe_name}_{execution_id}.log"
+        else:
+            self.filename = f"{timestamp}_{execution_id}.log"
         self.filepath = log_dir / "executions" / self.filename
         self.handler: logging.Handler | None = None
         self._records: list[str] = []
@@ -360,7 +366,7 @@ def create_execution_log(
     Returns:
         The ExecutionLogHandler instance, already started.
     """
-    handler = ExecutionLogHandler(execution_id, _get_log_dir())
+    handler = ExecutionLogHandler(execution_id, _get_log_dir(), graph_name=graph_name or "")
     handler.start(graph_name=graph_name, node_count=node_count)
     return handler
 
@@ -389,14 +395,39 @@ def list_execution_logs(limit: int = 50) -> list[dict[str, Any]]:
     result = []
     for f in files:
         stat = f.stat()
-        # Parse execution_id from filename (timestamp_id.log)
+        # Parse execution_id and graph_name from filename.
+        # Format: YYYYMMDD_HHMMSS[_graph-name]_execid.log
         name = f.stem
-        parts = name.split("_", 2)
-        exec_id = parts[2] if len(parts) >= 3 else name
+        parts = name.split("_")
+        exec_id = parts[-1]  # last part is always exec_id
+        # graph_name is everything between timestamp (first 2 parts) and exec_id
+        graph_name = ""
+        if len(parts) > 3:
+            graph_name = "-".join(parts[2:-1])
+        elif len(parts) == 3:
+            # Old format: timestamp_execid (no graph name)
+            exec_id = parts[2]
+
+        # Try to read status from the file footer (fast: read last 500 bytes)
+        status = "unknown"
+        try:
+            with open(f, "rb") as fh:
+                fh.seek(0, 2)  # Seek to end
+                fsize = fh.tell()
+                fh.seek(max(0, fsize - 500))
+                tail = fh.read().decode("utf-8", errors="replace")
+            for line in tail.splitlines():
+                if line.startswith("Status:"):
+                    status = line.split(":", 1)[1].strip()
+                    break
+        except OSError:
+            pass
 
         result.append({
             "filename": f.name,
             "execution_id": exec_id,
+            "graph_name": graph_name,
+            "status": status,
             "size_bytes": stat.st_size,
             "size_human": _human_size(stat.st_size),
             "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
@@ -556,6 +587,104 @@ def _human_size(size: int) -> str:
             return f"{size:.1f} {unit}"
         size /= 1024
     return f"{size:.1f} TB"
+
+
+def _sanitize_name(name: str) -> str:
+    """Sanitize a graph name for use in a filename.
+
+    Keeps alphanumeric, hyphens, underscores. Replaces spaces with hyphens.
+    Truncates to 30 chars. Returns empty string if input is empty or
+    becomes empty after sanitizing.
+    """
+    if not name:
+        return ""
+    import re as _re
+    # Replace spaces with hyphens, keep alnum, hyphen, underscore
+    safe = _re.sub(r'[^a-zA-Z0-9_\-\s]', '', name)
+    safe = _re.sub(r'\s+', '-', safe.strip())
+    safe = safe.strip('-_')
+    return safe[:30].lower()
+
+
+def cleanup_old_logs(
+    max_age_days: int | None = None,
+    max_count: int | None = None,
+) -> dict[str, Any]:
+    """Delete old execution log files.
+
+    Args:
+        max_age_days: delete files older than this many days (None = no age limit)
+        max_count: keep only the newest max_count files (None = no count limit)
+
+    Returns:
+        Dict with: deleted_count, deleted_files, remaining_count
+    """
+    log_dir = _get_log_dir()
+    exec_dir = log_dir / "executions"
+    if not exec_dir.exists():
+        return {"deleted_count": 0, "deleted_files": [], "remaining_count": 0}
+
+    # Get all log files sorted by modification time (newest first)
+    files = sorted(
+        exec_dir.glob("*.log"),
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )
+
+    # Determine which files to keep
+    now = time.time()
+    to_delete: list[Path] = []
+
+    for i, f in enumerate(files):
+        delete = False
+        # Age-based cleanup
+        if max_age_days is not None:
+            age_days = (now - f.stat().st_mtime) / 86400
+            if age_days > max_age_days:
+                delete = True
+        # Count-based cleanup (keep only max_count newest)
+        if max_count is not None and i >= max_count:
+            delete = True
+        if delete:
+            to_delete.append(f)
+
+    deleted_files = []
+    for f in to_delete:
+        try:
+            f.unlink()
+            deleted_files.append(f.name)
+        except OSError:
+            pass
+
+    remaining = len(files) - len(deleted_files)
+    return {
+        "deleted_count": len(deleted_files),
+        "deleted_files": deleted_files[:20],  # cap for response size
+        "remaining_count": remaining,
+    }
+
+
+def delete_execution_log(filename: str) -> dict[str, Any]:
+    """Delete a single execution log file.
+
+    Returns:
+        Dict with: success (bool), message (str)
+    """
+    log_dir = _get_log_dir()
+    filepath = log_dir / "executions" / filename
+
+    # Prevent path traversal
+    if not filepath.resolve().is_relative_to((log_dir / "executions").resolve()):
+        return {"success": False, "message": "Invalid filename"}
+
+    if not filepath.exists():
+        return {"success": False, "message": "Log file not found"}
+
+    try:
+        filepath.unlink()
+        return {"success": True, "message": f"Deleted {filename}"}
+    except OSError as e:
+        return {"success": False, "message": str(e)}
 
 
 def get_log_stats() -> dict[str, Any]:
