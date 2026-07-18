@@ -94,6 +94,19 @@ const Results = (() => {
         streamingMode = false;
         lastResult = result;
         if (!result) return;
+        // Merge tracebacks from streamed node_error events into the final
+        // result's node_results, so they survive the re-render.
+        if (result.node_results && streamingNodes.length > 0) {
+            const streamedMap = {};
+            streamingNodes.forEach(nr => {
+                if (nr.traceback) streamedMap[nr.node_id] = nr.traceback;
+            });
+            result.node_results.forEach(nr => {
+                if (streamedMap[nr.node_id] && !nr.traceback) {
+                    nr.traceback = streamedMap[nr.node_id];
+                }
+            });
+        }
         // Check if any streamed cards used summary-only (no full output).
         // If all cards have full output AND there's a final_output to add,
         // we can append the final output without re-rendering everything.
@@ -127,9 +140,14 @@ const Results = (() => {
             </div>
             <div class="result-stat">
                 <span class="result-stat-label">${I18n.t('results.nodes')}</span>
-                <span class="result-stat-value">${result.node_results.length}</span>
+                <span class="result-stat-value">${result.node_results ? result.node_results.length : 0}</span>
             </div>
         </div>`;
+
+        // Show overall error message if present (e.g. "Some nodes failed to instantiate.")
+        if (!result.success && result.error) {
+            html += `<div class="result-error" style="margin:8px 0">${escapeHtml(result.error)}</div>`;
+        }
 
         const nodeCount = result.node_results ? result.node_results.length : 0;
         const hasErrors = result.node_results && result.node_results.some(nr => nr.status === 'error');
@@ -175,8 +193,15 @@ const Results = (() => {
 
         if (nr.status === 'error' && nr.error) {
             html += `<div class="result-node-body expanded">
-                <div class="result-error">${escapeHtml(nr.error)}</div>
-            </div>`;
+                <div class="result-error">${escapeHtml(nr.error)}</div>`;
+            // Show traceback if available (from instantiate_nodes failures)
+            if (nr.traceback) {
+                html += `<details class="result-traceback">
+                    <summary>${I18n.t('results.traceback')}</summary>
+                    <pre class="result-traceback-pre">${escapeHtml(nr.traceback)}</pre>
+                </details>`;
+            }
+            html += `</div>`;
         } else if (nr.output && Object.keys(nr.output).length > 0) {
             html += `<div class="result-node-body expanded">
                 ${renderOutputData(nr.output)}

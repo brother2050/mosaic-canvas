@@ -623,11 +623,26 @@ class GraphExecutor:
                 params = _coerce_params(gnode.params, param_types)
                 self._instances[gnode.id] = node_class(**params)
             except Exception as exc:  # noqa: BLE001
+                # Capture full traceback so the user can diagnose the root
+                # cause (e.g. CUDA OOM, missing model files, dtype mismatch).
+                # The short message goes to the frontend result panel;
+                # the full traceback goes to the execution log.
+                import traceback as _tb
+                tb_str = _tb.format_exc()
                 errors[gnode.id] = f"{type(exc).__name__}: {exc}"
-                logger.warning(
-                    "Failed to instantiate node %s (%s): %s",
-                    gnode.id, gnode.type, exc,
+                logger.error(
+                    "Failed to instantiate node %s (%s): %s\n%s",
+                    gnode.id, gnode.type, exc, tb_str,
                 )
+                # Also emit a node_error event with the traceback so the
+                # frontend can display it immediately (not just in logs).
+                if progress:
+                    progress("node_error", {
+                        "node_id": gnode.id,
+                        "node_name": gnode.type,
+                        "error": f"{type(exc).__name__}: {exc}",
+                        "traceback": tb_str,
+                    })
         return errors
 
     def _get_node_scheduler(self, instance: Any) -> Any | None:
@@ -725,14 +740,14 @@ class GraphExecutor:
         node_results: list[NodeResult] = []
 
         # Report instantiation failures
+        # Note: node_error events are already emitted inside instantiate_nodes()
+        # with full traceback. Here we just build the NodeResult list.
         for nid, err in inst_errors.items():
             gnode = self.graph.get_node(nid)
             name = gnode.type if gnode else nid
             node_results.append(NodeResult(
                 node_id=nid, node_name=name, status="error", error=err,
             ))
-            if progress:
-                progress("node_error", {"node_id": nid, "node_name": name, "error": err})
 
         if inst_errors:
             return ExecutionResult(

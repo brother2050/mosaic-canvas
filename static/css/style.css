@@ -1369,6 +1369,31 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     font-size: 11px;
     margin-top: 4px;
 }
+.result-traceback {
+    margin-top: 6px;
+    font-size: 10px;
+}
+.result-traceback summary {
+    cursor: pointer;
+    color: var(--text-dim);
+    padding: 2px 0;
+}
+.result-traceback summary:hover {
+    color: var(--text);
+}
+.result-traceback-pre {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-dim);
+    background: rgba(0,0,0,0.2);
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
 .result-preview-hint {
     font-size: 10px;
     color: var(--text-faint);

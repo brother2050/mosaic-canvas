@@ -678,11 +678,12 @@ def create_app() -> FastAPI:
         # Track state
         cancelled = False
         done_event_sent = False
+        done_payload_success: bool | None = None
         start_time = time.time()
 
         async def _read_stdout() -> None:
             """Read JSON Lines from subprocess stdout, forward to WebSocket."""
-            nonlocal done_event_sent
+            nonlocal done_event_sent, done_payload_success
             assert proc.stdout is not None
             while True:
                 try:
@@ -700,6 +701,10 @@ def create_app() -> FastAPI:
                     payload = msg.get("payload", {})
                     if event in ("done", "error"):
                         done_event_sent = True
+                        if event == "done":
+                            done_payload_success = payload.get("success")
+                        else:
+                            done_payload_success = False
                     await websocket.send_json({"event": event, "payload": payload})
                 except json.JSONDecodeError:
                     logger.warning("Subprocess stdout (non-JSON): %s", line_str[:200])
@@ -774,6 +779,9 @@ def create_app() -> FastAPI:
         if timeout_task:
             all_tasks.append(timeout_task)
 
+        # Track outcome for execution log status
+        execution_outcome: str = "unknown"  # completed|failed|error|cancelled|timeout
+
         try:
             # Wait for stdout reader to finish (subprocess done) OR
             # cancel OR timeout
@@ -788,6 +796,7 @@ def create_app() -> FastAPI:
 
             # Handle cancellation
             if cancelled:
+                execution_outcome = "cancelled"
                 _kill_subprocess(proc)
                 await websocket.send_json({"event": "error", "payload": {
                     "error": "Execution cancelled by user.",
@@ -795,6 +804,7 @@ def create_app() -> FastAPI:
 
             # Handle timeout
             elif timeout_task and timeout_task in done:
+                execution_outcome = "timeout"
                 _kill_subprocess(proc)
                 await websocket.send_json({"event": "error", "payload": {
                     "error": f"Execution timed out after {exec_timeout} seconds. "
@@ -804,22 +814,39 @@ def create_app() -> FastAPI:
             # If stdout finished but no done/error event was sent,
             # the subprocess crashed. Check stderr for details.
             elif stdout_task in done and not done_event_sent:
-                # Wait briefly for stderr to flush
-                await asyncio.sleep(0.1)
+                # Wait for stderr to flush so we capture the crash traceback
+                await asyncio.wait_for(stderr_task, timeout=3.0)
                 return_code = proc.returncode
+                execution_outcome = "error"
                 if return_code is not None and return_code != 0:
                     await websocket.send_json({"event": "error", "payload": {
                         "error": f"Subprocess exited with code {return_code}. "
-                        "Check server logs for details.",
+                        "Check server logs at /logs.html for details.",
                     }})
                 else:
                     await websocket.send_json({"event": "error", "payload": {
-                        "error": "Execution ended unexpectedly (no result received).",
+                        "error": "Execution ended unexpectedly (no result received). "
+                        "Check server logs at /logs.html for details.",
                     }})
 
+            # If done event was sent, the execution completed (success or failure).
+            # Wait for stderr to finish flushing so we don't lose error logs.
+            elif done_event_sent:
+                # Give stderr 3 seconds to flush remaining output
+                try:
+                    await asyncio.wait_for(stderr_task, timeout=3.0)
+                except asyncio.TimeoutError:
+                    pass  # stderr still has data, but we've waited long enough
+                # Determine outcome from the done event payload
+                execution_outcome = "completed" if done_payload_success else "failed"
+
         finally:
-            # Clean up: cancel all pending tasks and kill subprocess
-            _kill_subprocess(proc)
+            # Only kill subprocess if it's still running (cancel/timeout/crash).
+            # If done event was received, the subprocess is exiting normally.
+            if execution_outcome in ("cancelled", "timeout", "error", "unknown"):
+                _kill_subprocess(proc)
+
+            # Cancel remaining tasks
             for task in all_tasks:
                 if not task.done():
                     task.cancel()
@@ -827,11 +854,9 @@ def create_app() -> FastAPI:
                         await task
                     except (asyncio.CancelledError, Exception):  # noqa: BLE001
                         pass
-            # Close execution log
-            status = "cancelled" if cancelled else (
-                "timeout" if (timeout_task and timeout_task in done) else "completed"
-            )
-            exec_log.finish(status=status)
+
+            # Close execution log with accurate status
+            exec_log.finish(status=execution_outcome)
 
     def _kill_subprocess(proc: Any) -> None:
         """Kill a subprocess if it's still running."""
