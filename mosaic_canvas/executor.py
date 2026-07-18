@@ -167,12 +167,34 @@ def coerce_param(value: Any, ui_type: str) -> Any:
 # directly.  e.g. multi-format-exporter needs 'data', but text-to-image
 # outputs 'images'; this mapping bridges the gap automatically.
 _FIELD_ALIASES: dict[str, list[str]] = {
-    "data": ["images", "image", "video", "audio", "text", "reply", "response"],
-    "prompt": ["reply", "response", "text", "message"],
-    "image": ["images", "data"],
+    "data": ["images", "image", "video", "audio", "text", "reply", "response",
+             "frames", "subtitles", "subtitle"],
+    "prompt": ["reply", "response", "text", "message", "summary"],
+    "image": ["images", "data", "face_image", "source_image"],
     "images": ["image", "data"],
-    "text": ["reply", "response", "prompt"],
+    "text": ["reply", "response", "prompt", "summary", "transcript"],
     "message": ["text", "reply", "response"],
+    # video-encoder needs 'frames'
+    "frames": ["video", "images", "frame_list", "data"],
+    # lip-syncer needs 'face_image'
+    "face_image": ["image", "images", "avatar", "source_image", "data"],
+    # realtime-renderer needs 'source_image'
+    "source_image": ["image", "images", "avatar", "face_image", "data"],
+    # realtime-renderer needs 'input_stream'
+    "input_stream": ["audio", "text", "video", "data"],
+    # inpainting needs 'mask_image' (templates use 'mask')
+    "mask_image": ["mask", "mask_path", "mask_image_path"],
+    # upscaler needs 'image'
+    # document-parser needs 'file_path'
+    "file_path": ["file", "path", "document", "filename"],
+    # retriever needs 'query'
+    "query": ["question", "search_query", "text"],
+    # tts needs 'text'
+    # translator needs 'text'
+    # text-summarizer needs 'text'
+    # stylizer needs 'style' (required, not an alias)
+    # lip-syncer needs 'audio'
+    "audio": ["audio_path", "audio_data", "voice"],
 }
 
 

@@ -280,3 +280,143 @@ class TestNodeSchemas:
         content = self.introspect_path.read_text(encoding="utf-8")
         assert '"multi-format-exporter"' in content
         assert 'name="data"' in content
+
+
+# ---------------------------------------------------------------------------
+# 6. Template field name fixes (second round — all templates)
+# ---------------------------------------------------------------------------
+class TestTemplateFieldFixes:
+    """Test that all template field names match node input schemas."""
+
+    @property
+    def templates_path(self):
+        return Path(__file__).resolve().parent.parent / "static" / "js" / "templates.js"
+
+    def test_inpainting_uses_mask_image_not_mask(self):
+        """Inpainting templates should use 'mask_image' not 'mask'."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        # The inpainting node requires 'mask_image', not 'mask'
+        # Check that no template uses bare 'mask' for inpainting
+        assert "mask: '/path/to/mask" not in content
+        assert "mask_image: '/path/to/mask" in content
+
+    def test_lip_syncer_uses_face_image_not_image(self):
+        """Lip-syncer templates should use 'face_image' not bare 'image'."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        # lip-syncer requires 'face_image'
+        assert "face_image:" in content
+
+    def test_stylizer_has_style_param(self):
+        """Stylizer nodes in templates should have 'style' input_param."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        # Find all stylizer node definitions and check they have style
+        # The stylizer requires 'style' as a required field
+        assert "style: 'oil painting'" in content or "style: 'anime'" in content
+
+    def test_upscaler_uses_scale_factor_not_scale(self):
+        """Upscaler templates should use 'scale_factor' not 'scale'."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        # upscaler schema has 'scale_factor', not 'scale'
+        assert "scale_factor:" in content
+        assert "scale: '2'" not in content
+
+    def test_digital_human_has_images_to_face_image_mapper(self):
+        """Digital human template should map images→face_image."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        assert '"images": "face_image"' in content
+
+    def test_no_futuristic_city_anywhere(self):
+        """The 'futuristic city' default should not appear anywhere."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        assert "futuristic city" not in content.lower()
+
+    def test_no_response_to_prompt_mapping(self):
+        """No template should use the wrong 'response'→'prompt' mapping."""
+        content = self.templates_path.read_text(encoding="utf-8")
+        assert '{"response": "prompt"}' not in content
+
+
+# ---------------------------------------------------------------------------
+# 7. Expanded field aliases
+# ---------------------------------------------------------------------------
+class TestExpandedFieldAliases:
+    """Test that _FIELD_ALIASES covers all node field mismatches."""
+
+    def test_frames_alias_exists(self):
+        """Should have alias for 'frames' (video-encoder input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "frames" in _FIELD_ALIASES
+        assert "video" in _FIELD_ALIASES["frames"]
+
+    def test_face_image_alias_exists(self):
+        """Should have alias for 'face_image' (lip-syncer input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "face_image" in _FIELD_ALIASES
+        assert "image" in _FIELD_ALIASES["face_image"]
+
+    def test_source_image_alias_exists(self):
+        """Should have alias for 'source_image' (realtime-renderer input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "source_image" in _FIELD_ALIASES
+        assert "image" in _FIELD_ALIASES["source_image"]
+
+    def test_mask_image_alias_exists(self):
+        """Should have alias for 'mask_image' (inpainting input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "mask_image" in _FIELD_ALIASES
+        assert "mask" in _FIELD_ALIASES["mask_image"]
+
+    def test_input_stream_alias_exists(self):
+        """Should have alias for 'input_stream' (realtime-renderer input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "input_stream" in _FIELD_ALIASES
+        assert "audio" in _FIELD_ALIASES["input_stream"]
+
+    def test_file_path_alias_exists(self):
+        """Should have alias for 'file_path' (document-parser input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "file_path" in _FIELD_ALIASES
+
+    def test_query_alias_exists(self):
+        """Should have alias for 'query' (retriever input)."""
+        from mosaic_canvas.executor import _FIELD_ALIASES
+        assert "query" in _FIELD_ALIASES
+
+    def test_apply_aliases_maps_image_to_face_image(self):
+        """Should map 'image' → 'face_image' when target needs it."""
+        from mosaic_canvas.executor import _apply_field_aliases
+
+        pred_out = {"image": "avatar.png"}
+        node_input = {}
+        expected_fields = {"face_image", "audio"}
+
+        _apply_field_aliases(pred_out, expected_fields, node_input)
+
+        assert "face_image" in node_input
+        assert node_input["face_image"] == "avatar.png"
+
+    def test_apply_aliases_maps_mask_to_mask_image(self):
+        """Should map 'mask' → 'mask_image' when target needs it."""
+        from mosaic_canvas.executor import _apply_field_aliases
+
+        pred_out = {"mask": "mask.png"}
+        node_input = {}
+        expected_fields = {"mask_image", "image", "prompt"}
+
+        _apply_field_aliases(pred_out, expected_fields, node_input)
+
+        assert "mask_image" in node_input
+        assert node_input["mask_image"] == "mask.png"
+
+    def test_apply_aliases_maps_video_to_frames(self):
+        """Should map 'video' → 'frames' when target needs it."""
+        from mosaic_canvas.executor import _apply_field_aliases
+
+        pred_out = {"video": "output.mp4"}
+        node_input = {}
+        expected_fields = {"frames", "fps"}
+
+        _apply_field_aliases(pred_out, expected_fields, node_input)
+
+        assert "frames" in node_input
+        assert node_input["frames"] == "output.mp4"

@@ -90,7 +90,7 @@ const Templates = (() => {
                 {
                     id: 'n2', type: 'stylizer', label: '',
                     params: {},
-                    input_params: {},
+                    input_params: { style: 'oil painting', strength: '0.65' },
                     ...pos(1, 0),
                 },
                 {
@@ -172,7 +172,7 @@ const Templates = (() => {
                 { id: 'e2', source: 'n2', target: 'n3' },
                 { id: 'e3', source: 'n3', target: 'n4' },
             ],
-            input: { text: '你好，欢迎使用 Mosaic 数字人系统。', source_image: '/path/to/avatar.png' },
+            input: { text: '你好，欢迎使用 Mosaic 数字人系统。', face_image: '/path/to/avatar.png' },
         },
         {
             id: 'video-subtitle-export',
@@ -260,7 +260,7 @@ const Templates = (() => {
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
             ],
-            input: { prompt: 'a red sports car', image: '/path/to/input.jpg', mask: '/path/to/mask.png' },
+            input: { prompt: 'a red sports car', image: '/path/to/input.jpg', mask_image: '/path/to/mask.png' },
         },
         {
             id: 'music-generation',
@@ -587,7 +587,7 @@ const Templates = (() => {
                 {
                     id: 'n2', type: 'stylizer', label: '',
                     params: {},
-                    input_params: {},
+                    input_params: { style: 'anime', strength: '0.7' },
                     ...pos(1, 0),
                 },
                 {
@@ -680,7 +680,7 @@ const Templates = (() => {
                 { id: 'n1', type: 'inpainting', label: '', params: { model: 'runwayml/stable-diffusion-inpainting' }, input_params: { strength: '1.0' }, ...pos(0, 0) },
             ],
             edges: [],
-            input: { image: '/path/to/image.png', mask: '/path/to/mask.png', prompt: 'a red sports car' },
+            input: { image: '/path/to/image.png', mask_image: '/path/to/mask.png', prompt: 'a red sports car' },
         },
 
         // ── 03/20_video_domain.py ──
@@ -927,7 +927,7 @@ const Templates = (() => {
                 { id: 'n2', type: 'lip-syncer', label: '', params: {}, input_params: {}, ...pos(1, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
-            input: { image: '/path/to/avatar.png', audio: '/path/to/audio.wav' },
+            input: { face_image: '/path/to/avatar.png', audio: '/path/to/audio.wav' },
         },
         {
             id: 'ex10-tts-lipsync-encode',
@@ -943,7 +943,7 @@ const Templates = (() => {
                 { id: 'e1', source: 'n1', target: 'n2' },
                 { id: 'e2', source: 'n2', target: 'n3' },
             ],
-            input: { text: 'Hello, I am a digital human. Nice to meet you!', image: '/path/to/avatar.png' },
+            input: { text: 'Hello, I am a digital human. Nice to meet you!', face_image: '/path/to/avatar.png' },
         },
         {
             id: 'ex10-motion-avatar',
@@ -955,7 +955,7 @@ const Templates = (() => {
                 { id: 'n2', type: 'avatar-driver', label: '', params: {}, input_params: {}, ...pos(1, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
-            input: { prompt: 'a person waving their hand', image: '/path/to/avatar.png' },
+            input: { prompt: 'a person waving their hand', face_image: '/path/to/avatar.png' },
         },
 
         // ── 11_cross_domain_pipeline.py ──
@@ -971,7 +971,7 @@ const Templates = (() => {
                 { id: 'n1', type: 'text-generator', label: '', params: {}, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"text": "prompt"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n3', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25' }, ...pos(2, 0) },
-                { id: 'n4', type: 'upscaler', label: '', params: {}, input_params: { scale: '2' }, ...pos(3, 0) },
+                { id: 'n4', type: 'upscaler', label: '', params: {}, input_params: { scale_factor: '2' }, ...pos(3, 0) },
                 { id: 'n5', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(4, 0) },
                 { id: 'n6', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'video', formats: '["mp4"]' }, ...pos(5, 0) },
             ],
@@ -995,13 +995,15 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25' }, ...pos(0, 0) },
                 { id: 'n2', type: 'tts', label: '', params: { backend: 'chattts' }, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'lip-syncer', label: '', params: {}, input_params: {}, ...pos(2, 0) },
-                { id: 'n4', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(3, 0) },
+                { id: 'n3', type: 'field-mapper', label: '', params: { mapping: '{"images": "face_image"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n4', type: 'lip-syncer', label: '', params: {}, input_params: {}, ...pos(3, 0) },
+                { id: 'n5', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(4, 0) },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n3' },
-                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e2', source: 'n2', target: 'n4' },
                 { id: 'e3', source: 'n3', target: 'n4' },
+                { id: 'e4', source: 'n4', target: 'n5' },
             ],
             input: { prompt: 'a professional headshot of a friendly news anchor', text: 'Welcome to today\'s news broadcast.' },
         },
