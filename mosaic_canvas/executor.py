@@ -167,7 +167,7 @@ def coerce_param(value: Any, ui_type: str) -> Any:
 # directly.  e.g. multi-format-exporter needs 'data', but text-to-image
 # outputs 'images'; this mapping bridges the gap automatically.
 _FIELD_ALIASES: dict[str, list[str]] = {
-    "data": ["images", "image", "video", "audio", "text", "reply", "response",
+    "data": ["image", "images", "video", "audio", "text", "reply", "response",
              "frames", "subtitles", "subtitle"],
     "prompt": ["reply", "response", "text", "message", "summary"],
     "image": ["images", "data", "face_image", "source_image"],
@@ -175,7 +175,7 @@ _FIELD_ALIASES: dict[str, list[str]] = {
     "text": ["reply", "response", "prompt", "summary", "transcript"],
     "message": ["text", "reply", "response"],
     # video-encoder needs 'frames'
-    "frames": ["video", "images", "frame_list", "data"],
+    "frames": ["video", "images", "image", "frame_list", "data"],
     # lip-syncer needs 'face_image'
     "face_image": ["image", "images", "avatar", "source_image", "data"],
     # realtime-renderer needs 'source_image'
@@ -184,15 +184,10 @@ _FIELD_ALIASES: dict[str, list[str]] = {
     "input_stream": ["audio", "text", "video", "data"],
     # inpainting needs 'mask_image' (templates use 'mask')
     "mask_image": ["mask", "mask_path", "mask_image_path"],
-    # upscaler needs 'image'
     # document-parser needs 'file_path'
     "file_path": ["file", "path", "document", "filename"],
     # retriever needs 'query'
     "query": ["question", "search_query", "text"],
-    # tts needs 'text'
-    # translator needs 'text'
-    # text-summarizer needs 'text'
-    # stylizer needs 'style' (required, not an alias)
     # lip-syncer needs 'audio'
     "audio": ["audio_path", "audio_data", "voice"],
 }
@@ -690,12 +685,12 @@ class GraphExecutor:
                 params = _coerce_params(gnode.params, param_types)
                 instance = node_class(**params)
                 self._instances[gnode.id] = instance
-                # Disable NSFW safety_checker for image generation nodes.
-                # The safety_checker returns black images for any content it
-                # flags, which blocks legitimate use cases.  Disabled by
-                # default; set MOSAIC_ENABLE_NSFW_CHECK=1 to re-enable.
-                if gnode.type in ("text-to-image", "image-to-image", "inpainting"):
-                    self._disable_safety_checker(instance, gnode.id)
+                # NOTE: NSFW safety_checker is now disabled in the mosaic
+                # framework's _post_load_fixup() and _prepare_pipeline_kwargs(),
+                # which run when the pipeline is actually loaded (lazily
+                # during run(), not during __init__).  The previous approach
+                # of disabling it here did not work because the pipeline is
+                # not loaded yet at instantiation time.
             except Exception as exc:  # noqa: BLE001
                 # Capture full traceback so the user can diagnose the root
                 # cause (e.g. CUDA OOM, missing model files, dtype mismatch).
@@ -728,54 +723,6 @@ class GraphExecutor:
         will not have the attribute.
         """
         return getattr(instance, "_scheduler", None)
-
-    def _disable_safety_checker(self, instance: Any, node_id: str) -> None:
-        """Disable the NSFW safety_checker on a diffusers pipeline.
-
-        Diffusers' ``StableDiffusionSafetyChecker`` returns black images
-        for any content it flags.  For a pipeline-building tool this is
-        counter-productive, so we disable it by default.
-
-        Controlled by env var ``MOSAIC_ENABLE_NSFW_CHECK``: set to ``1``
-        to keep the safety checker active.
-
-        The pipeline object may be stored under different attribute names
-        depending on the node implementation, so we try several common
-        ones: ``pipeline``, ``_pipeline``, ``model``, ``_model``.
-        """
-        import os
-        if os.environ.get("MOSAIC_ENABLE_NSFW_CHECK", "0") == "1":
-            logger.info("NSFW safety_checker kept enabled for node %s", node_id)
-            return
-
-        # Try common attribute names for the diffusers pipeline object
-        for attr_name in ("pipeline", "_pipeline", "model", "_model"):
-            pipeline = getattr(instance, attr_name, None)
-            if pipeline is None:
-                continue
-            # Check if it looks like a diffusers pipeline (has safety_checker)
-            if hasattr(pipeline, "safety_checker"):
-                try:
-                    pipeline.safety_checker = None
-                    if hasattr(pipeline, "requires_safety_checker"):
-                        pipeline.requires_safety_checker = False
-                    logger.info(
-                        "Disabled NSFW safety_checker for node %s (pipeline.%s)",
-                        node_id, attr_name,
-                    )
-                    return
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning(
-                        "Failed to disable safety_checker for node %s: %s",
-                        node_id, exc,
-                    )
-                    return
-        # Pipeline not found or doesn't have safety_checker — this is
-        # normal for some model variants; nothing to do.
-        logger.debug(
-            "No safety_checker found on node %s (attr search exhausted)",
-            node_id,
-        )
 
     def _release_node(self, nid: str, instance: Any) -> None:
         """Release a node's GPU memory.

@@ -318,7 +318,7 @@ const Templates = (() => {
                 },
                 {
                     id: 'n4', type: 'field-mapper', label: '',
-                    params: { mapping: '{"images": "data"}', drop_fields: '[]' },
+                    params: { mapping: '{"image": "data"}', drop_fields: '[]' },
                     input_params: {},
                     ...pos(3, 0),
                 },
@@ -995,7 +995,7 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25' }, ...pos(0, 0) },
                 { id: 'n2', type: 'tts', label: '', params: { backend: 'chattts' }, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'field-mapper', label: '', params: { mapping: '{"images": "face_image"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n3', type: 'field-mapper', label: '', params: { mapping: '{"image": "face_image"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
                 { id: 'n4', type: 'lip-syncer', label: '', params: {}, input_params: {}, ...pos(3, 0) },
                 { id: 'n5', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(4, 0) },
             ],
