@@ -777,6 +777,15 @@ const App = (function () {
                         statusMsg += ' — ' + I18n.t('run.downloading_model', { model: payload.model });
                     }
                     setStatus(statusMsg);
+                } else if (event === 'download_progress') {
+                    // Download progress event from the monitor
+                    const downloadedMB = (payload.downloaded_bytes / 1048576).toFixed(1);
+                    let msg = I18n.t('run.downloading_model', { model: payload.node_name || '' });
+                    msg += ` (${downloadedMB} MB)`;
+                    if (payload.stalled) {
+                        msg = '⚠️ ' + I18n.t('run.download_stalled', { seconds: Math.round(payload.stall_seconds) });
+                    }
+                    setStatus(msg);
                 } else if (event === 'node_complete') {
                     Store.setNodeStatus(payload.node_id, 'success');
                     Canvas.updateSelection();

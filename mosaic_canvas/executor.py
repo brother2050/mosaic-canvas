@@ -740,6 +740,7 @@ class GraphExecutor:
             assert gnode is not None
             instance = self._instances.get(nid)
             node_name = getattr(instance, "name", gnode.type)
+            model_hint = None  # Initialized here so except block can reference it
 
             if instance is None:
                 node_results.append(NodeResult(
@@ -753,7 +754,6 @@ class GraphExecutor:
                 # Determine if this node may need to download a model.
                 # Include model info so the frontend can show a helpful
                 # "downloading model" hint during long first-run waits.
-                model_hint = None
                 model_name = gnode.params.get("model")
                 if model_name:
                     model_hint = str(model_name)
@@ -762,6 +762,18 @@ class GraphExecutor:
                     "node_name": node_name,
                     "model": model_hint,
                 })
+
+            # Start download progress monitor for nodes that may download models.
+            # The monitor watches the HF cache directory for file size changes,
+            # reports progress to the frontend, and detects network stalls.
+            from mosaic_canvas.download_monitor import DownloadMonitor
+            download_monitor = DownloadMonitor(
+                progress=progress,
+                node_id=nid,
+                node_name=node_name,
+            )
+            if model_hint:
+                download_monitor.start()
 
             # Assemble input from predecessors + pipeline input
             node_input = MosaicData()
@@ -874,10 +886,14 @@ class GraphExecutor:
                         event_payload["output"] = serialized_output
                     progress("node_complete", event_payload)
 
+                # Stop download monitor — node completed successfully
+                if model_hint:
+                    download_monitor.stop()
+
                 # Release intermediate nodes whose successors are all done.
                 # This reduces peak GPU memory in multi-model pipelines
                 # (e.g. TextGenerator → TextToImage) by evicting models
-                # that are no longer needed, mirroring Pipeline behaviour.
+                # that are no longer needed, mirroring Pipeline behaviours.
                 self._release_unused_nodes(order, outputs)
             except Exception as exc:  # noqa: BLE001
                 elapsed = time.perf_counter() - t0
@@ -912,6 +928,9 @@ class GraphExecutor:
                         "error": error_msg,
                     })
                 failed = True
+                # Stop download monitor on error
+                if model_hint:
+                    download_monitor.stop()
                 # Stop on first error (fail-fast); remaining nodes are skipped
                 break
 
