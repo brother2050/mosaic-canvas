@@ -24,6 +24,7 @@ import logging
 import os
 import threading
 import time
+from datetime import datetime
 import uuid
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,15 @@ from mosaic_canvas.introspect import (
 logger = logging.getLogger("mosaic_canvas.server")
 
 __all__ = ["create_app"]
+
+
+def _human_size(size: int) -> str:
+    """Convert bytes to human-readable size string."""
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if abs(size) < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} PB"
 
 # ---------------------------------------------------------------------------
 # Pydantic models for request bodies
@@ -570,6 +580,216 @@ def create_app() -> FastAPI:
                     result["deleted_count"], result["remaining_count"])
         return JSONResponse(content=result)
 
+    # -- Resource management (generated media files) ----------------------
+
+    @app.get("/api/resources/stats")
+    async def get_resource_stats() -> JSONResponse:
+        """Return statistics about generated resource files."""
+        static_dir = Path(__file__).resolve().parent.parent / "static"
+        outputs_dir = static_dir / "outputs"
+        if not outputs_dir.exists():
+            return JSONResponse(content={
+                "total_count": 0, "total_size": 0, "total_size_human": "0 B",
+                "by_type": {}, "by_type_human": {},
+            })
+        files = [f for f in outputs_dir.iterdir()
+                 if f.is_file() and not f.name.startswith(".")
+                 and not f.name.startswith("_")]
+        type_map = {
+            ".png": "image", ".jpg": "image", ".jpeg": "image",
+            ".gif": "image", ".webp": "image", ".bmp": "image",
+            ".mp4": "video", ".avi": "video", ".mov": "video",
+            ".webm": "video", ".mkv": "video",
+            ".wav": "audio", ".mp3": "audio", ".flac": "audio",
+            ".ogg": "audio", ".aac": "audio", ".m4a": "audio",
+            ".srt": "subtitle", ".vtt": "subtitle", ".ass": "subtitle",
+        }
+        by_type: dict[str, dict] = {}
+        total_size = 0
+        for f in files:
+            ext = f.suffix.lower()
+            rtype = type_map.get(ext, "other")
+            stat = f.stat()
+            total_size += stat.st_size
+            if rtype not in by_type:
+                by_type[rtype] = {"count": 0, "size": 0}
+            by_type[rtype]["count"] += 1
+            by_type[rtype]["size"] += stat.st_size
+        by_type_human = {
+            k: {"count": v["count"], "size_human": _human_size(v["size"])}
+            for k, v in by_type.items()
+        }
+        return JSONResponse(content={
+            "total_count": len(files),
+            "total_size": total_size,
+            "total_size_human": _human_size(total_size),
+            "by_type": by_type,
+            "by_type_human": by_type_human,
+        })
+
+    @app.get("/api/resources")
+    async def list_resources(
+        resource_type: str | None = None,
+        sort: str = "modified",
+        order: str = "desc",
+    ) -> JSONResponse:
+        """List all generated resource files with metadata.
+
+        Args:
+            resource_type: filter by type (image, video, audio, subtitle, other)
+            sort: sort field (name, size, modified)
+            order: sort order (asc, desc)
+        """
+        static_dir = Path(__file__).resolve().parent.parent / "static"
+        outputs_dir = static_dir / "outputs"
+        if not outputs_dir.exists():
+            return JSONResponse(content={"resources": []})
+        type_map = {
+            ".png": "image", ".jpg": "image", ".jpeg": "image",
+            ".gif": "image", ".webp": "image", ".bmp": "image",
+            ".mp4": "video", ".avi": "video", ".mov": "video",
+            ".webm": "video", ".mkv": "video",
+            ".wav": "audio", ".mp3": "audio", ".flac": "audio",
+            ".ogg": "audio", ".aac": "audio", ".m4a": "audio",
+            ".srt": "subtitle", ".vtt": "subtitle", ".ass": "subtitle",
+        }
+        files = [f for f in outputs_dir.iterdir()
+                 if f.is_file() and not f.name.startswith(".")
+                 and not f.name.startswith("_")]
+        result = []
+        for f in files:
+            ext = f.suffix.lower()
+            rtype = type_map.get(ext, "other")
+            if resource_type and rtype != resource_type:
+                continue
+            stat = f.stat()
+            result.append({
+                "filename": f.name,
+                "type": rtype,
+                "ext": ext,
+                "size": stat.st_size,
+                "size_human": _human_size(stat.st_size),
+                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "url": f"/outputs/{f.name}",
+            })
+        # Sort
+        reverse = (order == "desc")
+        if sort == "name":
+            result.sort(key=lambda r: r["filename"], reverse=reverse)
+        elif sort == "size":
+            result.sort(key=lambda r: r["size"], reverse=reverse)
+        else:  # modified
+            result.sort(key=lambda r: r["modified"], reverse=reverse)
+        return JSONResponse(content={"resources": result})
+
+    @app.delete("/api/resources/{filename}")
+    async def delete_resource(filename: str) -> JSONResponse:
+        """Delete a single resource file."""
+        static_dir = Path(__file__).resolve().parent.parent / "static"
+        outputs_dir = static_dir / "outputs"
+        filepath = outputs_dir / filename
+        # Prevent path traversal
+        try:
+            filepath.resolve().relative_to(outputs_dir.resolve())
+        except (ValueError, RuntimeError):
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "Invalid filename"},
+            )
+        if not filepath.exists():
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "File not found"},
+            )
+        try:
+            filepath.unlink()
+            logger.info("Deleted resource file: %s", filename)
+            return JSONResponse(content={"success": True, "message": f"Deleted {filename}"})
+        except OSError as e:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "message": str(e)},
+            )
+
+    @app.post("/api/resources/cleanup")
+    async def cleanup_resources(
+        max_age_days: int | None = None,
+        max_count: int | None = None,
+    ) -> JSONResponse:
+        """Clean up old resource files.
+
+        Without parameters, uses defaults: max_age_days=30, max_count=500.
+        """
+        static_dir = Path(__file__).resolve().parent.parent / "static"
+        outputs_dir = static_dir / "outputs"
+        if not outputs_dir.exists():
+            return JSONResponse(content={
+                "deleted_count": 0, "deleted_files": [], "remaining_count": 0,
+            })
+        files = sorted(
+            [f for f in outputs_dir.iterdir()
+             if f.is_file() and not f.name.startswith(".") and not f.name.startswith("_")],
+            key=lambda f: f.stat().st_mtime,
+            reverse=True,
+        )
+        now = time.time()
+        to_delete = []
+        for i, f in enumerate(files):
+            delete = False
+            if max_age_days is not None:
+                age_days = (now - f.stat().st_mtime) / 86400
+                if age_days > max_age_days:
+                    delete = True
+            if max_count is not None and i >= max_count:
+                delete = True
+            if delete:
+                to_delete.append(f)
+        deleted_files = []
+        for f in to_delete:
+            try:
+                f.unlink()
+                deleted_files.append(f.name)
+            except OSError:
+                pass
+        remaining = len(files) - len(deleted_files)
+        logger.info("Resource cleanup: deleted %d, remaining %d",
+                    len(deleted_files), remaining)
+        return JSONResponse(content={
+            "deleted_count": len(deleted_files),
+            "deleted_files": deleted_files[:50],
+            "remaining_count": remaining,
+        })
+
+    @app.post("/api/resources/bulk-delete")
+    async def delete_resources_bulk(filenames: list[str]) -> JSONResponse:
+        """Delete multiple resource files at once."""
+        static_dir = Path(__file__).resolve().parent.parent / "static"
+        outputs_dir = static_dir / "outputs"
+        deleted = []
+        failed = []
+        for filename in filenames:
+            filepath = outputs_dir / filename
+            try:
+                filepath.resolve().relative_to(outputs_dir.resolve())
+            except (ValueError, RuntimeError):
+                failed.append({"filename": filename, "error": "Invalid path"})
+                continue
+            if not filepath.exists():
+                failed.append({"filename": filename, "error": "Not found"})
+                continue
+            try:
+                filepath.unlink()
+                deleted.append(filename)
+            except OSError as e:
+                failed.append({"filename": filename, "error": str(e)})
+        logger.info("Bulk delete: %d deleted, %d failed", len(deleted), len(failed))
+        return JSONResponse(content={
+            "deleted_count": len(deleted),
+            "deleted": deleted,
+            "failed_count": len(failed),
+            "failed": failed,
+        })
+
     # -- WebSocket for real-time execution --------------------------------
 
     @app.websocket("/ws/run")
@@ -1050,6 +1270,14 @@ def create_app() -> FastAPI:
                 content = logs_path.read_text(encoding="utf-8")
                 return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, must-revalidate"})
             return HTMLResponse(content="<h1>Logs</h1><p>logs.html not found.</p>")
+
+        @app.get("/resources.html", response_class=HTMLResponse)
+        async def resources_page() -> HTMLResponse:
+            res_path = static_dir / "resources.html"
+            if res_path.exists():
+                content = res_path.read_text(encoding="utf-8")
+                return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, must-revalidate"})
+            return HTMLResponse(content="<h1>Resources</h1><p>resources.html not found.</p>")
 
         # Serve other static files (css, js) via the /static mount above.
 

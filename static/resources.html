@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosaic Canvas — Resources</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --bg-elevated: #1a1d28;
+            --bg-hover: #252836;
+            --border: #2a2d3a;
+            --text: #d4d4d4;
+            --text-dim: #85889a;
+            --accent: #6c8eef;
+            --accent-dim: #4a6a9e;
+            --green: #4ec9b0;
+            --yellow: #dcdcaa;
+            --red: #f44747;
+            --orange: #ce9178;
+            --purple: #c586c0;
+            --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 20px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        header h1 { font-size: 18px; font-weight: 600; }
+        header a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 13px;
+        }
+        header a:hover { text-decoration: underline; }
+        .stats {
+            margin-left: auto;
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .stats span strong { color: var(--text); }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .toolbar button, .toolbar select, .toolbar input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .toolbar button:hover { border-color: var(--accent); }
+        .toolbar button.active { border-color: var(--accent); color: var(--accent); }
+        .toolbar select { cursor: pointer; }
+        .toolbar input {
+            flex: 1;
+            max-width: 300px;
+        }
+        .toolbar .spacer { flex: 1; }
+        .toolbar .batch-actions { display: none; gap: 8px; }
+        .toolbar .batch-actions.visible { display: flex; }
+        .toolbar .batch-actions button { font-size: 12px; }
+        .toolbar .batch-actions button.delete { border-color: var(--red); color: var(--red); }
+
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .resource-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.1s;
+            position: relative;
+        }
+        .resource-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .resource-card.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-dim);
+        }
+        .resource-card .checkbox {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            border: 2px solid var(--border);
+            background: rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+        }
+        .resource-card.selected .checkbox {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .resource-card .preview {
+            width: 100%;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            overflow: hidden;
+            position: relative;
+        }
+        .resource-card .preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .resource-card .preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .resource-card .preview .icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+        .resource-card .preview .type-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: var(--text);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .resource-card .info {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        .resource-card .info .filename {
+            font-family: var(--mono);
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 11px;
+        }
+        .resource-card .info .meta {
+            color: var(--text-dim);
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .resource-card .actions {
+            display: flex;
+            gap: 6px;
+            padding: 0 12px 8px;
+        }
+        .resource-card .actions button {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .resource-card .actions button:hover { color: var(--text); border-color: var(--accent); }
+        .resource-card .actions button.delete:hover { color: var(--red); border-color: var(--red); }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+            font-size: 16px;
+        }
+        .empty .icon { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.3; }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+        .lightbox.visible { display: flex; }
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+        .lightbox-content img, .lightbox-content video {
+            max-width: 90vw;
+            max-height: 85vh;
+            border-radius: 8px;
+        }
+        .lightbox-content .close {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .lightbox-content .lb-info {
+            color: var(--text-dim);
+            font-size: 12px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🖼️ Mosaic Canvas Resources</h1>
+        <a href="/">← Back to Canvas</a>
+        <div class="stats" id="stats"></div>
+    </header>
+
+    <div class="toolbar">
+        <button class="active" data-type="" onclick="filterType('')">All</button>
+        <button data-type="image" onclick="filterType('image')">🖼️ Images</button>
+        <button data-type="video" onclick="filterType('video')">🎬 Videos</button>
+        <button data-type="audio" onclick="filterType('audio')">🎵 Audio</button>
+        <button data-type="subtitle" onclick="filterType('subtitle')">📝 Subtitles</button>
+        <button data-type="other" onclick="filterType('other')">📄 Other</button>
+        <input type="text" id="search" placeholder="Search files..." oninput="applyFilter()">
+        <select id="sort-select" onchange="loadResources()">
+            <option value="modified-desc">Newest first</option>
+            <option value="modified-asc">Oldest first</option>
+            <option value="name-asc">Name A-Z</option>
+            <option value="name-desc">Name Z-A</option>
+            <option value="size-desc">Largest first</option>
+            <option value="size-asc">Smallest first</option>
+        </select>
+        <div class="spacer"></div>
+        <div class="batch-actions" id="batch-actions">
+            <span id="batch-count" style="color:var(--accent);font-size:12px;">0 selected</span>
+            <button onclick="downloadSelected()">⬇ Download Selected</button>
+            <button class="delete" onclick="deleteSelected()">🗑 Delete Selected</button>
+            <button onclick="clearSelection()">Cancel</button>
+        </div>
+        <button onclick="refresh()">🔄 Refresh</button>
+        <button onclick="cleanupOld()" title="Delete files older than 30 days">🧹 Cleanup</button>
+    </div>
+
+    <div class="main">
+        <div class="grid" id="grid">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <button class="close" onclick="closeLightbox()">✕</button>
+            <div id="lightbox-media"></div>
+            <div class="lb-info" id="lightbox-info"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        let currentType = '';
+        let allResources = [];
+        let selectedFiles = new Set();
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function escapeAttr(text) {
+            return String(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function formatTime(iso) {
+            const d = new Date(iso);
+            const now = new Date();
+            const diff = (now - d) / 1000;
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+            return d.toLocaleDateString();
+        }
+
+        function getIcon(type) {
+            const icons = {
+                image: '🖼️', video: '🎬', audio: '🎵',
+                subtitle: '📝', other: '📄',
+            };
+            return icons[type] || '📄';
+        }
+
+        async function loadStats() {
+            try {
+                const stats = await API.getResourceStats();
+                const parts = [];
+                parts.push(`<span><strong>${stats.total_count}</strong> files</span>`);
+                parts.push(`<span><strong>${stats.total_size_human}</strong> total</span>`);
+                for (const [type, info] of Object.entries(stats.by_type_human || {})) {
+                    parts.push(`<span>${getIcon(type)} <strong>${info.count}</strong> (${info.size_human})</span>`);
+                }
+                document.getElementById('stats').innerHTML = parts.join('');
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }
+
+        async function loadResources() {
+            const sortSelect = document.getElementById('sort-select').value;
+            const [sort, order] = sortSelect.split('-');
+            try {
+                const data = await API.listResources(currentType || null, sort, order);
+                allResources = data.resources || [];
+                applyFilter();
+            } catch (e) {
+                document.getElementById('grid').innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
+            }
+        }
+
+        function applyFilter() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const filtered = allResources.filter(r =>
+                !search || r.filename.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                document.getElementById('grid').innerHTML = `
+                    <div class="empty" style="grid-column:1/-1">
+                        <span class="icon">${currentType ? getIcon(currentType) : '📂'}</span>
+                        No resources found${search ? ' matching "' + escapeHtml(search) + '"' : ''}
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('grid').innerHTML = filtered.map(r => {
+                const isSelected = selectedFiles.has(r.filename);
+                let preview = '';
+                if (r.type === 'image') {
+                    preview = `<img src="${escapeAttr(r.url)}" loading="lazy" alt="${escapeAttr(r.filename)}" />`;
+                } else if (r.type === 'video') {
+                    preview = `<video src="${escapeAttr(r.url)}" preload="metadata" onloadedmetadata="this.muted=true"></video>`;
+                } else {
+                    preview = `<div class="icon">${getIcon(r.type)}</div>`;
+                }
+
+                return `
+                <div class="resource-card ${isSelected ? 'selected' : ''}" data-filename="${escapeAttr(r.filename)}">
+                    <div class="checkbox" onclick="event.stopPropagation();toggleSelect('${escapeAttr(r.filename)}')">${isSelected ? '✓' : ''}</div>
+                    <div class="preview" onclick="openLightbox('${escapeAttr(r.filename)}', '${escapeAttr(r.url)}', '${escapeAttr(r.type)}')">
+                        ${preview}
+                        <span class="type-badge">${r.type}</span>
+                    </div>
+                    <div class="info">
+                        <div class="filename" title="${escapeAttr(r.filename)}">${escapeHtml(r.filename)}</div>
+                        <div class="meta">
+                            <span>${r.size_human}</span>
+                            <span>${formatTime(r.modified)}</span>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button onclick="event.stopPropagation();downloadFile('${escapeAttr(r.url)}', '${escapeAttr(r.filename)}')">⬇ Download</button>
+                        <button class="delete" onclick="event.stopPropagation();deleteFile('${escapeAttr(r.filename)}')">🗑 Delete</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterType(type) {
+            currentType = type;
+            document.querySelectorAll('.toolbar button[data-type]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            loadResources();
+        }
+
+        function toggleSelect(filename) {
+            if (selectedFiles.has(filename)) {
+                selectedFiles.delete(filename);
+            } else {
+                selectedFiles.add(filename);
+            }
+            updateBatchActions();
+            applyFilter();
+        }
+
+        function updateBatchActions() {
+            const batchEl = document.getElementById('batch-actions');
+            const countEl = document.getElementById('batch-count');
+            if (selectedFiles.size > 0) {
+                batchEl.classList.add('visible');
+                countEl.textContent = `${selectedFiles.size} selected`;
+            } else {
+                batchEl.classList.remove('visible');
+            }
+        }
+
+        function clearSelection() {
+            selectedFiles.clear();
+            updateBatchActions();
+            applyFilter();
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`Delete "${filename}"?`)) return;
+            try {
+                const result = await API.deleteResource(filename);
+                if (result.success) {
+                    selectedFiles.delete(filename);
+                    loadResources();
+                    loadStats();
+                    updateBatchActions();
+                } else {
+                    alert('Delete failed: ' + result.message);
+                }
+            } catch (e) {
+                alert('Delete failed: ' + e.message);
+            }
+        }
+
+        async function deleteSelected() {
+            if (selectedFiles.size === 0) return;
+            if (!confirm(`Delete ${selectedFiles.size} selected file(s)?`)) return;
+            try {
+                const result = await API.deleteResourcesBulk([...selectedFiles]);
+                alert(`Deleted ${result.deleted_count} file(s)` +
+                      (result.failed_count > 0 ? `, ${result.failed_count} failed` : ''));
+                selectedFiles.clear();
+                updateBatchActions();
+                loadResources();
+                loadStats();
+            } catch (e) {
+                alert('Bulk delete failed: ' + e.message);
+            }
+        }
+
+        function downloadFile(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        function downloadSelected() {
+            for (const filename of selectedFiles) {
+                const r = allResources.find(r => r.filename === filename);
+                if (r) downloadFile(r.url, r.filename);
+            }
+        }
+
+        function openLightbox(filename, url, type) {
+            const lb = document.getElementById('lightbox');
+            const media = document.getElementById('lightbox-media');
+            const info = document.getElementById('lightbox-info');
+            if (type === 'image') {
+                media.innerHTML = `<img src="${escapeAttr(url)}" alt="${escapeAttr(filename)}" />`;
+            } else if (type === 'video') {
+                media.innerHTML = `<video src="${escapeAttr(url)}" controls autoplay></video>`;
+            } else if (type === 'audio') {
+                media.innerHTML = `<audio src="${escapeAttr(url)}" controls autoplay style="width:400px;margin:20px 0;"></audio>`;
+            } else {
+                media.innerHTML = `<div style="color:white;font-size:48px;text-align:center;padding:60px;">${getIcon(type)}</div>`;
+            }
+            const r = allResources.find(r => r.filename === filename);
+            info.textContent = `${filename} — ${r ? r.size_human : ''}`;
+            lb.classList.add('visible');
+        }
+
+        function closeLightbox(event) {
+            if (event && event.target.closest('.lightbox-content') && !event.target.classList.contains('close')) return;
+            const lb = document.getElementById('lightbox');
+            lb.classList.remove('visible');
+            const media = document.getElementById('lightbox-media');
+            media.innerHTML = '';
+        }
+
+        async function cleanupOld() {
+            if (!confirm('Delete all files older than 30 days (keeping max 500 files)?')) return;
+            try {
+                const result = await API.cleanupResources(30, 500);
+                alert(`Cleanup complete: deleted ${result.deleted_count} files, ${result.remaining_count} remaining.`);
+                loadResources();
+                loadStats();
+            } catch (e) {
+                alert('Cleanup failed: ' + e.message);
+            }
+        }
+
+        function refresh() {
+            loadStats();
+            loadResources();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('lightbox').classList.contains('visible')) {
+                    closeLightbox();
+                } else if (selectedFiles.size > 0) {
+                    clearSelection();
+                }
+            }
+        });
+
+        // Init
+        loadStats();
+        loadResources();
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>

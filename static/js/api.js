@@ -102,6 +102,43 @@ const API = (() => {
             return resp.json();
         },
 
+        // -- Resource management (generated media files) --
+
+        async getResourceStats() {
+            return fetchJSON(`${baseUrl}/api/resources/stats`);
+        },
+
+        async listResources(resourceType = null, sort = 'modified', order = 'desc') {
+            let qs = `?sort=${sort}&order=${order}`;
+            if (resourceType) qs += `&resource_type=${resourceType}`;
+            return fetchJSON(`${baseUrl}/api/resources${qs}`);
+        },
+
+        async deleteResource(filename) {
+            const resp = await fetch(
+                `${baseUrl}/api/resources/${encodeURIComponent(filename)}`,
+                { method: 'DELETE' },
+            );
+            return resp.json();
+        },
+
+        async deleteResourcesBulk(filenames) {
+            const resp = await fetch(`${baseUrl}/api/resources/bulk-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(filenames),
+            });
+            return resp.json();
+        },
+
+        async cleanupResources(maxAgeDays = null, maxCount = null) {
+            let qs = '';
+            if (maxAgeDays !== null) qs += `?max_age_days=${maxAgeDays}`;
+            if (maxCount !== null) qs += `${qs ? '&' : '?'}max_count=${maxCount}`;
+            const resp = await fetch(`${baseUrl}/api/resources/cleanup${qs}`, { method: 'POST' });
+            return resp.json();
+        },
+
         // -- Pipeline persistence (save / load / list / delete) --
 
         async listPipelines() {

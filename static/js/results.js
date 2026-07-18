@@ -335,8 +335,13 @@ const Results = (() => {
         if (!src) {
             return `<span class="result-field-value result-meta">${I18n.t('results.no_preview')}</span>`;
         }
+        const filename = src.split('/').pop() || 'image.png';
         return `<div class="result-image-container">
             <img src="${escapeAttr(src)}" class="result-image" alt="Generated image" loading="lazy" />
+            <div class="result-actions">
+                <a href="${escapeAttr(src)}" download="${escapeAttr(filename)}" class="result-action-btn" title="Download">⬇ Download</a>
+                <a href="/resources.html" target="_blank" class="result-action-btn" title="View all resources">📂 All Resources</a>
+            </div>
         </div>`;
     }
 
@@ -355,9 +360,13 @@ const Results = (() => {
         if (value.truncated) {
             meta += `<span class="result-audio-meta result-truncated">${I18n.t('results.truncated')}</span>`;
         }
+        const filename = src.split('/').pop() || 'audio.wav';
         return `<div class="result-audio-container">
             <audio controls src="${escapeAttr(src)}" class="result-audio-player"></audio>
             ${meta ? `<div class="result-audio-info">${meta}</div>` : ''}
+            <div class="result-actions">
+                <a href="${escapeAttr(src)}" download="${escapeAttr(filename)}" class="result-action-btn" title="Download">⬇ Download</a>
+            </div>
         </div>`;
     }
 
@@ -384,6 +393,18 @@ const Results = (() => {
             thumbnails.forEach((thumb, i) => {
                 if (thumb.src) {
                     html += `<img src="${escapeAttr(thumb.src)}" class="result-video-thumb" alt="Frame ${i + 1}" loading="lazy" />`;
+                }
+            });
+            html += `</div>`;
+        }
+
+        // Download buttons for each thumbnail
+        if (thumbnails.length > 0) {
+            html += `<div class="result-actions">`;
+            thumbnails.forEach((thumb, i) => {
+                if (thumb.src) {
+                    const fname = thumb.src.split('/').pop();
+                    html += `<a href="${escapeAttr(thumb.src)}" download="${escapeAttr(fname)}" class="result-action-btn" title="Download frame ${i+1}">⬇ Frame ${i+1}</a>`;
                 }
             });
             html += `</div>`;
