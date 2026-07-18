@@ -1010,6 +1010,14 @@ def create_app() -> FastAPI:
                 return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, must-revalidate"})
             return HTMLResponse(content="<h1>Mosaic Canvas</h1><p>index.html not found.</p>")
 
+        @app.get("/logs.html", response_class=HTMLResponse)
+        async def logs_page() -> HTMLResponse:
+            logs_path = static_dir / "logs.html"
+            if logs_path.exists():
+                content = logs_path.read_text(encoding="utf-8")
+                return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, must-revalidate"})
+            return HTMLResponse(content="<h1>Logs</h1><p>logs.html not found.</p>")
+
         # Serve other static files (css, js) via the /static mount above.
 
     return app
