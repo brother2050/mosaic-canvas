@@ -135,11 +135,11 @@ const Templates = (() => {
         },
         {
             id: 'tts-digital-human',
-            name: { en: 'TTS → Lip Sync → Render', zh: '语音合成 → 唇形同步 → 渲染' },
+            name: { en: 'TTS → Lip Sync → Render → Encode', zh: '语音合成 → 唇形同步 → 渲染 → 编码' },
             icon: '🧑',
             description: {
-                en: 'Generate speech from text, sync lips to a face, then render a digital human video.',
-                zh: '从文本生成语音，进行唇形同步，然后渲染数字人视频。',
+                en: 'Generate speech from text, sync lips to a face, render a digital human, then encode as MP4.',
+                zh: '从文本生成语音，进行唇形同步，渲染数字人，然后编码为 MP4。',
             },
             nodes: [
                 {
@@ -291,11 +291,11 @@ const Templates = (() => {
         },
         {
             id: 'chat-fieldmapper-text-to-image',
-            name: { en: 'Chat → Map → Image → Export', zh: '对话 → 映射 → 文生图 → 导出' },
+            name: { en: 'Chat → Map → Image → Map → Export', zh: '对话 → 映射 → 文生图 → 映射 → 导出' },
             icon: '💬',
             description: {
-                en: 'Chat generates text, field-mapper renames reply→prompt, then generate image and export.',
-                zh: '对话节点生成文本，字段映射将 reply 重命名为 prompt，然后生成图片并导出。',
+                en: 'Chat generates text, field-mapper renames reply→prompt, generate image, second field-mapper renames image→data, then export.',
+                zh: '对话节点生成文本，第一个字段映射将 reply 重命名为 prompt，生成图片，第二个字段映射将 image 重命名为 data，最后导出。',
             },
             nodes: [
                 {
@@ -455,11 +455,11 @@ const Templates = (() => {
         },
         {
             id: 'prompt-expand-image-upscale',
-            name: { en: 'Expand Prompt → Image → Upscale → Export', zh: '提示词扩展 → 文生图 → 放大 → 导出' },
+            name: { en: 'Expand Prompt → Map → Image → Upscale → Export', zh: '提示词扩展 → 映射 → 文生图 → 放大 → 导出' },
             icon: '🔍',
             description: {
-                en: 'Expand a short prompt into a detailed one, generate image, upscale, and export.',
-                zh: '将简短提示词扩展为详细描述，生成图片，放大，然后导出。',
+                en: 'Expand a short prompt, map text→prompt, generate image, upscale, and export.',
+                zh: '将简短提示词扩展为详细描述，字段映射将 text 重命名为 prompt，生成图片，放大，然后导出。',
             },
             nodes: [
                 {
@@ -895,8 +895,8 @@ const Templates = (() => {
             name: { en: 'Video Content QA (6 nodes)', zh: '视频内容问答（6节点）' },
             icon: '❓',
             description: {
-                en: 'Transcribe video audio, index, retrieve, generate answer with citations (example 09).',
-                zh: '转录视频音频，索引、检索、生成带引用的回答（示例09）。',
+                en: 'Transcribe video audio, generate subtitles, index, retrieve, generate answer with citations (example 09).',
+                zh: '转录视频音频，生成字幕，索引、检索、生成带引用的回答（示例09）。',
             },
             nodes: [
                 { id: 'n1', type: 'asr', label: '', params: {}, input_params: { language: 'auto' }, ...pos(0, 0) },
@@ -961,11 +961,11 @@ const Templates = (() => {
         // ── 11_cross_domain_pipeline.py ──
         {
             id: 'ex11-text-image-video-export',
-            name: { en: 'Text → Image → Upscale → Video → Export', zh: '文本 → 图像 → 放大 → 视频 → 导出' },
+            name: { en: 'Text → Map → Image → Upscale → Video → Export', zh: '文本 → 映射 → 图像 → 放大 → 视频 → 导出' },
             icon: '🏭',
             description: {
-                en: 'Full cross-domain chain: generate text, image, upscale, animate, export (example 11).',
-                zh: '完整跨域链路：生成文本、图像、放大、生成视频、导出（示例11）。',
+                en: 'Full cross-domain chain: generate text, map text→prompt, generate image, upscale, animate, export (example 11).',
+                zh: '完整跨域链路：生成文本、字段映射 text→prompt、生成图像、放大、生成视频、导出（示例11）。',
             },
             nodes: [
                 { id: 'n1', type: 'text-generator', label: '', params: {}, input_params: {}, ...pos(0, 0) },
@@ -989,8 +989,8 @@ const Templates = (() => {
             name: { en: 'Create Digital Human', zh: '创建数字人' },
             icon: '🤖',
             description: {
-                en: 'Generate avatar image, TTS, lip sync, and encode (example 11).',
-                zh: '生成虚拟人形象、语音合成、唇形同步后编码（示例11）。',
+                en: 'Generate avatar image, TTS, map image→face_image, lip sync (merge image+audio), then encode (example 11).',
+                zh: '生成虚拟人形象、语音合成，字段映射将 image 重命名为 face_image，唇形同步（合并图像与音频）后编码（示例11）。',
             },
             nodes: [
                 { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(0, 0) },
