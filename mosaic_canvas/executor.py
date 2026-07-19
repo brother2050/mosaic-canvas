@@ -912,10 +912,12 @@ class GraphExecutor:
                 # Apply field aliases for source nodes too: if the pipeline
                 # input uses a different field name than the node expects
                 # (e.g. 'audio' instead of 'reference_audio'), bridge the gap.
+                # Use node_input (which has parsed values) as the source so
+                # that JSON fields are correctly typed after aliasing.
                 expected_fields = self._get_expected_input_fields(gnode.type)
                 if expected_fields:
                     _apply_field_aliases(
-                        self.graph.input.data, expected_fields, node_input,
+                        dict(node_input), expected_fields, node_input,
                     )
             else:
                 # Smart field filtering: only pass fields the target node
@@ -1050,6 +1052,12 @@ class GraphExecutor:
             except Exception as exc:  # noqa: BLE001
                 elapsed = time.perf_counter() - t0
                 error_msg = f"{type(exc).__name__}: {exc}"
+                # Log the error to the execution log file (not just stdout events)
+                # so that failures are diagnosable from /logs.html.
+                import traceback as _tb
+                tb_str = _tb.format_exc()
+                logger.error("Node %s (%s) failed: %s", nid, gnode.type, error_msg)
+                logger.error("Traceback:\n%s", tb_str)
                 # Add helpful suggestions for common model loading errors
                 exc_str = str(exc).lower()
                 if "cannot load model" in exc_str or "not cached locally" in exc_str:
