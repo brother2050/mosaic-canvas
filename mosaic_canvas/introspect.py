@@ -194,7 +194,7 @@ _ENUM_CHOICES: dict[str, list[str]] = {
               "pencil sketch", "ink", "pixel art", "3d render",
               "impressionist", "digital art"],
     "format": ["mp4", "avi", "mov", "webm", "gif", "srt", "vtt", "json"],
-    "content_type": ["video", "image", "audio", "subtitle"],
+    "content_type": ["video", "image", "audio", "subtitle", "text"],
     "skeleton_type": ["coco", "openpose", "smpl"],
     # Digital human
     "method": ["wav2lip", "wav2lip-original", "ultralight", "sadtalker", "audio2face", "liveportrait"],
@@ -786,6 +786,8 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="Text prompt for inpainting."),
         InputField(name="negative_prompt", type="string", required=False,
                    description="What to avoid."),
+        InputField(name="strength", type="float", required=False, default=1.0,
+                   description="Inpainting strength (0.0 to 1.0)."),
         InputField(name="num_inference_steps", type="int", required=False, default=30,
                    description="Denoising steps."),
         InputField(name="guidance_scale", type="float", required=False, default=7.5,

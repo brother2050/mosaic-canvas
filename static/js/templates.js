@@ -31,7 +31,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'text-to-image', label: '',
                     params: { model: 'stabilityai/sdxl-turbo' },
-                    input_params: { num_inference_steps: '25', guidance_scale: '7.5' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(0, 0),
                 },
             ],
@@ -50,7 +50,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'text-to-image', label: '',
                     params: { model: 'stabilityai/sdxl-turbo' },
-                    input_params: { num_inference_steps: '25' },
+                    input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(0, 0),
                 },
                 {
@@ -84,7 +84,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'image-to-image', label: '',
                     params: {},
-                    input_params: { strength: '0.65' },
+                    input_params: { strength: '0.65', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(0, 0),
                 },
                 {
@@ -247,7 +247,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'inpainting', label: '',
                     params: {},
-                    input_params: { strength: '0.85' },
+                    input_params: { strength: '0.85', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(0, 0),
                 },
                 {
@@ -313,7 +313,7 @@ const Templates = (() => {
                 {
                     id: 'n3', type: 'text-to-image', label: '',
                     params: { model: 'stabilityai/sdxl-turbo' },
-                    input_params: { num_inference_steps: '25', guidance_scale: '7.5' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(2, 0),
                 },
                 {
@@ -431,7 +431,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'text-to-image', label: '',
                     params: { model: 'stabilityai/sdxl-turbo' },
-                    input_params: { num_inference_steps: '25' },
+                    input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(0, 0),
                 },
                 {
@@ -477,7 +477,7 @@ const Templates = (() => {
                 {
                     id: 'n3', type: 'text-to-image', label: '',
                     params: { model: 'stabilityai/sdxl-turbo' },
-                    input_params: { num_inference_steps: '30', guidance_scale: '7.5' },
+                    input_params: { num_inference_steps: '30', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(2, 0),
                 },
                 {
@@ -581,7 +581,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'text-to-image', label: '',
                     params: { model: 'stabilityai/sdxl-turbo' },
-                    input_params: { num_inference_steps: '25' },
+                    input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
                     ...pos(0, 0),
                 },
                 {
@@ -666,7 +666,7 @@ const Templates = (() => {
             icon: '🖼️',
             description: { en: 'Transform an existing image with a prompt (example 02).', zh: '用提示词变换已有图片（示例02）。' },
             nodes: [
-                { id: 'n1', type: 'image-to-image', label: '', params: { model: 'timbrooks/instruct-pix2pix' }, input_params: { strength: '0.8' }, ...pos(0, 0) },
+                { id: 'n1', type: 'image-to-image', label: '', params: { model: 'timbrooks/instruct-pix2pix' }, input_params: { strength: '0.8', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(0, 0) },
             ],
             edges: [],
             input: { image: '/path/to/input.png', prompt: 'make it look like a watercolor painting' },
@@ -677,7 +677,7 @@ const Templates = (() => {
             icon: '🎨',
             description: { en: 'Fill masked regions of an image (example 02).', zh: '填充图片的遮罩区域（示例02）。' },
             nodes: [
-                { id: 'n1', type: 'inpainting', label: '', params: { model: 'runwayml/stable-diffusion-inpainting' }, input_params: { strength: '1.0' }, ...pos(0, 0) },
+                { id: 'n1', type: 'inpainting', label: '', params: { model: 'runwayml/stable-diffusion-inpainting' }, input_params: { strength: '1.0', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(0, 0) },
             ],
             edges: [],
             input: { image: '/path/to/image.png', mask_image: '/path/to/mask.png', prompt: 'a red sports car' },
@@ -766,7 +766,7 @@ const Templates = (() => {
                 { id: 'n1', type: 'voice-clone', label: '', params: {}, input_params: {}, ...pos(0, 0) },
             ],
             edges: [],
-            input: { audio: '/path/to/reference.wav', text: 'Hello, this is my cloned voice speaking.' },
+            input: { reference_audio: '/path/to/reference.wav', text: 'Hello, this is my cloned voice speaking.' },
         },
         {
             id: 'ex04-sound-effect',
@@ -927,7 +927,7 @@ const Templates = (() => {
                 { id: 'n2', type: 'lip-syncer', label: '', params: {}, input_params: {}, ...pos(1, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
-            input: { face_image: '/path/to/avatar.png', audio: '/path/to/audio.wav' },
+            input: { source_image: '/path/to/avatar.png', driving_audio: '/path/to/audio.wav' },
         },
         {
             id: 'ex10-tts-lipsync-encode',
@@ -970,7 +970,7 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'text-generator', label: '', params: {}, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"text": "prompt"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25' }, ...pos(2, 0) },
+                { id: 'n3', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(2, 0) },
                 { id: 'n4', type: 'upscaler', label: '', params: {}, input_params: { scale_factor: '2' }, ...pos(3, 0) },
                 { id: 'n5', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(4, 0) },
                 { id: 'n6', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'video', formats: '["mp4"]' }, ...pos(5, 0) },
@@ -993,7 +993,7 @@ const Templates = (() => {
                 zh: '生成虚拟人形象、语音合成、唇形同步后编码（示例11）。',
             },
             nodes: [
-                { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25' }, ...pos(0, 0) },
+                { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(0, 0) },
                 { id: 'n2', type: 'tts', label: '', params: { backend: 'chattts' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n3', type: 'field-mapper', label: '', params: { mapping: '{"image": "face_image"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
                 { id: 'n4', type: 'lip-syncer', label: '', params: {}, input_params: {}, ...pos(3, 0) },
@@ -1089,23 +1089,25 @@ const Templates = (() => {
             id: 'ex13-livestream',
             name: { en: 'Livestream', zh: '直播推流' },
             icon: '📡',
-            description: { en: 'Stream video to RTMP/SRT endpoint (example 13).', zh: '推流到 RTMP/SRT 地址（示例13）。' },
+            description: { en: 'Extract frames from video, then stream to RTMP/SRT endpoint (example 13).', zh: '从视频提取帧，然后推流到 RTMP/SRT 地址（示例13）。' },
             nodes: [
-                { id: 'n1', type: 'livestreamer', label: '', params: {}, input_params: { stream_url: 'rtmp://localhost/live/stream' }, ...pos(0, 0) },
+                { id: 'n1', type: 'frame-extractor', label: '', params: {}, input_params: { mode: 'interval', interval: '1' }, ...pos(0, 0) },
+                { id: 'n2', type: 'livestreamer', label: '', params: {}, input_params: { stream_url: 'rtmp://localhost/live/stream' }, ...pos(1, 0) },
             ],
-            edges: [],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
             input: { video: '/path/to/video.mp4' },
         },
         {
             id: 'ex13-video-encode-subtitle',
             name: { en: 'Video Encode with Subtitle', zh: '带字幕视频编码' },
             icon: '🎬',
-            description: { en: 'Encode video with subtitle overlay (example 13).', zh: '编码带字幕叠加的视频（示例13）。' },
+            description: { en: 'Extract frames, encode video with subtitle overlay (example 13).', zh: '提取帧，编码带字幕叠加的视频（示例13）。' },
             nodes: [
-                { id: 'n1', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: { burn_subtitles: 'true' }, ...pos(0, 0) },
+                { id: 'n1', type: 'frame-extractor', label: '', params: {}, input_params: { mode: 'interval', interval: '1' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
             ],
-            edges: [],
-            input: { video: '/path/to/video.mp4', subtitles: '/path/to/subtitles.srt' },
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { video: '/path/to/video.mp4', subtitle: '/path/to/subtitles.srt' },
         },
     ];
 

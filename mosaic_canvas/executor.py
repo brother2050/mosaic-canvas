@@ -180,7 +180,7 @@ _FIELD_ALIASES: dict[str, list[str]] = {
     "frames": ["video", "images", "image", "frame_list", "data"],
     # lip-syncer needs 'face_image'
     "face_image": ["image", "images", "avatar", "source_image", "data"],
-    # realtime-renderer needs 'source_image'
+    # realtime-renderer / avatar-driver needs 'source_image'
     "source_image": ["image", "images", "avatar", "face_image", "data"],
     # realtime-renderer needs 'input_stream'
     "input_stream": ["audio", "text", "video", "data", "frames"],
@@ -192,14 +192,20 @@ _FIELD_ALIASES: dict[str, list[str]] = {
     "query": ["question", "search_query", "text"],
     # lip-syncer needs 'audio' (tts outputs 'waveform')
     "audio": ["audio_path", "audio_data", "voice", "waveform"],
-    # subtitle-translator / subtitle-aligner need 'subtitle' (generator outputs 'segments')
-    "subtitle": ["segments", "subtitles", "subtitle_data"],
+    # subtitle-translator / subtitle-aligner / video-encoder need 'subtitle'
+    "subtitle": ["subtitles", "segments", "subtitle_data"],
     # vector-indexer needs 'document' (document-parser outputs 'text'/'pages')
     "document": ["text", "pages", "content", "data"],
     # citation-generator needs 'results' (retriever/text-generator output)
     "results": ["context", "text", "rag_query_result", "reply", "response"],
     # livestreamer needs 'stream_url' (templates use 'url')
     "stream_url": ["url", "rtmp_url", "stream"],
+    # voice-clone needs 'reference_audio' (templates use 'audio')
+    "reference_audio": ["audio", "audio_path", "voice", "waveform"],
+    # avatar-driver needs 'driving_audio' (templates use 'audio')
+    "driving_audio": ["audio", "audio_path", "voice", "waveform"],
+    # avatar-driver needs 'driving_video' (templates use 'video')
+    "driving_video": ["video", "frames", "motion", "keypoints"],
 }
 
 
@@ -903,6 +909,14 @@ class GraphExecutor:
                     if k in _JSON_FIELDS and isinstance(v, str):
                         v = _try_parse_json(v)
                     node_input[k] = v
+                # Apply field aliases for source nodes too: if the pipeline
+                # input uses a different field name than the node expects
+                # (e.g. 'audio' instead of 'reference_audio'), bridge the gap.
+                expected_fields = self._get_expected_input_fields(gnode.type)
+                if expected_fields:
+                    _apply_field_aliases(
+                        self.graph.input.data, expected_fields, node_input,
+                    )
             else:
                 # Smart field filtering: only pass fields the target node
                 # actually needs.  This prevents resource duplication (e.g.
@@ -962,6 +976,17 @@ class GraphExecutor:
 
                 for k, v in coerced_input_params.items():
                     node_input[k] = v
+
+            # Debug: log key fields for diagnosis (negative_prompt, prompt, etc.)
+            if logger.isEnabledFor(logging.DEBUG):
+                debug_keys = [k for k in node_input.keys()
+                              if k in ("prompt", "negative_prompt", "image",
+                                       "messages", "audio", "video")]
+                logger.debug(
+                    "Node %s (%s) input keys: %s | negative_prompt=%r",
+                    nid, gnode.type, debug_keys,
+                    node_input.get("negative_prompt"),
+                )
 
             # Execute — use run() instead of __call__() so that the node's
             # internal scheduler.ensure_loaded() performs the GPU capacity
