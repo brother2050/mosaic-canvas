@@ -266,7 +266,23 @@ const Properties = (() => {
             <div class="prop-field-internal-name">${escapeHtml(field.name)}</div>`;
 
         // Input control
-        if (field.type === 'choice' && field.choices) {
+        // Model field: render as combobox (input + datalist) to allow custom model IDs
+        if (field.name === 'model' && field.choices) {
+            const datalistId = `model-suggestions-${escapeAttr(field.name)}`;
+            const displayValue = hasValue ? escapeAttr(String(currentValue)) : '';
+            const placeholderStr = hasDefault ? escapeAttr(String(defaultValue)) : 'e.g. stabilityai/sdxl-turbo';
+            html += `<input type="text" class="prop-input prop-model-input" ${dataParam}="${escapeAttr(field.name)}" value="${displayValue}" placeholder="${placeholderStr}" list="${datalistId}" autocomplete="off">`;
+            html += `<datalist id="${datalistId}">`;
+            if (hasDefault) {
+                html += `<option value="${escapeAttr(String(defaultValue))}">${I18n.t('param.default_option')}</option>`;
+            }
+            field.choices.forEach(c => {
+                html += `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`;
+            });
+            html += `</datalist>`;
+            // Add a hint that custom models can be entered
+            html += `<div class="prop-model-hint">${I18n.t('param.model_hint') || 'Type to enter a custom HuggingFace model ID, or select from suggestions'}</div>`;
+        } else if (field.type === 'choice' && field.choices) {
             html += `<select class="prop-input" ${dataParam}="${escapeAttr(field.name)}">`;
             if (!field.required) {
                 html += `<option value="">${I18n.t('param.default_option')}${hasDefault ? ' (' + escapeHtml(String(defaultValue)) + ')' : ''}</option>`;

@@ -1109,6 +1109,153 @@ const Templates = (() => {
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
             input: { video: '/path/to/video.mp4', subtitle: '/path/to/subtitles.srt' },
         },
+        // ── Helper nodes: data manipulation ──
+        {
+            id: 'data-merge-export',
+            name: { en: 'Data Merge → Export', zh: '数据合并 → 导出' },
+            icon: '🔀',
+            description: {
+                en: 'Merge data from multiple sources and export as JSON.',
+                zh: '合并多个数据源并导出为 JSON。',
+            },
+            nodes: [
+                { id: 'n1', type: 'data-merger', label: '', params: { merge_keys: '["field1", "field2"]' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { data: '{"key": "value"}' },
+        },
+        {
+            id: 'json-parse-transform-export',
+            name: { en: 'JSON Parse → Transform → Export', zh: 'JSON解析 → 转换 → 导出' },
+            icon: '📋',
+            description: {
+                en: 'Parse JSON, apply field mapping, and export.',
+                zh: '解析 JSON，应用字段映射，然后导出。',
+            },
+            nodes: [
+                { id: 'n1', type: 'json-parser', label: '', params: {}, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"old_field": "new_field"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(2, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
+            input: { text: '{"name": "Alice", "age": 30, "city": "Beijing"}' },
+        },
+        // ── Helper nodes: file I/O ──
+        {
+            id: 'file-read-process-write',
+            name: { en: 'Read → Process → Write', zh: '读取 → 处理 → 写入' },
+            icon: '📁',
+            description: {
+                en: 'Read a file, process its content, and write the result.',
+                zh: '读取文件，处理内容，然后写入结果。',
+            },
+            nodes: [
+                { id: 'n1', type: 'file-reader', label: '', params: {}, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'text-summarizer', label: '', params: {}, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'file-writer', label: '', params: {}, input_params: { format: 'txt' }, ...pos(2, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
+            input: { file_path: '/path/to/input.txt' },
+        },
+        // ── Helper nodes: API integration ──
+        {
+            id: 'api-call-export',
+            name: { en: 'API Call → Export', zh: 'API调用 → 导出' },
+            icon: '🌐',
+            description: {
+                en: 'Call an external API and export the response.',
+                zh: '调用外部 API 并导出响应结果。',
+            },
+            nodes: [
+                { id: 'n1', type: 'api-caller', label: '', params: { method: 'GET', url: 'https://api.example.com/data', headers: '{"Accept": "application/json"}' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: {},
+        },
+        // ── Helper nodes: data validation ──
+        {
+            id: 'schema-validate-export',
+            name: { en: 'Schema Validate → Export', zh: '数据校验 → 导出' },
+            icon: '✅',
+            description: {
+                en: 'Validate data against a schema and export valid records.',
+                zh: '根据 schema 校验数据并导出有效记录。',
+            },
+            nodes: [
+                { id: 'n1', type: 'schema-validator', label: '', params: { schema: '{"type": "object", "properties": {"name": {"type": "string"}}}' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { data: '{"name": "Alice"}' },
+        },
+        // ── Helper nodes: control flow ──
+        {
+            id: 'conditional-switch-export',
+            name: { en: 'Switch → Export', zh: '条件分支 → 导出' },
+            icon: '🔀',
+            description: {
+                en: 'Route data through conditional branches and export results.',
+                zh: '通过条件分支路由数据并导出结果。',
+            },
+            nodes: [
+                { id: 'n1', type: 'switch', label: '', params: { conditions: '[{"field": "type", "op": "eq", "value": "image"}]' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { data: '{"type": "image", "content": "..."}' },
+        },
+        // ── Helper nodes: caching ──
+        {
+            id: 'cache-store-retrieve',
+            name: { en: 'Cache Store → Retrieve', zh: '缓存存储 → 检索' },
+            icon: '💾',
+            description: {
+                en: 'Store results in cache and retrieve them later.',
+                zh: '将结果存入缓存，供后续检索使用。',
+            },
+            nodes: [
+                { id: 'n1', type: 'result-cache', label: '', params: { cache_keys: '["prompt", "model"]' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { prompt: 'test prompt', model: 'test-model' },
+        },
+        // ── Helper nodes: text processing chain ──
+        {
+            id: 'text-chunk-classify-export',
+            name: { en: 'Chunk → Classify → Export', zh: '分块 → 分类 → 导出' },
+            icon: '📝',
+            description: {
+                en: 'Split text into chunks, classify each chunk, and export.',
+                zh: '将文本分块，对每个块进行分类，然后导出。',
+            },
+            nodes: [
+                { id: 'n1', type: 'text-chunker', label: '', params: { strategy: 'sentence', chunk_size: '500' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'text-classifier', label: '', params: {}, input_params: { labels: '["important", "trivial", "reference"]' }, ...pos(1, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(2, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
+            input: { text: 'A long document that needs to be chunked and classified...' },
+        },
+        // ── Helper nodes: monitoring & debugging ──
+        {
+            id: 'log-debug-export',
+            name: { en: 'Log → Debug → Export', zh: '日志 → 调试 → 导出' },
+            icon: '🐛',
+            description: {
+                en: 'Log data flow, add debug checkpoint, and export for inspection.',
+                zh: '记录数据流，添加调试检查点，导出供检查。',
+            },
+            nodes: [
+                { id: 'n1', type: 'logger', label: '', params: { level: 'info' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'debugger', label: '', params: {}, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'json', formats: '["json"]' }, ...pos(2, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
+            input: { data: '{"message": "debug test"}' },
+        },
     ];
 
     function getAll() {

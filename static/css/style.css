@@ -1223,6 +1223,17 @@ html, body {
 select.prop-input { cursor: pointer; }
 textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--font-mono); font-size: 12px; }
 
+/* Model input combobox (input + datalist) for custom HuggingFace model IDs */
+.prop-model-input {
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+.prop-model-hint {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    margin-top: 2px;
+}
+
 .prop-field-required { color: var(--danger); }
 
 .prop-node-header {
