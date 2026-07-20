@@ -376,6 +376,39 @@ def _save_media_file(data: bytes, ext: str) -> str:
     return f"/outputs/{filename}"
 
 
+def _copy_to_output_dir(src_path: str) -> str | None:
+    """Copy a file from an absolute path to the static outputs directory.
+
+    If the file is already in the outputs directory, return its URL directly.
+    Otherwise, copy it and return the URL. Returns None on failure.
+    """
+    try:
+        src = Path(src_path)
+        if not src.exists() or not src.is_file():
+            return None
+
+        # If already in _OUTPUT_DIR, just return the URL
+        try:
+            src_resolved = src.resolve()
+            out_resolved = _OUTPUT_DIR.resolve()
+            if src_resolved.parent == out_resolved:
+                return f"/outputs/{src.name}"
+        except (OSError, RuntimeError):
+            pass
+
+        # Copy to _OUTPUT_DIR with a unique name
+        ext = src.suffix.lstrip(".") or "bin"
+        filename = f"{uuid.uuid4().hex[:16]}.{ext}"
+        dest = _OUTPUT_DIR / filename
+        import shutil
+        shutil.copy2(str(src), str(dest))
+        return f"/outputs/{filename}"
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to copy file to output dir: %s -> %s: %s",
+                        src_path, _OUTPUT_DIR, exc)
+        return None
+
+
 def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
     """Recursively transform Mosaic-serialized data into UI-friendly format.
 
@@ -440,12 +473,25 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
                 result[key] = _make_video_display(v, obj.get("fps", 30))
                 continue
 
-            # Video file path → add as src for video player
-            if key == "video_path" and isinstance(v, str) and v.startswith("/"):
-                if "video" not in result:
-                    result["video"] = {"__display_type__": "video", "src": v}
-                else:
-                    result["video"]["src"] = v
+            # Video/image/audio file path → copy to output dir, add as playable src
+            if key in ("video_path", "output_path") and isinstance(v, str) and v.startswith("/"):
+                url = _copy_to_output_dir(v)
+                if url:
+                    ext = v.rsplit(".", 1)[-1].lower() if "." in v else ""
+                    if ext in ("mp4", "avi", "webm", "mov", "mkv", "gif"):
+                        display_type = "video"
+                    elif ext in ("wav", "mp3", "flac", "ogg", "m4a", "aac"):
+                        display_type = "audio"
+                    elif ext in ("png", "jpg", "jpeg", "webp", "gif", "bmp"):
+                        display_type = "image"
+                    else:
+                        display_type = "video"
+                    if "video" not in result and display_type == "video":
+                        result["video"] = {"__display_type__": "video", "src": url}
+                    elif display_type != "video":
+                        result[key] = {"__display_type__": display_type, "src": url}
+                    else:
+                        result["video"]["src"] = url
                 continue
 
             # Keypoints / face_embedding → metadata summary only
@@ -465,21 +511,46 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
 
             result[key] = _transform_for_ui(v, depth + 1)
 
-        # If this is a multi-format-exporter output with a path and content_type,
-        # add display info so the UI can render a player
-        if "path" in result and "content_type" in result:
+        # Multi-format-exporter output: "outputs" dict maps format→file path
+        # Copy files to static outputs dir and add playable media descriptor
+        if "outputs" in result and isinstance(result["outputs"], dict):
+            outputs_dict = result["outputs"]
+            # Find the first playable media file
+            for fmt, file_path in outputs_dict.items():
+                if isinstance(file_path, str) and file_path.startswith("/"):
+                    url = _copy_to_output_dir(file_path)
+                    if url:
+                        ext = fmt.lower()
+                        if ext in ("mp3", "wav", "flac", "ogg", "m4a", "aac"):
+                            result["__display_type__"] = "audio"
+                            result["src"] = url
+                        elif ext in ("mp4", "avi", "webm", "mov", "mkv", "gif"):
+                            result["__display_type__"] = "video"
+                            result["src"] = url
+                        elif ext in ("png", "jpg", "jpeg", "webp", "bmp", "tiff"):
+                            result["__display_type__"] = "image"
+                            result["src"] = url
+                        elif ext in ("srt", "vtt", "ass"):
+                            result["__display_type__"] = "subtitle"
+                            result["src"] = url
+                        break  # Only use the first playable file
+
+        # Also handle direct path+content_type (legacy/other exporters)
+        elif "path" in result and "content_type" in result:
             path_str = str(result.get("path", ""))
             ct = str(result.get("content_type", ""))
             if path_str and path_str.startswith("/"):
-                if ct == "audio":
-                    result["__display_type__"] = "audio"
-                    result["src"] = path_str
-                elif ct == "video":
-                    result["__display_type__"] = "video"
-                    result["src"] = path_str
-                elif ct == "image":
-                    result["__display_type__"] = "image"
-                    result["src"] = path_str
+                url = _copy_to_output_dir(path_str)
+                if url:
+                    if ct == "audio":
+                        result["__display_type__"] = "audio"
+                        result["src"] = url
+                    elif ct == "video":
+                        result["__display_type__"] = "video"
+                        result["src"] = url
+                    elif ct == "image":
+                        result["__display_type__"] = "image"
+                        result["src"] = url
 
         # Tag top-level with display type
         if data_type and "__display_type__" not in result:
@@ -609,7 +680,8 @@ def _make_video_display(frames: list, fps: int) -> dict[str, Any]:
     """Convert a list of serialized frames into a video display descriptor.
 
     Saves thumbnail frames as image files in the output directory and
-    returns HTTP URLs.
+    returns HTTP URLs. Attempts to encode frames into a playable video
+    file when possible.
     """
     frame_count = len(frames)
     thumbnails: list[dict] = []
@@ -621,13 +693,71 @@ def _make_video_display(frames: list, fps: int) -> dict[str, Any]:
 
     duration = frame_count / fps if fps > 0 else 0
 
-    return {
+    # Try to encode frames into a playable video file
+    video_src = _try_encode_video(frames, fps)
+
+    result: dict[str, Any] = {
         "__display_type__": "video",
         "thumbnails": thumbnails,
         "frame_count": frame_count,
         "fps": fps,
         "duration": round(duration, 2),
     }
+    if video_src:
+        result["src"] = video_src
+    return result
+
+
+def _try_encode_video(frames: list, fps: int) -> str:
+    """Try to encode a list of serialized PIL frames into an MP4 video file.
+
+    Returns the URL path to the saved video, or empty string on failure.
+    Uses imageio if available; otherwise returns empty string (thumbnails
+    will still be shown).
+    """
+    if not frames:
+        return ""
+    try:
+        import imageio.v2 as imageio  # type: ignore[import-not-found]
+    except ImportError:
+        try:
+            import imageio  # type: ignore[import-not-found]
+        except ImportError:
+            return ""
+
+    try:
+        import io as _io
+        import base64 as _b64
+        from PIL import Image  # type: ignore[import-not-found]
+
+        pil_frames: list = []
+        for frame in frames[:30]:  # Limit to 30 frames for performance
+            if isinstance(frame, dict) and frame.get("__pil_image__"):
+                encoded = frame.get("encoded", "")
+                if encoded.startswith("b64:"):
+                    parts = encoded.split(":", 2)
+                    if len(parts) == 3:
+                        raw = _b64.b64decode(parts[2])
+                    else:
+                        continue
+                else:
+                    raw = _b64.b64decode(encoded)
+                img = Image.open(_io.BytesIO(raw))
+                pil_frames.append(img)
+
+        if not pil_frames:
+            return ""
+
+        # Encode as MP4
+        buf = _io.BytesIO()
+        with imageio.get_writer(buf, format="mp4", fps=fps) as writer:
+            for img in pil_frames:
+                writer.append_data(img)
+
+        return _save_media_file(buf.getvalue(), "mp4")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to encode video frames: %s", exc)
+        return ""
 
 
 # ---------------------------------------------------------------------------

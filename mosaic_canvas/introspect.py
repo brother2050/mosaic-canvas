@@ -921,6 +921,12 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="speaker", type="string", required=False,
                    description="Speaker name for multi-speaker backends.",
                    group="advanced"),
+        InputField(name="prompt_text", type="string", required=False,
+                   description="Prompt text for extended TTS backends (CosyVoice/SoVITS).",
+                   group="advanced"),
+        InputField(name="instruct", type="string", required=False,
+                   description="Instruction text for ChatTTS-style backends.",
+                   group="advanced"),
     ],
     "asr": [
         InputField(name="audio", type="string", required=True,
@@ -1190,6 +1196,8 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="What to avoid."),
         InputField(name="num_inference_steps", type="int", required=False, default=10,
                    description="Denoising steps."),
+        InputField(name="guidance_scale", type="float", required=False, default=3.5,
+                   description="Guidance scale for sound generation."),
     ],
     "voice-clone": [
         InputField(name="reference_audio", type="string", required=True,
@@ -1824,12 +1832,17 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     # === Export / Encoding ===
     "video-encoder": [
-        InputField(name="video_path", type="string", description="Path to encoded video file."),
-        InputField(name="video", type="video", description="Video file reference."),
+        InputField(name="output_path", type="string", description="Path to the encoded video file."),
+        InputField(name="format", type="string", description="Output video format."),
+        InputField(name="codec", type="string", description="Video codec used."),
+        InputField(name="duration", type="float", description="Video duration in seconds."),
+        InputField(name="file_size", type="int", description="Video file size in bytes."),
+        InputField(name="resolution", type="string", description="Video resolution (WxH)."),
     ],
     "multi-format-exporter": [
-        InputField(name="path", type="string", description="Path to exported file."),
-        InputField(name="content_type", type="string", description="Exported content type."),
+        InputField(name="outputs", type="dict", description="Dict mapping format to exported file path."),
+        InputField(name="total_files", type="int", description="Total number of exported files."),
+        InputField(name="total_size", type="int", description="Total size of exported files in bytes."),
     ],
     # === Document / RAG ===
     "document-parser": [
