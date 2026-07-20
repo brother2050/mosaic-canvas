@@ -266,22 +266,28 @@ const Properties = (() => {
             <div class="prop-field-internal-name">${escapeHtml(field.name)}</div>`;
 
         // Input control
-        // Model field: render as combobox (input + datalist) to allow custom model IDs
+        // Model field: select dropdown with "Custom..." option for manual model ID entry
         if (field.name === 'model' && field.choices) {
-            const datalistId = `model-suggestions-${escapeAttr(field.name)}`;
-            const displayValue = hasValue ? escapeAttr(String(currentValue)) : '';
+            const isCustom = hasValue && !field.choices.includes(String(currentValue));
+            const customInputDisplay = isCustom ? '' : 'display:none;';
+            const customInputValue = isCustom ? escapeAttr(String(currentValue)) : '';
             const placeholderStr = hasDefault ? escapeAttr(String(defaultValue)) : 'e.g. stabilityai/sdxl-turbo';
-            html += `<input type="text" class="prop-input prop-model-input" ${dataParam}="${escapeAttr(field.name)}" value="${displayValue}" placeholder="${placeholderStr}" list="${datalistId}" autocomplete="off">`;
-            html += `<datalist id="${datalistId}">`;
-            if (hasDefault) {
-                html += `<option value="${escapeAttr(String(defaultValue))}">${I18n.t('param.default_option')}</option>`;
+
+            // Main select dropdown
+            html += `<select class="prop-input prop-model-select" ${dataParam}="${escapeAttr(field.name)}" data-has-custom="true">`;
+            if (!field.required) {
+                html += `<option value="">${I18n.t('param.default_option')}${hasDefault ? ' (' + escapeHtml(String(defaultValue)) + ')' : ''}</option>`;
             }
             field.choices.forEach(c => {
-                html += `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`;
+                const selected = hasValue && String(currentValue) === String(c) ? 'selected' : '';
+                html += `<option value="${escapeAttr(c)}" ${selected}>${escapeHtml(c)}</option>`;
             });
-            html += `</datalist>`;
-            // Add a hint that custom models can be entered
-            html += `<div class="prop-model-hint">${I18n.t('param.model_hint') || 'Type to enter a custom HuggingFace model ID, or select from suggestions'}</div>`;
+            html += `<option value="__custom__" ${isCustom ? 'selected' : ''}>✏️ ${I18n.t('param.custom_model') || 'Custom model ID...'}</option>`;
+            html += `</select>`;
+
+            // Custom text input (shown only when "Custom..." is selected)
+            html += `<input type="text" class="prop-input prop-model-custom" data-custom-for="${escapeAttr(field.name)}" value="${customInputValue}" placeholder="${placeholderStr}" style="${customInputDisplay}" autocomplete="off">`;
+            html += `<div class="prop-model-hint">${I18n.t('param.model_hint') || 'Select from list, or choose "Custom" to enter a HuggingFace model ID'}</div>`;
         } else if (field.type === 'choice' && field.choices) {
             html += `<select class="prop-input" ${dataParam}="${escapeAttr(field.name)}">`;
             if (!field.required) {
@@ -499,6 +505,42 @@ const Properties = (() => {
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParams(nodeId, params);
                 render();
+            });
+        });
+
+        // --- Model select with Custom option ---
+        panelEl.querySelectorAll('.prop-model-select[data-has-custom="true"]').forEach(select => {
+            const paramName = select.dataset.param;
+            const customInput = panelEl.querySelector(`input[data-custom-for="${CSS.escape(paramName)}"]`);
+
+            select.addEventListener('change', () => {
+                if (select.value === '__custom__') {
+                    // Show custom input and focus it
+                    if (customInput) {
+                        customInput.style.display = '';
+                        customInput.focus();
+                    }
+                    // Don't update params yet - wait for custom input
+                } else {
+                    // Hide custom input and update params
+                    if (customInput) {
+                        customInput.style.display = 'none';
+                    }
+                    params[paramName] = select.value;
+                    Store.updateNodeParams(nodeId, params);
+                }
+            });
+        });
+
+        panelEl.querySelectorAll('.prop-model-custom').forEach(input => {
+            const paramName = input.dataset.customFor;
+            input.addEventListener('input', () => {
+                params[paramName] = input.value;
+                Store.updateNodeParamsSilent(nodeId, params);
+            });
+            input.addEventListener('change', () => {
+                params[paramName] = input.value;
+                Store.updateNodeParams(nodeId, params);
             });
         });
 

@@ -391,7 +391,9 @@
                 if (r.type === 'image') {
                     preview = `<img src="${escapeAttr(r.url)}" loading="lazy" alt="${escapeAttr(r.filename)}" />`;
                 } else if (r.type === 'video') {
-                    preview = `<video src="${escapeAttr(r.url)}" preload="metadata" onloadedmetadata="this.muted=true"></video>`;
+                    preview = `<video src="${escapeAttr(r.url)}" preload="metadata" controls></video>`;
+                } else if (r.type === 'audio') {
+                    preview = `<div class="resource-audio-preview"><audio controls src="${escapeAttr(r.url)}" class="resource-audio-mini" preload="none"></audio></div>`;
                 } else {
                     preview = `<div class="icon">${getIcon(r.type)}</div>`;
                 }

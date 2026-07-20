@@ -54,7 +54,6 @@ html, body {
     font-size: 14px;
     color: var(--text);
     background: var(--bg-0);
-    user-select: none;
 }
 
 /* ---- Toolbar ---- */
@@ -1223,10 +1222,14 @@ html, body {
 select.prop-input { cursor: pointer; }
 textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--font-mono); font-size: 12px; }
 
-/* Model input combobox (input + datalist) for custom HuggingFace model IDs */
-.prop-model-input {
+/* Model select with custom option */
+.prop-model-select {
+    font-size: 12px;
+}
+.prop-model-custom {
     font-family: var(--font-mono);
     font-size: 12px;
+    margin-top: 4px;
 }
 .prop-model-hint {
     font-size: 0.75rem;
@@ -1506,6 +1509,28 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     border-radius: var(--radius-sm);
     object-fit: cover;
     border: 1px solid var(--border);
+}
+
+/* Video player in results */
+.result-video-player-wrapper {
+    margin-bottom: 8px;
+}
+.result-video-player {
+    width: 100%;
+    max-width: 640px;
+    border-radius: 4px;
+}
+/* Audio preview in resource grid */
+.resource-audio-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 8px;
+}
+.resource-audio-mini {
+    width: 100%;
+    max-width: 200px;
 }
 
 /* ---- Result action buttons (download, view all) ---- */
@@ -2513,4 +2538,16 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
     background: rgba(79, 156, 249, 0.08);
     border-color: var(--accent);
     border-style: solid;
+}
+
+/* Prevent text selection on interactive UI elements only */
+.canvas-node, .toolbar, .palette-header, .palette-item, .prompts-cat-header,
+.prop-collapsible-header, .result-action-btn, .node-port, .btn, button {
+    user-select: none;
+}
+/* Allow text selection in content areas */
+.prop-input, .prop-model-custom, .prop-textarea, pre, code, .result-text,
+.result-text-long, .result-field-value, .prop-model-hint, .prop-field-internal-name,
+.prop-schema-row, .result-subtitle-text {
+    user-select: text;
 }

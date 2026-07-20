@@ -440,6 +440,14 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
                 result[key] = _make_video_display(v, obj.get("fps", 30))
                 continue
 
+            # Video file path → add as src for video player
+            if key == "video_path" and isinstance(v, str) and v.startswith("/"):
+                if "video" not in result:
+                    result["video"] = {"__display_type__": "video", "src": v}
+                else:
+                    result["video"]["src"] = v
+                continue
+
             # Keypoints / face_embedding → metadata summary only
             if key in ("keypoints", "face_embedding") and isinstance(v, dict) and v.get("__ndarray__"):
                 shape = v.get("shape", [])
@@ -456,6 +464,22 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
                 continue
 
             result[key] = _transform_for_ui(v, depth + 1)
+
+        # If this is a multi-format-exporter output with a path and content_type,
+        # add display info so the UI can render a player
+        if "path" in result and "content_type" in result:
+            path_str = str(result.get("path", ""))
+            ct = str(result.get("content_type", ""))
+            if path_str and path_str.startswith("/"):
+                if ct == "audio":
+                    result["__display_type__"] = "audio"
+                    result["src"] = path_str
+                elif ct == "video":
+                    result["__display_type__"] = "video"
+                    result["src"] = path_str
+                elif ct == "image":
+                    result["__display_type__"] = "image"
+                    result["src"] = path_str
 
         # Tag top-level with display type
         if data_type and "__display_type__" not in result:

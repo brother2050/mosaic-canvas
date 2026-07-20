@@ -372,7 +372,19 @@ const Results = (() => {
 
     function renderVideo(value) {
         const thumbnails = value.thumbnails || [];
+        const videoSrc = value.src || '';
         let html = `<div class="result-video-container">`;
+
+        // Video player (if video file URL is available)
+        if (videoSrc) {
+            const filename = videoSrc.split('/').pop() || 'video.mp4';
+            html += `<div class="result-video-player-wrapper">
+                <video controls src="${escapeAttr(videoSrc)}" class="result-video-player"></video>
+            </div>`;
+            html += `<div class="result-actions">
+                <a href="${escapeAttr(videoSrc)}" download="${escapeAttr(filename)}" class="result-action-btn" title="Download">⬇ Download Video</a>
+            </div>`;
+        }
 
         // Metadata
         let meta = '';
@@ -387,7 +399,7 @@ const Results = (() => {
         }
         if (meta) html += `<div class="result-video-info">${meta}</div>`;
 
-        // Thumbnails
+        // Thumbnails (frame previews)
         if (thumbnails.length > 0) {
             html += `<div class="result-video-thumbnails">`;
             thumbnails.forEach((thumb, i) => {
@@ -398,7 +410,7 @@ const Results = (() => {
             html += `</div>`;
         }
 
-        // Download buttons for each thumbnail
+        // Download buttons for each thumbnail frame
         if (thumbnails.length > 0) {
             html += `<div class="result-actions">`;
             thumbnails.forEach((thumb, i) => {
