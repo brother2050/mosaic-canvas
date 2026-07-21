@@ -624,7 +624,7 @@ const Templates = (() => {
                 {
                     id: 'n4', type: 'multi-format-exporter', label: '',
                     params: {},
-                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    input_params: { content_type: 'text', formats: '["txt"]' },
                     ...pos(3, 0),
                 },
             ],
@@ -701,11 +701,13 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'text-generator', label: '', params: {}, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'translator', label: '', params: {}, input_params: { target_language: 'en' }, ...pos(1, 0) },
-                { id: 'n3', type: 'text-summarizer', label: '', params: {}, input_params: {}, ...pos(2, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"translated_text": "text"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n3', type: 'text-summarizer', label: '', params: {}, input_params: {}, ...pos(3, 0) },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
-                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e2', source: 'n2', target: 'n_mid' },
+                { id: 'e3', source: 'n_mid', target: 'n3' },
             ],
             input: { prompt: 'Write a short article about artificial intelligence in healthcare' },
         },
@@ -716,8 +718,8 @@ const Templates = (() => {
             description: { en: 'Rewrite text with a different style, then export as text (example 01).', zh: '以不同风格改写文本后导出为文本（示例01）。' },
             nodes: [
                 { id: 'n1', type: 'text-rewriter', label: '', params: {}, input_params: { instruction: 'Rewrite in a formal style' }, ...pos(0, 0) },
-                { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"text": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(2, 0) },
+                { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"rewritten_text": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -733,13 +735,15 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'chat', label: '', params: {}, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'text-classifier', label: '', params: {}, input_params: { labels: '["positive", "negative", "neutral"]' }, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(2, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"predicted_label": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(3, 0) },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
-                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e2', source: 'n2', target: 'n_mid' },
+                { id: 'e3', source: 'n_mid', target: 'n3' },
             ],
-            input: { prompt: 'Tell me about a product you recently bought and loved.' },
+            input: { messages: '[{"role":"user","content":"Tell me about a product you recently bought and loved."}]' },
         },
 
         // ── 02_image_domain.py ──
@@ -849,11 +853,13 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'text-to-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(0, 0) },
                 { id: 'n2', type: 'frame-extractor', label: '', params: {}, input_params: { mode: 'interval', interval: '2' }, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'image', formats: '["png"]' }, ...pos(2, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"frames": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'image', formats: '["png"]' }, ...pos(3, 0) },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
-                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e2', source: 'n2', target: 'n_mid' },
+                { id: 'e3', source: 'n_mid', target: 'n3' },
             ],
             input: { prompt: 'a cat playing with a ball of yarn, slow motion' },
         },
@@ -1278,7 +1284,7 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'data-merger', label: '', params: { merge_keys: '["field1", "field2"]' }, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"merged": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(2, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
@@ -1295,9 +1301,9 @@ const Templates = (() => {
                 zh: '解析 JSON，应用字段映射，然后导出。',
             },
             nodes: [
-                { id: 'n1', type: 'json-parser', label: '', params: {}, input_params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"old_field": "new_field"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(2, 0) },
+                { id: 'n1', type: 'json-parser', label: '', params: { source_field: 'text' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"data.name": "name", "data.age": "age", "data.city": "city"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
             input: { text: '{"name": "Alice", "age": 30, "city": "Beijing"}' },
@@ -1330,9 +1336,10 @@ const Templates = (() => {
             },
             nodes: [
                 { id: 'n1', type: 'api-caller', label: '', params: { method: 'GET', url: 'https://api.example.com/data', headers: '{"Accept": "application/json"}' }, input_params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(1, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"response": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
-            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            edges: [{ id: 'e1', source: 'n1', target: 'n_mid' }, { id: 'e2', source: 'n_mid', target: 'n2' }],
             input: {},
         },
         // ── Helper nodes: data validation ──
@@ -1346,9 +1353,10 @@ const Templates = (() => {
             },
             nodes: [
                 { id: 'n1', type: 'schema-validator', label: '', params: { schema: '{"type": "object", "properties": {"name": {"type": "string"}}}' }, input_params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(1, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"data": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
-            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            edges: [{ id: 'e1', source: 'n1', target: 'n_mid' }, { id: 'e2', source: 'n_mid', target: 'n2' }],
             input: { data: '{"name": "Alice"}' },
         },
         // ── Helper nodes: control flow ──
@@ -1362,9 +1370,10 @@ const Templates = (() => {
             },
             nodes: [
                 { id: 'n1', type: 'switch', label: '', params: { conditions: '[{"field": "type", "op": "eq", "value": "image"}]' }, input_params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(1, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"data": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
-            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            edges: [{ id: 'e1', source: 'n1', target: 'n_mid' }, { id: 'e2', source: 'n_mid', target: 'n2' }],
             input: { data: '{"type": "image", "content": "..."}' },
         },
         // ── Helper nodes: caching ──
@@ -1378,9 +1387,10 @@ const Templates = (() => {
             },
             nodes: [
                 { id: 'n1', type: 'result-cache', label: '', params: { cache_keys: '["prompt", "model"]' }, input_params: {}, ...pos(0, 0) },
-                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(1, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"data": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
-            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            edges: [{ id: 'e1', source: 'n1', target: 'n_mid' }, { id: 'e2', source: 'n_mid', target: 'n2' }],
             input: { prompt: 'test prompt', model: 'test-model' },
         },
         // ── Helper nodes: text processing chain ──
@@ -1395,9 +1405,10 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'text-chunker', label: '', params: { strategy: 'sentence', chunk_size: '500' }, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'text-classifier', label: '', params: {}, input_params: { labels: '["important", "trivial", "reference"]' }, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(2, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"predicted_label": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(3, 0) },
             ],
-            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n_mid' }, { id: 'e3', source: 'n_mid', target: 'n3' }],
             input: { text: 'A long document that needs to be chunked and classified...' },
         },
         // ── Helper nodes: monitoring & debugging ──
@@ -1412,9 +1423,10 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'logger', label: '', params: { level: 'info' }, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'debugger', label: '', params: {}, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["txt"]' }, ...pos(2, 0) },
+                { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"data": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(3, 0) },
             ],
-            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n_mid' }, { id: 'e3', source: 'n_mid', target: 'n3' }],
             input: { data: '{"message": "debug test"}' },
         },
         // ── 中文提示词转英文模板 ──
@@ -1493,7 +1505,7 @@ const Templates = (() => {
                 {
                     id: 'n3', type: 'multi-format-exporter', label: '',
                     params: {},
-                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    input_params: { content_type: 'text', formats: '["txt"]' },
                     ...pos(2, 0),
                 },
             ],
@@ -1528,7 +1540,7 @@ const Templates = (() => {
                 {
                     id: 'n3', type: 'multi-format-exporter', label: '',
                     params: {},
-                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    input_params: { content_type: 'text', formats: '["txt"]' },
                     ...pos(2, 0),
                 },
             ],
@@ -1563,7 +1575,7 @@ const Templates = (() => {
                 {
                     id: 'n3', type: 'multi-format-exporter', label: '',
                     params: {},
-                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    input_params: { content_type: 'text', formats: '["txt"]' },
                     ...pos(2, 0),
                 },
             ],
@@ -1832,7 +1844,7 @@ const Templates = (() => {
                 {
                     id: 'n2', type: 'multi-format-exporter', label: '',
                     params: {},
-                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    input_params: { content_type: 'text', formats: '["txt"]' },
                     ...pos(1, 0),
                 },
             ],
@@ -1922,17 +1934,24 @@ const Templates = (() => {
                     ...pos(3, 0),
                 },
                 {
+                    id: 'n_mid', type: 'field-mapper', label: '',
+                    params: { mapping: '{"image": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(4, 0),
+                },
+                {
                     id: 'n5', type: 'multi-format-exporter', label: '',
                     params: {},
                     input_params: { content_type: 'image', formats: '["png"]' },
-                    ...pos(4, 0),
+                    ...pos(5, 0),
                 },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
                 { id: 'e2', source: 'n2', target: 'n3' },
                 { id: 'e3', source: 'n3', target: 'n4' },
-                { id: 'e4', source: 'n4', target: 'n5' },
+                { id: 'e4', source: 'n4', target: 'n_mid' },
+                { id: 'e5', source: 'n_mid', target: 'n5' },
             ],
             input: { messages: '[{"role":"user","content":"一只可爱的猫咪坐在窗台上"}]' },
         },
@@ -2054,15 +2073,22 @@ const Templates = (() => {
                     ...pos(1, 0),
                 },
                 {
+                    id: 'n_mid', type: 'field-mapper', label: '',
+                    params: { mapping: '{"image": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(2, 0),
+                },
+                {
                     id: 'n3', type: 'multi-format-exporter', label: '',
                     params: {},
                     input_params: { content_type: 'image', formats: '["png"]' },
-                    ...pos(2, 0),
+                    ...pos(3, 0),
                 },
             ],
             edges: [
                 { id: 'e1', source: 'n1', target: 'n2' },
-                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e2', source: 'n2', target: 'n_mid' },
+                { id: 'e3', source: 'n_mid', target: 'n3' },
             ],
             input: {},
         },

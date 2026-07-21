@@ -208,6 +208,13 @@ _FIELD_ALIASES: dict[str, list[str]] = {
     "driving_video": ["video", "frames", "motion", "keypoints"],
 }
 
+# Fields that are commonly required by nodes but may arrive under different
+# names from upstream. Used as a safety net in pass-all mode to prevent
+# silent failures when input_types contains "mosaic" (which disables the
+# normal expected_fields filtering).
+_COMMON_REQUIRED_FIELDS: set[str] = {"prompt", "data", "text", "image",
+                                     "audio", "video", "subtitle"}
+
 
 def _apply_field_aliases(
     pred_out: Any,
@@ -1125,6 +1132,17 @@ class GraphExecutor:
                             # Fallback: pass all (backward compat)
                             for k, v in pred_out.items():
                                 node_input[k] = v
+                            # Safety net: even in pass-all mode, try to fill
+                            # commonly-required fields via aliases. This helps
+                            # when a node declares input_types containing
+                            # "mosaic" (causing expected_fields to be empty)
+                            # but still requires specific fields like "prompt"
+                            # or "data" at runtime. Without this, nodes like
+                            # text-to-image would silently miss "prompt" when
+                            # the upstream outputs a differently-named field.
+                            _apply_field_aliases(
+                                pred_out, _COMMON_REQUIRED_FIELDS, node_input,
+                            )
                 # Also merge pipeline input (lets users override at pipeline level)
                 for k, v in self.graph.input.data.items():
                     if k not in node_input:
