@@ -21,6 +21,14 @@
 const Properties = (() => {
     let panelEl;
 
+    // Track expanded state of collapsible groups across re-renders.
+    // Keyed by group ID (e.g. 'advanced-params').  Without this, every
+    // render() call resets the group to collapsed (display:none), making
+    // advanced parameter selects appear "unselectable" — the user opens
+    // the group, picks an option, change fires render(), and the group
+    // snaps shut.
+    const _collapsibleState = {};
+
     function init() {
         panelEl = document.getElementById('properties-panel');
     }
@@ -100,7 +108,8 @@ const Properties = (() => {
                         I18n.t('prop.advanced_params'),
                         mergedFields.advanced.map(item =>
                             renderParamField(item.field, item.values, item.source)
-                        ).join('')
+                        ).join(''),
+                        mergedFields.advanced.length
                     );
                 }
 
@@ -392,15 +401,21 @@ const Properties = (() => {
 
     /**
      * Render a collapsible group (for advanced parameters).
+     *
+     * The expanded/collapsed state is preserved across re-renders via
+     * ``_collapsibleState`` so that selecting an option inside the group
+     * does not cause the group to collapse.
      */
-    function renderCollapsibleGroup(id, title, content) {
+    function renderCollapsibleGroup(id, title, content, count) {
+        const isExpanded = _collapsibleState[id] === true;
+        const countLabel = count > 0 ? `(${count})` : '';
         return `<div class="prop-collapsible-group" id="${id}">
             <div class="prop-collapsible-header" data-toggle="${id}">
-                <span class="prop-collapsible-arrow">▶</span>
+                <span class="prop-collapsible-arrow">${isExpanded ? '▼' : '▶'}</span>
                 <span class="prop-collapsible-title">${escapeHtml(title)}</span>
-                <span class="prop-collapsible-count"></span>
+                <span class="prop-collapsible-count">${countLabel}</span>
             </div>
-            <div class="prop-collapsible-content" style="display:none">
+            <div class="prop-collapsible-content" style="display:${isExpanded ? 'block' : 'none'}">
                 ${content}
             </div>
         </div>`;
@@ -508,7 +523,12 @@ const Properties = (() => {
                 if (input.classList.contains('prop-model-select') && input.value === '__custom__') return;
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParams(nodeId, params);
-                render();
+                updateFieldBadge(input, paramName, fieldType, defaultVal, false);
+                // Do NOT call render() here — it replaces the entire panel
+                // HTML, collapsing collapsible groups and closing the
+                // select dropdown mid-interaction.  The 'input' event
+                // already saved the value silently; this 'change' handler
+                // persists it with notification and updates the badge.
             });
         });
 
@@ -586,7 +606,8 @@ const Properties = (() => {
             input.addEventListener('change', () => {
                 updateParam(inputParams, fieldName, input, fieldType, defaultVal);
                 Store.updateNodeInputParams(nodeId, inputParams);
-                render();
+                updateFieldBadge(input, fieldName, fieldType, defaultVal, true);
+                // Do NOT call render() — see data-param change handler above.
             });
         });
 
@@ -618,6 +639,8 @@ const Properties = (() => {
                     const isVisible = content.style.display !== 'none';
                     content.style.display = isVisible ? 'none' : 'block';
                     arrow.textContent = isVisible ? '▶' : '▼';
+                    // Persist expanded state so render() preserves it.
+                    _collapsibleState[groupId] = !isVisible;
                 }
             });
         });
