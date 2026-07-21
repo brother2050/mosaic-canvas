@@ -323,8 +323,10 @@ const Properties = (() => {
         } else {
             // Check if this is a prompt-type field that should have a prompt picker
             const isPromptField = field.name === 'prompt' || field.name === 'negative_prompt' ||
-                field.name === 'instruction' || field.name === 'message' ||
-                field.name === 'text' || field.name === 'character_description';
+        field.name === 'instruction' || field.name === 'message' ||
+        field.name === 'text' || field.name === 'character_description' ||
+        field.name === 'system_prompt' || field.name === 'instruct' ||
+        field.name === 'prompt_text';
             if (isPromptField) {
                 // Use textarea for prompt fields (supports multi-line, long prompts)
                 const rows = field.name === 'negative_prompt' ? 3 : 4;

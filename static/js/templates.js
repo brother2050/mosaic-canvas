@@ -344,7 +344,9 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'chat', label: '',
                     params: {},
-                    input_params: {},
+                    input_params: {
+                        system_prompt: 'You are a prompt engineering assistant. Enhance the user\'s description into a detailed Stable Diffusion prompt. Output ONLY the enhanced prompt.',
+                    },
                     ...pos(0, 0),
                 },
                 {
@@ -1405,6 +1407,232 @@ const Templates = (() => {
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
             input: { data: '{"message": "debug test"}' },
+        },
+        // ── 中文提示词转英文模板 ──
+        {
+            id: 'zh-to-en-prompt-image',
+            name: { en: 'CN Prompt → EN → Image', zh: '中文提示词转英文 → 生图' },
+            icon: '🔄',
+            description: {
+                en: 'Translate Chinese prompts to English SD prompts, then generate image.',
+                zh: '将中文提示词转为适合SD的英文提示词，然后生成图片。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'chat', label: '',
+                    params: {},
+                    input_params: {
+                        system_prompt: 'You are a professional prompt engineer. Translate the user\'s Chinese text into an English prompt optimized for Stable Diffusion. Output ONLY the English prompt, no explanations. Example: "一个漂亮的女孩" → "a beautiful girl, 8k resolution, ultra-detailed, photorealistic, masterpiece, best quality"',
+                    },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"reply": "prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'text-to-image', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(2, 0),
+                },
+                {
+                    id: 'n4', type: 'field-mapper', label: '',
+                    params: { mapping: '{"image": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(3, 0),
+                },
+                {
+                    id: 'n5', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(4, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e3', source: 'n3', target: 'n4' },
+                { id: 'e4', source: 'n4', target: 'n5' },
+            ],
+            input: { messages: '[{"role":"user","content":"一个漂亮的女孩在花园里散步，阳光明媚"}]' },
+        },
+        // ── 文本翻译导出模板 ──
+        {
+            id: 'translate-export',
+            name: { en: 'Translate → Export', zh: '翻译 → 导出' },
+            icon: '🌐',
+            description: {
+                en: 'Translate text to another language and export.',
+                zh: '将文本翻译为另一种语言并导出。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'translator', label: '',
+                    params: {},
+                    input_params: { target_language: 'en' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"translated_text": "data"}', drop_fields: '["source_language", "target_language"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { text: '今天天气真好，适合出去散步。' },
+        },
+        // ── 文本摘要导出模板 ──
+        {
+            id: 'summarize-export',
+            name: { en: 'Summarize → Export', zh: '摘要 → 导出' },
+            icon: '📝',
+            description: {
+                en: 'Summarize long text and export the summary.',
+                zh: '对长文本进行摘要并导出。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'text-summarizer', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"summary": "data"}', drop_fields: '["original_length", "summary_length", "compression_ratio"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { text: 'Artificial intelligence (AI) is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals. Leading AI textbooks define the field as the study of "intelligent agents": any device that perceives its environment and takes actions that maximize its chance of successfully achieving its goals.' },
+        },
+        // ── 文本分类导出模板 ──
+        {
+            id: 'classify-export',
+            name: { en: 'Classify → Export', zh: '分类 → 导出' },
+            icon: '🏷️',
+            description: {
+                en: 'Classify text into categories and export results.',
+                zh: '对文本进行分类并导出结果。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'text-classifier', label: '',
+                    params: {},
+                    input_params: { labels: '["positive", "negative", "neutral"]' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"classification": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { text: 'This product is amazing! The quality exceeds my expectations.', labels: '["positive", "negative", "neutral"]' },
+        },
+        // ── 语音合成导出模板 ──
+        {
+            id: 'tts-export',
+            name: { en: 'TTS → Export', zh: '语音合成 → 导出' },
+            icon: '🔊',
+            description: {
+                en: 'Convert text to speech and export audio.',
+                zh: '将文本转为语音并导出音频。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'tts', label: '',
+                    params: {},
+                    input_params: { language: 'zh', emotion: 'neutral' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"audio": "data"}', drop_fields: '["text", "duration"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'audio', formats: '["wav", "mp3"]' },
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { text: '你好，欢迎使用语音合成功能。' },
+        },
+        // ── 文生视频导出模板 ──
+        {
+            id: 'text-to-video-export',
+            name: { en: 'Text → Video → Export', zh: '文生视频 → 导出' },
+            icon: '🎬',
+            description: {
+                en: 'Generate video from text and export.',
+                zh: '从文字生成视频并导出。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'text-to-video', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"video": "data"}', drop_fields: '["frames", "fps", "prompt", "seed", "num_frames", "duration"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'video', formats: '["mp4"]' },
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { prompt: 'A cat playing in a garden, cinematic, 4K' },
         },
     ];
 
