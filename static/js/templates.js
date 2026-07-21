@@ -345,7 +345,7 @@ const Templates = (() => {
                     id: 'n1', type: 'chat', label: '',
                     params: {},
                     input_params: {
-                        system_prompt: 'You are a prompt engineering assistant. Enhance the user\'s description into a detailed Stable Diffusion prompt. Output ONLY the enhanced prompt.',
+                        system_prompt: 'You are a professional Stable Diffusion prompt engineer. Enhance the user\'s description into a detailed English prompt. Always append quality boosters (masterpiece, best quality, 8k, ultra-detailed), add relevant lighting/camera/style keywords, and suggest a negative prompt when beneficial. Output ONLY the English prompt, no explanations.',
                     },
                     ...pos(0, 0),
                 },
@@ -1422,7 +1422,7 @@ const Templates = (() => {
                     id: 'n1', type: 'chat', label: '',
                     params: {},
                     input_params: {
-                        system_prompt: 'You are a professional prompt engineer. Translate the user\'s Chinese text into an English prompt optimized for Stable Diffusion. Output ONLY the English prompt, no explanations. Example: "一个漂亮的女孩" → "a beautiful girl, 8k resolution, ultra-detailed, photorealistic, masterpiece, best quality"',
+                        system_prompt: 'You are a professional Stable Diffusion prompt engineer. Translate the user\'s Chinese text into an English prompt. Always append quality boosters (masterpiece, best quality, 8k, ultra-detailed), add relevant lighting/camera/style keywords, and suggest a negative prompt when beneficial. Output ONLY the English prompt, no explanations.',
                     },
                     ...pos(0, 0),
                 },
@@ -1633,6 +1633,204 @@ const Templates = (() => {
                 { id: 'e2', source: 'n2', target: 'n3' },
             ],
             input: { prompt: 'A cat playing in a garden, cinematic, 4K' },
+        },
+        // ── 前缀模板：对话 → 映射（可接任意下游节点）──
+        {
+            id: 'prefix-chat-mapper',
+            name: { en: 'Chat → Mapper (Prefix)', zh: '对话 → 映射（前缀）' },
+            icon: '🔗',
+            description: {
+                en: 'Use chat to generate content, then map reply to prompt. Connect any downstream node.',
+                zh: '用对话生成内容，将 reply 映射为 prompt。可接任意下游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'chat', label: '',
+                    params: {},
+                    input_params: {
+                        system_prompt: 'You are a professional Stable Diffusion prompt engineer. Translate the user\'s Chinese text into an English prompt. Always append quality boosters (masterpiece, best quality, 8k, ultra-detailed), add relevant lighting/camera/style keywords, and suggest a negative prompt when beneficial. Output ONLY the English prompt, no explanations.',
+                    },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"reply": "prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: { messages: '[{"role":"user","content":"一只可爱的猫咪坐在窗台上"}]' },
+        },
+        // ── 前缀模板：翻译 → 映射 ──
+        {
+            id: 'prefix-translate-mapper',
+            name: { en: 'Translate → Mapper (Prefix)', zh: '翻译 → 映射（前缀）' },
+            icon: '🌐',
+            description: {
+                en: 'Translate text, then map translated_text to prompt. Connect any downstream node.',
+                zh: '翻译文本，将 translated_text 映射为 prompt。可接任意下游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'translator', label: '',
+                    params: {},
+                    input_params: { target_language: 'en' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"translated_text": "prompt"}', drop_fields: '["source_language", "target_language"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: { text: '今天天气真好，适合出去散步。' },
+        },
+        // ── 前缀模板：摘要 → 映射 ──
+        {
+            id: 'prefix-summarize-mapper',
+            name: { en: 'Summarize → Mapper (Prefix)', zh: '摘要 → 映射（前缀）' },
+            icon: '📝',
+            description: {
+                en: 'Summarize text, then map summary to prompt. Connect any downstream node.',
+                zh: '摘要文本，将 summary 映射为 prompt。可接任意下游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'text-summarizer', label: '',
+                    params: {},
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"summary": "prompt"}', drop_fields: '["original_length", "summary_length", "compression_ratio"]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: { text: 'Artificial intelligence is intelligence demonstrated by machines, in contrast to natural intelligence displayed by humans. Leading AI textbooks define the field as the study of intelligent agents.' },
+        },
+        // ── 后缀模板：映射 → 导出（图像）──
+        {
+            id: 'suffix-mapper-export-image',
+            name: { en: 'Mapper → Export (Image)', zh: '映射 → 导出（图像）' },
+            icon: '🖼️',
+            description: {
+                en: 'Map image field to data, then export. Connect any image-generating upstream node.',
+                zh: '将 image 映射为 data 后导出。可接任意图像生成上游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'field-mapper', label: '',
+                    params: { mapping: '{"image": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: {},
+        },
+        // ── 后缀模板：映射 → 导出（音频）──
+        {
+            id: 'suffix-mapper-export-audio',
+            name: { en: 'Mapper → Export (Audio)', zh: '映射 → 导出（音频）' },
+            icon: '🎵',
+            description: {
+                en: 'Map audio field to data, then export. Connect any audio-generating upstream node.',
+                zh: '将 audio 映射为 data 后导出。可接任意音频生成上游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'field-mapper', label: '',
+                    params: { mapping: '{"audio": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'audio', formats: '["wav", "mp3"]' },
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: {},
+        },
+        // ── 后缀模板：映射 → 导出（视频）──
+        {
+            id: 'suffix-mapper-export-video',
+            name: { en: 'Mapper → Export (Video)', zh: '映射 → 导出（视频）' },
+            icon: '🎬',
+            description: {
+                en: 'Map video field to data, then export. Connect any video-generating upstream node.',
+                zh: '将 video 映射为 data 后导出。可接任意视频生成上游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'field-mapper', label: '',
+                    params: { mapping: '{"video": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'video', formats: '["mp4"]' },
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: {},
+        },
+        // ── 后缀模板：映射 → 导出（文本）──
+        {
+            id: 'suffix-mapper-export-text',
+            name: { en: 'Mapper → Export (Text)', zh: '映射 → 导出（文本）' },
+            icon: '📄',
+            description: {
+                en: 'Map text field to data, then export. Connect any text-generating upstream node.',
+                zh: '将 text 映射为 data 后导出。可接任意文本生成上游节点。',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'field-mapper', label: '',
+                    params: { mapping: '{"text": "data"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'subtitle', formats: '["txt"]' },
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: {},
         },
     ];
 

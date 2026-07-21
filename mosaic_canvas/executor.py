@@ -381,6 +381,7 @@ def _copy_to_output_dir(src_path: str) -> str | None:
 
     If the file is already in the outputs directory, return its URL directly.
     Otherwise, copy it and return the URL. Returns None on failure.
+    Uses content hash for deduplication to avoid storing duplicate files.
     """
     try:
         src = Path(src_path)
@@ -396,13 +397,22 @@ def _copy_to_output_dir(src_path: str) -> str | None:
         except (OSError, RuntimeError):
             pass
 
+        # Content-based deduplication: hash the file content
+        import hashlib
+        stat = src.stat()
+        cache_key = f"file:{src.name}:{stat.st_size}:{int(stat.st_mtime)}"
+        if cache_key in _media_cache:
+            return _media_cache[cache_key]
+
         # Copy to _OUTPUT_DIR with a unique name
         ext = src.suffix.lstrip(".") or "bin"
         filename = f"{uuid.uuid4().hex[:16]}.{ext}"
         dest = _OUTPUT_DIR / filename
         import shutil
         shutil.copy2(str(src), str(dest))
-        return f"/outputs/{filename}"
+        url = f"/outputs/{filename}"
+        _media_cache[cache_key] = url
+        return url
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to copy file to output dir: %s -> %s: %s",
                         src_path, _OUTPUT_DIR, exc)
@@ -652,7 +662,14 @@ def _make_audio_display(ndarray_dict: dict, sample_rate: int) -> dict[str, Any]:
             "sample_count": len(flat_samples),
         }
 
-    url = _save_media_file(buf.getvalue(), "wav")
+    # Deduplicate by waveform content hash
+    import hashlib
+    cache_key = f"audio:{hashlib.md5(buf.getvalue()).hexdigest()}"
+    if cache_key in _media_cache:
+        url = _media_cache[cache_key]
+    else:
+        url = _save_media_file(buf.getvalue(), "wav")
+        _media_cache[cache_key] = url
     duration = len(flat_samples) / sample_rate if sample_rate > 0 else 0
 
     return {
@@ -754,7 +771,13 @@ def _try_encode_video(frames: list, fps: int) -> str:
             for img in pil_frames:
                 writer.append_data(img)
 
-        return _save_media_file(buf.getvalue(), "mp4")
+        import hashlib
+        cache_key = f"video:{hashlib.md5(buf.getvalue()).hexdigest()}"
+        if cache_key in _media_cache:
+            return _media_cache[cache_key]
+        url = _save_media_file(buf.getvalue(), "mp4")
+        _media_cache[cache_key] = url
+        return url
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to encode video frames: %s", exc)
         return ""
@@ -1252,12 +1275,31 @@ class GraphExecutor:
         final_output: dict[str, Any] | None = None
         sinks = self.graph.sinks()
         if sinks:
+            # Build a lookup of already-serialized sink outputs to avoid
+            # re-serializing (and re-saving media to disk) for sink nodes.
+            # Each successful node's output was already serialized above when
+            # building its NodeResult, so reusing it here prevents duplicate
+            # media files from being written for the same image/audio/video.
+            serialized_by_id: dict[str, Any] = {
+                r.node_id: r.output
+                for r in node_results
+                if r.status == "success" and r.output is not None
+            }
             if len(sinks) == 1:
-                final_output = _serialize_output(outputs.get(sinks[0]))
+                sid = sinks[0]
+                # Reuse already-serialized output to avoid duplicate media saves
+                final_output = serialized_by_id.get(sid)
+                if final_output is None:
+                    final_output = _serialize_output(outputs.get(sid))
             else:
                 final_output = {}
                 for sid in sinks:
-                    final_output[sid] = _serialize_output(outputs.get(sid))
+                    node_result_output = serialized_by_id.get(sid)
+                    final_output[sid] = (
+                        node_result_output
+                        if node_result_output is not None
+                        else _serialize_output(outputs.get(sid))
+                    )
 
         # Mark skipped nodes
         executed_ids = {r.node_id for r in node_results}
