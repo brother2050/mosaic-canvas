@@ -1785,8 +1785,9 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="text", type="string", description="Summary (alias)."),
     ],
     "translator": [
-        InputField(name="text", type="string", description="Translated text."),
-        InputField(name="translation", type="string", description="Translated text (alias)."),
+        InputField(name="translated_text", type="string", description="Translated text."),
+        InputField(name="source_language", type="string", description="Detected source language."),
+        InputField(name="target_language", type="string", description="Target language code."),
     ],
     "text-classifier": [
         InputField(name="label", type="string", description="Predicted class label."),

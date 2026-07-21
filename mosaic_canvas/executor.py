@@ -169,7 +169,7 @@ _FIELD_ALIASES: dict[str, list[str]] = {
              "frames", "subtitles", "subtitle", "segments", "waveform",
              "document", "pages"],
     "prompt": ["reply", "response", "text", "message", "summary", "query",
-               "question", "results", "context"],
+               "question", "results", "context", "translated_text"],
     "image": ["images", "data", "face_image", "source_image"],
     "images": ["image", "data"],
     "text": ["reply", "response", "prompt", "summary", "transcript",
