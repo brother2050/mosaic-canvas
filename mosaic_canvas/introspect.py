@@ -982,7 +982,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     "multi-format-exporter": [
         InputField(name="content_type", type="choice", required=True,
-                   choices=["video", "image", "audio", "subtitle"],
+                   choices=["video", "image", "audio", "subtitle", "text"],
                    description="Type of content to export."),
         InputField(name="data", type="string", required=True,
                    description="Content data to export (path or inline)."),
@@ -1787,8 +1787,10 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="output_tokens", type="int", description="Number of output tokens generated."),
     ],
     "text-summarizer": [
-        InputField(name="summary", type="string", description="Summarized text."),
-        InputField(name="text", type="string", description="Summary (alias)."),
+        InputField(name="summary", type="string", description="Generated summary."),
+        InputField(name="original_length", type="int", description="Original text length."),
+        InputField(name="summary_length", type="int", description="Summary text length."),
+        InputField(name="compression_ratio", type="float", description="Compression ratio."),
     ],
     "translator": [
         InputField(name="translated_text", type="string", description="Translated text."),
@@ -1796,8 +1798,10 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="target_language", type="string", description="Target language code."),
     ],
     "text-classifier": [
-        InputField(name="label", type="string", description="Predicted class label."),
-        InputField(name="scores", type="dict", description="Score dictionary for all labels."),
+        InputField(name="predicted_label", type="string", description="Predicted label (single-label mode)."),
+        InputField(name="predicted_labels", type="list", description="Predicted labels (multi-label mode)."),
+        InputField(name="scores", type="dict", description="Label-to-score mapping."),
+        InputField(name="method", type="string", description="Classification method used."),
     ],
     "text-rewriter": [
         InputField(name="text", type="string", description="Rewritten text."),
@@ -1808,8 +1812,9 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     # === Audio ===
     "tts": [
-        InputField(name="waveform", type="array", description="Audio waveform as numpy array."),
-        InputField(name="sample_rate", type="int", description="Audio sample rate in Hz."),
+        InputField(name="audio", type="audio", description="Generated audio (AudioData container)."),
+        InputField(name="text", type="string", description="Input text used for generation."),
+        InputField(name="duration", type="float", description="Audio duration in seconds."),
     ],
     "asr": [
         InputField(name="text", type="string", description="Transcribed text."),
@@ -1898,7 +1903,7 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="result", type="dict", description="Built JSON object from blueprint."),
     ],
     "json-parser": [
-        InputField(name="parsed", type="dict", description="Parsed JSON data."),
+        InputField(name="data", type="dict", description="Parsed JSON data (JsonData container). The actual parsed content is accessible via data.data.<field>."),
     ],
     "json-path": [
         InputField(name="result", type="any", description="Extracted value(s) from JSON path query."),
