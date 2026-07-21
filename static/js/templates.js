@@ -1832,7 +1832,274 @@ const Templates = (() => {
             ],
             input: {},
         },
+        // ── JSON 提取正/负面提示词 → 文生图 ──
+        {
+            id: 'json-prompt-extract-image',
+            name: { en: 'JSON Prompt Extract → Image', zh: 'JSON 提取提示词 → 文生图' },
+            icon: '🎨',
+            description: {
+                en: 'Chat generates JSON with positive/negative prompts, parse JSON, map fields, then generate image.',
+                zh: '用对话生成JSON格式的正/负面提示词，解析后映射到文生图节点',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'chat', label: '',
+                    params: {},
+                    input_params: {
+                        system_prompt: 'You are a prompt engineer. Output ONLY valid JSON with two keys: \"positive_prompt\" (detailed English image description with quality boosters like masterpiece, best quality, 8k, ultra-detailed) and \"negative_prompt\" (things to avoid). No explanations.',
+                    },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'json-parser', label: '',
+                    params: {},
+                    input_params: { source_field: 'reply' },
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'field-mapper', label: '',
+                    params: { mapping: '{"positive_prompt": "prompt", "negative_prompt": "negative_prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(2, 0),
+                },
+                {
+                    id: 'n4', type: 'text-to-image', label: '',
+                    params: { model: 'stabilityai/sdxl-turbo' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
+                    ...pos(3, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e3', source: 'n3', target: 'n4' },
+            ],
+            input: { messages: '[{"role":"user","content":"一只可爱的猫咪坐在窗台上"}]' },
+        },
+        // ── JSON 提取提示词 → 文生图 → 导出（完整版）──
+        {
+            id: 'json-prompt-extract-image-export',
+            name: { en: 'JSON Prompt Extract → Image → Export', zh: 'JSON 提取提示词 → 文生图 → 导出' },
+            icon: '🖼️',
+            description: {
+                en: 'Full flow: chat generates JSON prompts → parse → map → generate image → export.',
+                zh: '完整流程：对话生成JSON提示词→解析→映射→生图→导出',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'chat', label: '',
+                    params: {},
+                    input_params: {
+                        system_prompt: 'You are a prompt engineer. Output ONLY valid JSON with two keys: \"positive_prompt\" (detailed English image description with quality boosters like masterpiece, best quality, 8k, ultra-detailed) and \"negative_prompt\" (things to avoid). No explanations.',
+                    },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'json-parser', label: '',
+                    params: {},
+                    input_params: { source_field: 'reply' },
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'field-mapper', label: '',
+                    params: { mapping: '{"positive_prompt": "prompt", "negative_prompt": "negative_prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(2, 0),
+                },
+                {
+                    id: 'n4', type: 'text-to-image', label: '',
+                    params: { model: 'stabilityai/sdxl-turbo' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
+                    ...pos(3, 0),
+                },
+                {
+                    id: 'n5', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(4, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e3', source: 'n3', target: 'n4' },
+                { id: 'e4', source: 'n4', target: 'n5' },
+            ],
+            input: { messages: '[{"role":"user","content":"一只可爱的猫咪坐在窗台上"}]' },
+        },
+        // ── 前缀模板：对话 → JSON 解析 ──
+        {
+            id: 'prefix-chat-json-parser',
+            name: { en: 'Chat → JSON Parser (Prefix)', zh: '对话 → JSON解析（前缀）' },
+            icon: '🔗',
+            description: {
+                en: 'Chat generates JSON, then parse. Connect any downstream node.',
+                zh: '对话生成JSON，然后解析。可接任意下游节点',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'chat', label: '',
+                    params: {},
+                    input_params: {
+                        system_prompt: 'You are a prompt engineer. Output ONLY valid JSON with two keys: \"positive_prompt\" (detailed English image description with quality boosters like masterpiece, best quality, 8k, ultra-detailed) and \"negative_prompt\" (things to avoid). No explanations.',
+                    },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'json-parser', label: '',
+                    params: {},
+                    input_params: { source_field: 'reply' },
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: { messages: '[{"role":"user","content":"描述一只可爱的猫咪"}]' },
+        },
+        // ── 前缀模板：对话 → JSON 解析 → 字段映射 ──
+        {
+            id: 'prefix-chat-json-mapper',
+            name: { en: 'Chat → JSON → Mapper (Prefix)', zh: '对话 → JSON → 映射（前缀）' },
+            icon: '🔗',
+            description: {
+                en: 'Chat generates JSON → parse → field mapping. Connect any downstream node.',
+                zh: '对话生成JSON→解析→字段映射。可接任意下游节点',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'chat', label: '',
+                    params: {},
+                    input_params: {
+                        system_prompt: 'You are a prompt engineer. Output ONLY valid JSON with two keys: \"positive_prompt\" (detailed English image description with quality boosters like masterpiece, best quality, 8k, ultra-detailed) and \"negative_prompt\" (things to avoid). No explanations.',
+                    },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'json-parser', label: '',
+                    params: {},
+                    input_params: { source_field: 'reply' },
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'field-mapper', label: '',
+                    params: { mapping: '{"positive_prompt": "prompt", "negative_prompt": "negative_prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { messages: '[{"role":"user","content":"描述一只可爱的猫咪"}]' },
+        },
+        // ── 后缀模板：映射 → 文生图 ──
+        {
+            id: 'suffix-mapper-text-to-image',
+            name: { en: 'Mapper → Image (Suffix)', zh: '映射 → 文生图（后缀）' },
+            icon: '🎨',
+            description: {
+                en: 'Map fields → text-to-image. Connect any upstream node.',
+                zh: '映射字段→文生图。可接任意上游节点',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'field-mapper', label: '',
+                    params: { mapping: '{"reply": "prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'text-to-image', label: '',
+                    params: { model: 'stabilityai/sdxl-turbo' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: {},
+        },
+        // ── 后缀模板：映射 → 文生图 → 导出 ──
+        {
+            id: 'suffix-mapper-text-to-image-export',
+            name: { en: 'Mapper → Image → Export (Suffix)', zh: '映射 → 文生图 → 导出（后缀）' },
+            icon: '🖼️',
+            description: {
+                en: 'Map fields → text-to-image → export. Connect any upstream node.',
+                zh: '映射字段→文生图→导出。可接任意上游节点',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'field-mapper', label: '',
+                    params: { mapping: '{"reply": "prompt"}', drop_fields: '["messages"]' },
+                    input_params: {},
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'text-to-image', label: '',
+                    params: { model: 'stabilityai/sdxl-turbo' },
+                    input_params: { num_inference_steps: '25', guidance_scale: '7.5', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' },
+                    ...pos(1, 0),
+                },
+                {
+                    id: 'n3', type: 'multi-format-exporter', label: '',
+                    params: {},
+                    input_params: { content_type: 'image', formats: '["png"]' },
+                    ...pos(2, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: {},
+        },
+        // ── 后缀模板：JSON 解析 → 映射 ──
+        {
+            id: 'suffix-json-parser-mapper',
+            name: { en: 'JSON Parser → Mapper (Suffix)', zh: 'JSON解析 → 映射（后缀）' },
+            icon: '🔗',
+            description: {
+                en: 'JSON parse → field mapping. Connect any upstream node.',
+                zh: 'JSON解析→字段映射。可接任意上游节点',
+            },
+            nodes: [
+                {
+                    id: 'n1', type: 'json-parser', label: '',
+                    params: {},
+                    input_params: { source_field: 'text' },
+                    ...pos(0, 0),
+                },
+                {
+                    id: 'n2', type: 'field-mapper', label: '',
+                    params: { mapping: '{"positive_prompt": "prompt", "negative_prompt": "negative_prompt"}', drop_fields: '[]' },
+                    input_params: {},
+                    ...pos(1, 0),
+                },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+            ],
+            input: { text: '{"positive_prompt": "a cute cat", "negative_prompt": "blurry, bad quality"}' },
+        },
     ];
+
+    // Auto-categorize templates based on ID prefix
+    _templates.forEach(t => {
+        if (t.id.startsWith('prefix-')) t.category = 'prefix';
+        else if (t.id.startsWith('suffix-')) t.category = 'suffix';
+        else if (/^ex\d+-/.test(t.id)) t.category = 'example';
+        else if (['data-merge-export', 'json-parse-transform-export', 'file-read-process-write',
+                   'api-call-export', 'schema-validate-export', 'conditional-switch-export',
+                   'cache-store-retrieve', 'text-chunk-classify-export', 'log-debug-export',
+                   'zh-to-en-prompt-image'].includes(t.id)) t.category = 'helper';
+        else if (['translate-export', 'summarize-export', 'classify-export', 'tts-export',
+                   'text-to-video-export'].includes(t.id)) t.category = 'basic';
+        else t.category = 'pipeline';
+    });
 
     function getAll() {
         return _templates.map(t => ({
@@ -1842,6 +2109,7 @@ const Templates = (() => {
             icon: t.icon,
             node_count: t.nodes.length,
             edge_count: t.edges.length,
+            category: t.category,
         }));
     }
 

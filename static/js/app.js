@@ -204,20 +204,35 @@ const App = (function () {
 
         // Built-in templates section
         html += `<div class="templates-section-title">${I18n.t('modal.templates_builtin')}</div>`;
+        // Group built-in templates by category
+        const categoryOrder = ['basic', 'pipeline', 'helper', 'prefix', 'suffix', 'example'];
+        const grouped = {};
         builtinTemplates.forEach(t => {
-            html += `<div class="template-card" data-template-id="${escapeAttr(t.id)}" data-template-source="builtin">
-                <div class="template-icon">${t.icon}</div>
-                <div class="template-info">
-                    <div class="template-name">${escapeHtml(t.name)}</div>
-                    <div class="template-desc">${escapeHtml(t.description)}</div>
-                    <div class="template-meta">${t.node_count} ${I18n.t('status.nodes_count')} · ${t.edge_count} ${I18n.t('status.edges_count')}</div>
-                </div>
-                <div class="template-actions">
-                    <button class="btn btn-sm btn-template-preview" data-action="preview" data-id="${escapeAttr(t.id)}" data-source="builtin" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
-                    <button class="btn btn-sm btn-template-insert" data-action="insert" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_insert')}</button>
-                    <button class="btn btn-sm btn-template-replace" data-action="replace" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_replace')}</button>
-                </div>
-            </div>`;
+            const cat = t.category || 'pipeline';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(t);
+        });
+        categoryOrder.forEach(cat => {
+            if (!grouped[cat] || grouped[cat].length === 0) return;
+            const catLabel = I18n.t(`template_category.${cat}`);
+            html += `<div class="templates-category-group" data-category="${cat}">`;
+            html += `<div class="templates-category-title">${escapeHtml(catLabel)} <span class="templates-category-count">(${grouped[cat].length})</span></div>`;
+            grouped[cat].forEach(t => {
+                html += `<div class="template-card" data-template-id="${escapeAttr(t.id)}" data-template-source="builtin" data-category="${cat}">
+                    <div class="template-icon">${t.icon}</div>
+                    <div class="template-info">
+                        <div class="template-name">${escapeHtml(t.name)}</div>
+                        <div class="template-desc">${escapeHtml(t.description)}</div>
+                        <div class="template-meta">${t.node_count} ${I18n.t('status.nodes_count')} · ${t.edge_count} ${I18n.t('status.edges_count')}</div>
+                    </div>
+                    <div class="template-actions">
+                        <button class="btn btn-sm btn-template-preview" data-action="preview" data-id="${escapeAttr(t.id)}" data-source="builtin" data-i18n-title="modal.preview">${I18n.t('modal.preview')}</button>
+                        <button class="btn btn-sm btn-template-insert" data-action="insert" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_insert')}</button>
+                        <button class="btn btn-sm btn-template-replace" data-action="replace" data-id="${escapeAttr(t.id)}" data-source="builtin">${I18n.t('modal.templates_replace')}</button>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
         });
 
         // Custom templates section

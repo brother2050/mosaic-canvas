@@ -268,7 +268,7 @@ const Properties = (() => {
         // Input control
         // Model field: select dropdown with "Custom..." option for manual model ID entry
         if (field.name === 'model' && field.choices) {
-            const isCustom = hasValue && !field.choices.includes(String(currentValue));
+            const isCustom = hasValue && !field.choices.includes(String(currentValue)) && String(currentValue) !== '__custom__';
             const customInputDisplay = isCustom ? '' : 'display:none;';
             const customInputValue = isCustom ? escapeAttr(String(currentValue)) : '';
             const placeholderStr = hasDefault ? escapeAttr(String(defaultValue)) : 'e.g. stabilityai/sdxl-turbo';
@@ -498,12 +498,14 @@ const Properties = (() => {
             const defaultVal = container ? container.dataset.fieldDefault : '';
 
             input.addEventListener('input', () => {
+                if (input.classList.contains('prop-model-select') && input.value === '__custom__') return;
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParamsSilent(nodeId, params);
                 updateFieldBadge(input, paramName, fieldType, defaultVal, false);
             });
 
             input.addEventListener('change', () => {
+                if (input.classList.contains('prop-model-select') && input.value === '__custom__') return;
                 updateParam(params, paramName, input, fieldType, defaultVal);
                 Store.updateNodeParams(nodeId, params);
                 render();
@@ -520,6 +522,11 @@ const Properties = (() => {
                     // Show custom input and focus it
                     if (customInput) {
                         customInput.style.display = '';
+                        // Clear any stale __custom__ value from params
+                        if (params[paramName] === '__custom__') {
+                            delete params[paramName];
+                            Store.updateNodeParamsSilent(nodeId, params);
+                        }
                         customInput.focus();
                     }
                     // Don't update params yet - wait for custom input
