@@ -364,24 +364,37 @@ def _clear_media_cache() -> None:
     _media_cache.clear()
 
 
-def _save_media_file(data: bytes, ext: str) -> str:
-    """Save binary data to a file in the output directory and return the URL path.
+def _save_media_dedup(data: bytes, ext: str) -> str:
+    """Save binary media data to the output directory with content-based deduplication.
 
-    Returns a relative URL path like ``/outputs/abc123.png`` that can be
-    used directly in ``<img src="...">`` or ``<audio src="...">``.
+    Computes an MD5 hash of *data* and uses it as a unified cache key.
+    If the same content (regardless of whether it arrived as base64-encoded
+    image data, a WAV byte stream, or a file copy) has already been saved
+    during this execution, the existing URL is returned without writing
+    a new file.  This is the single entry point for all media persistence.
+
+    Returns a relative URL path like ``/outputs/abc123.png``.
     """
+    import hashlib
+    content_hash = hashlib.md5(data).hexdigest()
+    cache_key = f"content:{content_hash}"
+    if cache_key in _media_cache:
+        return _media_cache[cache_key]
     filename = f"{uuid.uuid4().hex[:16]}.{ext}"
     filepath = _OUTPUT_DIR / filename
     filepath.write_bytes(data)
-    return f"/outputs/{filename}"
+    url = f"/outputs/{filename}"
+    _media_cache[cache_key] = url
+    return url
 
 
 def _copy_to_output_dir(src_path: str) -> str | None:
     """Copy a file from an absolute path to the static outputs directory.
 
     If the file is already in the outputs directory, return its URL directly.
-    Otherwise, copy it and return the URL. Returns None on failure.
-    Uses content hash for deduplication to avoid storing duplicate files.
+    Otherwise, read the file content and delegate to :func:`_save_media_dedup`
+    so that the same image appearing as both a ``__pil_image__`` (base64) and
+    a file path shares a single on-disk copy.
     """
     try:
         src = Path(src_path)
@@ -397,22 +410,13 @@ def _copy_to_output_dir(src_path: str) -> str | None:
         except (OSError, RuntimeError):
             pass
 
-        # Content-based deduplication: hash the file content
-        import hashlib
-        stat = src.stat()
-        cache_key = f"file:{src.name}:{stat.st_size}:{int(stat.st_mtime)}"
-        if cache_key in _media_cache:
-            return _media_cache[cache_key]
-
-        # Copy to _OUTPUT_DIR with a unique name
+        # Read file content and use unified content-hash deduplication.
+        # This ensures that the same image saved via _make_image_display()
+        # (base64 path) and via _copy_to_output_dir() (file path) share
+        # the same cache entry and on-disk file.
+        content = src.read_bytes()
         ext = src.suffix.lstrip(".") or "bin"
-        filename = f"{uuid.uuid4().hex[:16]}.{ext}"
-        dest = _OUTPUT_DIR / filename
-        import shutil
-        shutil.copy2(str(src), str(dest))
-        url = f"/outputs/{filename}"
-        _media_cache[cache_key] = url
-        return url
+        return _save_media_dedup(content, ext)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to copy file to output dir: %s -> %s: %s",
                         src_path, _OUTPUT_DIR, exc)
@@ -583,17 +587,13 @@ def _make_image_display(encoded: str) -> dict[str, Any]:
     HTTP URL instead of a base64 data URI. This keeps the WebSocket
     message small.
 
-    Uses a per-execution deduplication cache so that the same image data
-    appearing in multiple node outputs is only saved once to disk.
+    Uses the unified content-hash deduplication cache via
+    :func:`_save_media_dedup` so that the same image appearing in
+    multiple node outputs — or later as a file path from an exporter —
+    shares a single on-disk file.
     """
     if not encoded or not isinstance(encoded, str):
         return {"__display_type__": "image", "src": "", "error": "empty"}
-
-    # Deduplication: if we've already saved this exact image data during
-    # the current execution, reuse the URL instead of saving another copy.
-    cache_key = encoded
-    if cache_key in _media_cache:
-        return {"__display_type__": "image", "src": _media_cache[cache_key]}
 
     try:
         # Mosaic format: "b64:<fmt>:<data>"
@@ -606,14 +606,12 @@ def _make_image_display(encoded: str) -> dict[str, Any]:
                 ext = fmt if fmt in ("png", "jpg", "jpeg", "gif", "webp") else "png"
                 if ext == "jpeg":
                     ext = "jpg"
-                url = _save_media_file(raw, ext)
-                _media_cache[cache_key] = url
+                url = _save_media_dedup(raw, ext)
                 return {"__display_type__": "image", "src": url}
 
         # Already raw base64
         raw = base64.b64decode(encoded)
-        url = _save_media_file(raw, "png")
-        _media_cache[cache_key] = url
+        url = _save_media_dedup(raw, "png")
         return {"__display_type__": "image", "src": url}
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to save image for display: %s", exc)
@@ -662,14 +660,8 @@ def _make_audio_display(ndarray_dict: dict, sample_rate: int) -> dict[str, Any]:
             "sample_count": len(flat_samples),
         }
 
-    # Deduplicate by waveform content hash
-    import hashlib
-    cache_key = f"audio:{hashlib.md5(buf.getvalue()).hexdigest()}"
-    if cache_key in _media_cache:
-        url = _media_cache[cache_key]
-    else:
-        url = _save_media_file(buf.getvalue(), "wav")
-        _media_cache[cache_key] = url
+    # Unified content-hash deduplication via _save_media_dedup
+    url = _save_media_dedup(buf.getvalue(), "wav")
     duration = len(flat_samples) / sample_rate if sample_rate > 0 else 0
 
     return {
@@ -771,13 +763,8 @@ def _try_encode_video(frames: list, fps: int) -> str:
             for img in pil_frames:
                 writer.append_data(img)
 
-        import hashlib
-        cache_key = f"video:{hashlib.md5(buf.getvalue()).hexdigest()}"
-        if cache_key in _media_cache:
-            return _media_cache[cache_key]
-        url = _save_media_file(buf.getvalue(), "mp4")
-        _media_cache[cache_key] = url
-        return url
+        # Unified content-hash deduplication via _save_media_dedup
+        return _save_media_dedup(buf.getvalue(), "mp4")
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to encode video frames: %s", exc)
         return ""
