@@ -37,7 +37,7 @@ class TestDiscovery:
             assert n.class_name
 
     def test_list_all_nodes_count(self):
-        """Mosaic ships 42 nodes."""
+        """Mosaic ships 80+ nodes."""
         nodes = list_all_nodes()
         assert len(nodes) >= 40  # allow for slight variation
 

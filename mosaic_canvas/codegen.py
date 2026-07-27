@@ -21,11 +21,58 @@ __all__ = ["export_python", "detect_linear_chain"]
 # Parameters that should be rendered as Python literals, not strings.
 _PYTHON_LITERAL_TYPES = {"int", "float", "bool"}
 
+# Field names that expect JSON-encoded values (list[dict], list[str], dict, etc.)
+# When the UI sends these as strings, we parse them into Python objects for code export.
+_JSON_FIELDS: frozenset[str] = frozenset({
+    "messages",
+    "formats",
+    "filter_metadata",
+    "padding",
+    "labels",
+    "results",
+    "prompts",
+    "metadata",
+    "timestamps",
+    # Helper node JSON fields
+    "mapping",
+    "drop_fields",
+    "mappings",
+    "conversions",
+    "blueprint",
+    "values",
+    "schema",
+    "aggregations",
+    "headers",
+    "cache_keys",
+    "merge_keys",
+})
 
-def _format_param_value(value: Any, ui_type: str) -> str:
+
+def _try_parse_json(value: Any) -> Any:
+    """Try to parse a string value as JSON. Return original on failure."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped:
+        return value
+    # Only attempt JSON parse if it looks like JSON (starts with [ or {)
+    if stripped[0] in ('[', '{'):
+        try:
+            return json.loads(stripped)
+        except (json.JSONDecodeError, ValueError):
+            return value
+    return value
+
+
+def _format_param_value(value: Any, ui_type: str, param_name: str = "") -> str:
     """Render a single parameter value as a Python expression string."""
     if value is None:
         return "None"
+    # JSON fields: parse string to Python object and use repr
+    if param_name in _JSON_FIELDS and isinstance(value, str):
+        parsed = _try_parse_json(value)
+        if parsed is not value:  # successfully parsed
+            return repr(parsed)
     if ui_type == "bool":
         if isinstance(value, str):
             return "True" if value.lower() in ("true", "1", "yes") else "False"
@@ -57,7 +104,7 @@ def _format_params(
         ui_type = param_types.get(k, "string")
         if v is None or v == "":
             continue
-        parts.append(f"{k}={_format_param_value(v, ui_type)}")
+        parts.append(f"{k}={_format_param_value(v, ui_type, k)}")
     return ", ".join(parts)
 
 
@@ -207,7 +254,7 @@ def export_python(graph: Graph) -> str:
         for k, v in all_input.items():
             if k in source_input_types:
                 ui_type = source_input_types[k]
-                input_parts.append(f"{k}={_format_param_value(v, ui_type)}")
+                input_parts.append(f"{k}={_format_param_value(v, ui_type, k)}")
             elif isinstance(v, str):
                 input_parts.append(f"{k}={v!r}")
             elif isinstance(v, (int, float, bool)):
@@ -275,7 +322,7 @@ def export_python(graph: Graph) -> str:
                     if v is None or v == "":
                         continue
                     ui_type = field_types.get(k, "string")
-                    lines.append(f"_input[{k!r}] = {_format_param_value(v, ui_type)}")
+                    lines.append(f"_input[{k!r}] = {_format_param_value(v, ui_type, k)}")
 
             lines.append(f"t0 = time.perf_counter()")
             lines.append(f"outputs[{nid!r}] = {var}(_input)")

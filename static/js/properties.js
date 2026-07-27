@@ -261,6 +261,7 @@ const Properties = (() => {
             field.name === 'labels' || field.name === 'results' ||
             field.name === 'prompts' || field.name === 'metadata' ||
             field.name === 'timestamps' ||
+            field.name === 'mapping' || field.name === 'drop_fields' ||
             field.name === 'mappings' || field.name === 'conversions' ||
             field.name === 'blueprint' || field.name === 'values' ||
             field.name === 'schema' || field.name === 'aggregations' ||
@@ -387,6 +388,8 @@ const Properties = (() => {
             'metadata': '[{"page": 1, "source": "doc.pdf"}]',
             'timestamps': '[1.5, 3.0, 5.2]',
             'mappings': '{"old_field": "new_field"}',
+            'mapping': '{"old_field": "new_field"}',
+            'drop_fields': '["field1", "field2"]',
             'conversions': '{"field": "int", "text": "str"}',
             'blueprint': '{"query": "prompt", "context": "text"}',
             'values': '{"key": "value", "prompt": "hello"}',

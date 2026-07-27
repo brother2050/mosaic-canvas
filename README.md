@@ -7,7 +7,7 @@ Mosaic Canvas lets you compose, configure, validate, and execute Mosaic AI pipel
 ## Features
 
 - **Visual Node Editor** — Drag nodes from a searchable palette onto an infinite canvas, connect them with edges to form pipelines, and arrange them freely with pan and zoom.
-- **All 42 Mosaic Nodes** — Automatically discovers every registered node across all 9 domains (text, image, video, audio, subtitle, consistency, digital-human, export, RAG) with their full parameter schemas.
+- **All 80+ Mosaic Nodes** — Automatically discovers every registered node across all 10 domains (text, image, video, audio, subtitle, consistency, digital-human, export, RAG, helpers) with their full parameter schemas.
 - **Smart Properties Panel** — Each node's constructor parameters are auto-introspected and rendered as type-appropriate inputs (text fields, number inputs, dropdowns, checkboxes) with defaults and help text.
 - **Real-Time Execution** — Run pipelines with live progress streaming over WebSocket. Watch each node start, complete, or fail in real time with per-node timing.
 - **Graph Validation** — Validate pipelines before running: detect cycles, missing connections, unknown node types, and more.
@@ -159,7 +159,7 @@ python -m pytest tests/ -v
 
 ## Relationship to Mosaic
 
-Mosaic Canvas is an **extension** of the Mosaic framework — it does not modify or replace any Mosaic functionality. It simply provides a visual interface on top of Mosaic's existing node registry, pipeline engine, and event bus. All 42 nodes, their parameters, and their execution behavior come directly from Mosaic.
+Mosaic Canvas is an **extension** of the Mosaic framework — it does not modify or replace any Mosaic functionality. It simply provides a visual interface on top of Mosaic's existing node registry, pipeline engine, and event bus. All 80+ nodes, their parameters, and their execution behavior come directly from Mosaic.
 
 ## License
 
