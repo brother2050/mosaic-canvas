@@ -180,7 +180,7 @@ _ADVANCED_PARAMS: frozenset[str] = frozenset({
 # Pre-defined choices for well-known parameters.
 _ENUM_CHOICES: dict[str, list[str]] = {
     "device": ["cuda", "cpu", "mps"],
-    "dtype": ["float16", "float32", "bfloat16"],
+    "dtype": ["auto", "float16", "float32", "bfloat16"],
     "device_map": ["auto", "cpu", "cuda", "mps"],
     "torch_dtype": ["fp16", "fp32", "bf16"],
     "backend": ["auto", "edge_tts", "transformers", "chattts", "fish", "sovits", "cosyvoice"],
@@ -189,7 +189,7 @@ _ENUM_CHOICES: dict[str, list[str]] = {
     "source_language": ["auto", "zh", "en", "ja", "fr", "de", "ko", "es", "ru", "it", "pt", "ar", "th", "vi"],
     "emotion": ["neutral", "cheerful", "sad", "excited", "angry", "gentle", "calm", "male", "young_male", "child"],
     "task": ["transcribe", "translate"],
-    "style": ["oil painting", "watercolor", "anime", "digital art", "photorealistic", "cartoon", "sketch", "fantasy art", "cyberpunk"],
+    "style": ["oil painting", "watercolor", "anime", "cyberpunk", "pencil sketch", "ink", "pixel art", "3d render", "impressionist", "digital art"],
     "format": ["mp4", "avi", "mov", "webm", "gif", "srt", "vtt", "json"],
     "content_type": ["video", "image", "audio", "subtitle", "text"],
     "skeleton_type": ["coco", "openpose", "smpl"],
@@ -225,6 +225,18 @@ _ENUM_CHOICES: dict[str, list[str]] = {
     "engine": ["jinja2", "fstring"],
     "on_timeout": ["raise", "default"],
     "backoff": ["fixed", "exponential", "linear"],
+}
+
+# Per-node parameter choice overrides.
+# When a parameter name (e.g. "format") has different valid values depending
+# on the node, this dict provides node-specific choices that take precedence
+# over _ENUM_CHOICES. Keyed by node name → param name → choices list.
+_NODE_PARAM_CHOICES: dict[str, dict[str, list[str] | None]] = {
+    "file-writer": {"format": ["auto", "text", "json", "csv", "binary"]},
+    "file-reader": {"format": ["auto", "text", "json", "csv", "binary"]},
+    "data-merger": {"strategy": ["overwrite", "deep_merge", "list_concat"]},
+    # retry.backoff is a float multiplier, not a choice — override to None.
+    "retry": {"backoff": None},
 }
 
 # Human-readable descriptions for common parameters.
@@ -587,6 +599,14 @@ def _extract_params(cls: type) -> list[ParamSchema]:
 
         choices = _ENUM_CHOICES.get(pname)
 
+        # Per-node choices override (e.g. file-writer format vs video format).
+        # A None value suppresses choices (e.g. retry.backoff is a float, not choice).
+        node_name = getattr(cls, "name", "")
+        node_param_choices = _NODE_PARAM_CHOICES.get(node_name, {})
+        if pname in node_param_choices:
+            override = node_param_choices[pname]
+            choices = list(override) if override is not None else None
+
         # Model dropdown: use supported_models as choices when available.
         if pname == "model" and supported_models and isinstance(supported_models, list):
             choices = list(supported_models)
@@ -838,7 +858,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="negative_prompt", type="string", required=False,
                    description="What to avoid."),
         InputField(name="num_frames", type="int", required=False, default=49,
-                   description="Number of video frames."),
+                   description="Number of video frames (49 or 85)."),
         InputField(name="width", type="int", required=False, default=720,
                    description="Output video width."),
         InputField(name="height", type="int", required=False, default=480,
@@ -1053,7 +1073,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="image", type="string", required=True,
                    description="Input image path or PIL.Image."),
         InputField(name="num_frames", type="int", required=False, default=25,
-                   description="Number of video frames to generate."),
+                   description="Number of video frames (1-25, SVD-XT max 25)."),
         InputField(name="fps", type="int", required=False, default=7,
                    description="Output frames per second."),
         InputField(name="motion_bucket_id", type="int", required=False, default=127,
@@ -1071,7 +1091,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="negative_prompt", type="string", required=False,
                    description="What to avoid."),
         InputField(name="num_frames", type="int", required=False, default=129,
-                   description="Number of video frames."),
+                   description="Number of video frames (4k+1, e.g. 129)."),
         InputField(name="width", type="int", required=False, default=1280,
                    description="Output video width."),
         InputField(name="height", type="int", required=False, default=720,
@@ -1117,7 +1137,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="negative_prompt", type="string", required=False,
                    description="What to avoid."),
         InputField(name="num_frames", type="int", required=False, default=97,
-                   description="Number of video frames."),
+                   description="Number of video frames (any positive integer, default 97)."),
         InputField(name="width", type="int", required=False, default=768,
                    description="Output video width."),
         InputField(name="height", type="int", required=False, default=512,
@@ -1137,7 +1157,7 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="negative_prompt", type="string", required=False,
                    description="What to avoid."),
         InputField(name="num_frames", type="int", required=False, default=81,
-                   description="Number of video frames."),
+                   description="Number of video frames (4k+1, e.g. 81)."),
         InputField(name="width", type="int", required=False, default=1280,
                    description="Output video width."),
         InputField(name="height", type="int", required=False, default=720,
@@ -1373,11 +1393,8 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description='Type conversions as JSON: {"field": "int"}. Types: str,int,float,bool,list,dict,json_str,json_parse.'),
     ],
     "data-merger": [
-        InputField(name="strategy", type="choice", required=False, default="override",
-                   choices=["override", "preserve", "error"],
-                   description="Conflict resolution strategy."),
-        InputField(name="merge_keys", type="string", required=False,
-                   description="Keys to merge as JSON array."),
+        InputField(name="inputs", type="string", required=True,
+                   description="List of data dicts to merge (JSON array of objects)."),
     ],
     "data-splitter": [
         InputField(name="source_field", type="string", required=True,
@@ -1393,11 +1410,8 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="Output field name."),
     ],
     "value-injector": [
-        InputField(name="values", type="string", required=True,
-                   description='Static values as JSON: {"field": "value"}.'),
-        InputField(name="mode", type="choice", required=False, default="static",
-                   choices=["static", "dynamic"],
-                   description="static = fixed values, dynamic = evaluate templates."),
+        # No runtime input fields — values, overwrite are constructor
+        # params auto-extracted from __init__.
     ],
     "schema-validator": [
         InputField(name="schema", type="string", required=True,
@@ -1408,26 +1422,16 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     # === Helper nodes: Container ===
     "json-parser": [
-        InputField(name="source_field", type="string", required=False, default="text",
-                   description="Field containing JSON string to parse."),
-        InputField(name="target_field", type="string", required=False, default="data",
-                   description="Output field for parsed result."),
+        # No runtime input fields — source_field, target_field are
+        # constructor params auto-extracted from __init__.
     ],
     "json-builder": [
-        InputField(name="blueprint", type="string", required=True,
-                   description='JSON blueprint with field references: {"query": "prompt"}.'),
-        InputField(name="target_field", type="string", required=False, default="data",
-                   description="Output field name."),
+        # No runtime input fields — template, fields, target_field are
+        # constructor params auto-extracted from __init__.
     ],
     "json-path": [
-        InputField(name="query", type="string", required=True,
-                   description="JSONPath expression, e.g. $.field, $.field[0], $.field[1,3], $.field[1:3], $.field[*]."),
-        InputField(name="source_field", type="string", required=False, default="data",
-                   description="Input field containing JSON data."),
-        InputField(name="target_field", type="string", required=False, default="result",
-                   description="Output field name."),
-        InputField(name="flatten", type="bool", required=False, default=False,
-                   description="Unwrap single-value results."),
+        # No runtime input fields — query, source_field, target_field are
+        # constructor params auto-extracted from __init__.
     ],
     "list-ops": [
         InputField(name="field", type="string", required=True,
@@ -1513,44 +1517,25 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="Collect all iteration results into a list."),
     ],
     "retry": [
-        InputField(name="max_attempts", type="int", required=False, default=3,
-                   description="Maximum retry attempts."),
-        InputField(name="backoff", type="choice", required=False, default="fixed",
-                   choices=["fixed", "exponential", "linear"],
-                   description="Backoff strategy between retries."),
-        InputField(name="delay", type="float", required=False, default=1.0,
-                   description="Initial delay in seconds."),
+        # No runtime input fields — max_retries, delay, backoff, exceptions
+        # are constructor params auto-extracted from __init__.
     ],
     "timeout": [
-        InputField(name="seconds", type="float", required=True,
-                   description="Timeout in seconds."),
-        InputField(name="on_timeout", type="choice", required=False, default="raise",
-                   choices=["raise", "default"],
-                   description="raise = throw exception, default = return default value."),
-        InputField(name="default_value", type="string", required=False,
-                   description="Default value to return on timeout (on_timeout=default)."),
+        # No runtime input fields — seconds is a constructor param
+        # auto-extracted from __init__.
     ],
     "switch": [
-        InputField(name="field", type="string", required=True,
-                   description="Field to evaluate for routing."),
-        InputField(name="default_case", type="string", required=False,
-                   description="Default case when no match."),
+        InputField(name="data", type="string", required=False,
+                   description="Input data dict for case evaluation (auto-passthrough)."),
     ],
     "parallel-map": [
-        InputField(name="source_field", type="string", required=True,
-                   description="List field to parallelize over."),
-        InputField(name="result_field", type="string", required=False, default="results",
-                   description="Output field for results."),
-        InputField(name="max_workers", type="int", required=False, default=4,
-                   description="Maximum parallel workers."),
+        # No runtime input fields — source_field, target_field, max_workers
+        # are constructor params auto-extracted from __init__.
     ],
     # === Helper nodes: Processing ===
     "filter": [
-        InputField(name="condition", type="string", required=True,
-                   description="Filter condition (field name or expression)."),
-        InputField(name="mode", type="choice", required=False, default="pass_through",
-                   choices=["pass_through", "keep_fields", "drop_fields"],
-                   description="Filter mode."),
+        # No runtime input fields — source_field, condition, target_field
+        # are constructor params auto-extracted from __init__.
     ],
     "batcher": [
         InputField(name="source_field", type="string", required=False, default="items",
@@ -1586,23 +1571,12 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     # === Helper nodes: Cache ===
     "result-cache": [
-        InputField(name="backend", type="choice", required=False, default="memory",
-                   choices=["memory", "disk", "redis"],
-                   description="Cache backend."),
-        InputField(name="cache_keys", type="string", required=False,
-                   description="Fields to compute cache key from (JSON array)."),
-        InputField(name="max_size", type="int", required=False, default=1000,
-                   description="Maximum cache entries (memory backend)."),
-        InputField(name="ttl", type="int", required=False,
-                   description="Time-to-live in seconds."),
+        InputField(name="data", type="string", required=False,
+                   description="Input data to cache (auto-passthrough)."),
     ],
     "checkpoint": [
-        InputField(name="name", type="string", required=True,
-                   description="Checkpoint name."),
-        InputField(name="storage_path", type="string", required=True,
-                   description="Directory path for checkpoint storage."),
-        InputField(name="overwrite", type="bool", required=False, default=False,
-                   description="Overwrite existing checkpoint."),
+        # No runtime input fields — name, checkpoint_dir, mode are
+        # constructor params auto-extracted from __init__.
     ],
     "kv-store": [
         InputField(name="action", type="choice", required=True,
@@ -1657,34 +1631,15 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
     # === Helper nodes: I/O ===
     "file-reader": [
         InputField(name="path", type="string", required=False,
-                   description="File path to read."),
-        InputField(name="format", type="choice", required=False, default="auto",
-                   choices=["auto", "text", "json", "yaml", "image", "audio", "video", "csv"],
-                   description="File format. auto = infer from extension."),
-        InputField(name="encoding", type="string", required=False, default="utf-8",
-                   description="Text encoding."),
+                   description="File path to read (fallback when constructor path is None)."),
     ],
     "file-writer": [
-        InputField(name="path", type="string", required=True,
-                   description="Output file path. Supports {field} templates."),
-        InputField(name="source_field", type="string", required=False,
-                   description="Field to write."),
-        InputField(name="format", type="choice", required=False, default="auto",
-                   choices=["auto", "text", "json", "yaml", "image", "audio", "video", "srt", "vtt", "csv"],
-                   description="Output format. auto = infer from extension."),
-        InputField(name="overwrite", type="bool", required=False, default=True,
-                   description="Overwrite existing file."),
+        InputField(name="path", type="string", required=False,
+                   description="Output file path (fallback when constructor path is None). Supports {field} templates."),
     ],
     "api-caller": [
-        InputField(name="url", type="string", required=True,
-                   description="API URL."),
-        InputField(name="method", type="choice", required=False, default="GET",
-                   choices=["GET", "POST", "PUT", "DELETE"],
-                   description="HTTP method."),
-        InputField(name="headers", type="string", required=False,
-                   description="HTTP headers as JSON object."),
-        InputField(name="timeout", type="float", required=False, default=30.0,
-                   description="Request timeout in seconds."),
+        InputField(name="url", type="string", required=False,
+                   description="API URL (fallback when constructor url is None)."),
     ],
     "data-injector": [
         InputField(name="data", type="string", required=True,

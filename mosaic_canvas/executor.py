@@ -105,13 +105,13 @@ _JSON_FIELDS: frozenset[str] = frozenset({
     "drop_fields",
     "mappings",
     "conversions",
-    "blueprint",
+    "template",
     "values",
     "schema",
     "aggregations",
     "headers",
-    "cache_keys",
-    "merge_keys",
+    "fields",
+    "cases",
 })
 
 

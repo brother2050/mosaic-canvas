@@ -147,7 +147,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'text-to-video', label: '',
                     params: {},
-                    input_params: { num_frames: '24', fps: '8' },
+                    input_params: { num_frames: '49', fps: '8' },
                     ...pos(0, 0),
                 },
                 {
@@ -572,7 +572,7 @@ const Templates = (() => {
                 {
                     id: 'n1', type: 'text-to-video', label: '',
                     params: {},
-                    input_params: { num_frames: '16', fps: '8' },
+                    input_params: { num_frames: '49', fps: '8' },
                     ...pos(0, 0),
                 },
                 {
@@ -754,7 +754,7 @@ const Templates = (() => {
             description: { en: 'Generate an image, then transform it with a prompt (example 02).', zh: '生成图片后用提示词进行变换（示例02）。' },
             nodes: [
                 { id: 'n1', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(0, 0) },
-                { id: 'n2', type: 'image-to-image', label: '', params: { model: 'timbrooks/instruct-pix2pix' }, input_params: { strength: '0.8', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(1, 0) },
+                { id: 'n2', type: 'image-to-image', label: '', params: { model: 'stabilityai/stable-diffusion-xl-base-1.0' }, input_params: { strength: '0.8', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(1, 0) },
                 { id: 'n3', type: 'field-mapper', label: '', params: { mapping: '{"image": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
                 { id: 'n4', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'image', formats: '["png"]' }, ...pos(3, 0) },
             ],
@@ -839,7 +839,7 @@ const Templates = (() => {
             icon: '▶️',
             description: { en: 'Continue an existing video with more frames (example 03).', zh: '为已有视频生成后续帧（示例03）。' },
             nodes: [
-                { id: 'n1', type: 'video-continuation', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(0, 0) },
+                { id: 'n1', type: 'video-continuation', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(0, 0) },
                 { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
@@ -851,7 +851,7 @@ const Templates = (() => {
             icon: '🖼️',
             description: { en: 'Generate a video, then extract frames (example 03).', zh: '生成视频后提取帧（示例03）。' },
             nodes: [
-                { id: 'n1', type: 'text-to-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(0, 0) },
+                { id: 'n1', type: 'text-to-video', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(0, 0) },
                 { id: 'n2', type: 'frame-extractor', label: '', params: {}, input_params: { mode: 'interval', interval: '2' }, ...pos(1, 0) },
                 { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"frames": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
                 { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'image', formats: '["png"]' }, ...pos(3, 0) },
@@ -1112,7 +1112,7 @@ const Templates = (() => {
                 { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"text": "prompt"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n3', type: 'text-to-image', label: '', params: { model: 'stabilityai/sdxl-turbo' }, input_params: { num_inference_steps: '25', negative_prompt: 'blurry, low quality, distorted, deformed, watermark, text' }, ...pos(2, 0) },
                 { id: 'n4', type: 'upscaler', label: '', params: {}, input_params: { scale_factor: '2' }, ...pos(3, 0) },
-                { id: 'n5', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(4, 0) },
+                { id: 'n5', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(4, 0) },
                 { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"video": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(5, 0) },
                 { id: 'n6', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'video', formats: '["mp4"]' }, ...pos(6, 0) },
             ],
@@ -1176,7 +1176,7 @@ const Templates = (() => {
                 zh: '生成视频、语音合成、字幕、对齐后编码（示例11）。',
             },
             nodes: [
-                { id: 'n1', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(0, 0) },
+                { id: 'n1', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(0, 0) },
                 { id: 'n2', type: 'tts', label: '', params: { backend: 'chattts' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n3', type: 'subtitle-generator', label: '', params: {}, input_params: {}, ...pos(2, 0) },
                 { id: 'n4', type: 'subtitle-aligner', label: '', params: {}, input_params: {}, ...pos(3, 0) },
@@ -1234,7 +1234,7 @@ const Templates = (() => {
             icon: '🎞️',
             description: { en: 'Generate a video, then apply cross-frame consistency (example 12).', zh: '生成视频后应用跨帧一致性（示例12）。' },
             nodes: [
-                { id: 'n1', type: 'text-to-video', label: '', params: {}, input_params: { num_frames: '25' }, ...pos(0, 0) },
+                { id: 'n1', type: 'text-to-video', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(0, 0) },
                 { id: 'n2', type: 'cross-frame-consistency', label: '', params: {}, input_params: {}, ...pos(1, 0) },
                 { id: 'n3', type: 'field-mapper', label: '', params: { mapping: '{"video": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(2, 0) },
                 { id: 'n4', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'video', formats: '["mp4"]' }, ...pos(3, 0) },
@@ -1282,7 +1282,7 @@ const Templates = (() => {
                 zh: '合并多个数据源并导出为文本。',
             },
             nodes: [
-                { id: 'n1', type: 'data-merger', label: '', params: { merge_keys: '["field1", "field2"]' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n1', type: 'data-merger', label: '', params: { fields: '["field1", "field2"]' }, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"merged": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
@@ -1320,7 +1320,7 @@ const Templates = (() => {
             nodes: [
                 { id: 'n1', type: 'file-reader', label: '', params: {}, input_params: {}, ...pos(0, 0) },
                 { id: 'n2', type: 'text-summarizer', label: '', params: {}, input_params: {}, ...pos(1, 0) },
-                { id: 'n3', type: 'file-writer', label: '', params: {}, input_params: { format: 'txt' }, ...pos(2, 0) },
+                { id: 'n3', type: 'file-writer', label: '', params: { format: 'text' }, input_params: {}, ...pos(2, 0) },
             ],
             edges: [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n2', target: 'n3' }],
             input: { file_path: '/path/to/input.txt' },
@@ -1369,7 +1369,7 @@ const Templates = (() => {
                 zh: '通过条件分支路由数据并导出结果。',
             },
             nodes: [
-                { id: 'n1', type: 'switch', label: '', params: { conditions: '[{"field": "type", "op": "eq", "value": "image"}]' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n1', type: 'switch', label: '', params: { cases: '{"data.get(\\"type\\") == \\"image\\"": true}' }, input_params: {}, ...pos(0, 0) },
                 { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"data": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
@@ -1386,7 +1386,7 @@ const Templates = (() => {
                 zh: '将结果存入缓存，供后续检索使用。',
             },
             nodes: [
-                { id: 'n1', type: 'result-cache', label: '', params: { cache_keys: '["prompt", "model"]' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n1', type: 'result-cache', label: '', params: { cache_key: 'prompt' }, input_params: {}, ...pos(0, 0) },
                 { id: 'n_mid', type: 'field-mapper', label: '', params: { mapping: '{"data": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
                 { id: 'n2', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
             ],
