@@ -1,0 +1,69 @@
+{
+  "name": "30秒数字人视频测试管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "tts",
+      "x": 40,
+      "y": 60,
+      "params": {
+        "backend": "edge_tts"
+      },
+      "input_params": {
+        "voice": "zh-CN-XiaoxiaoNeural",
+        "language": "zh",
+        "emotion": "cheerful",
+        "speed": "1.0"
+      },
+      "label": "语音合成"
+    },
+    {
+      "id": "n2",
+      "type": "lip-syncer",
+      "x": 360,
+      "y": 60,
+      "params": {
+        "method": "sadtalker"
+      },
+      "input_params": {
+        "fps": "25",
+        "pose_style": "0",
+        "still": "false",
+        "expression_scale": "1.0",
+        "enhancer": "gfpgan",
+        "size": "256",
+        "padding": "[0, 20, 0, 20]"
+      },
+      "label": "SadTalker 唇形同步"
+    },
+    {
+      "id": "n3",
+      "type": "video-encoder",
+      "x": 680,
+      "y": 60,
+      "params": {
+        "format": "mp4"
+      },
+      "input_params": {},
+      "label": "MP4 编码输出"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "n1",
+      "target": "n2"
+    },
+    {
+      "id": "e2",
+      "source": "n2",
+      "target": "n3"
+    }
+  ],
+  "input": {
+    "data": {
+      "text": "大家好，欢迎来到 Mosaic Canvas 可视化管线编辑器。今天我将演示如何使用数字人系统生成一段三十秒的说话视频。我们通过文本转语音将文字转为音频，再使用 SadTalker 唇形同步生成视频帧，最后编码为 MP4 输出。谢谢观看！",
+      "face_image": "/workspace/mosaic-canvas/test-data/portrait.png"
+    }
+  }
+}
