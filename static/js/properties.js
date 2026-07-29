@@ -263,10 +263,10 @@ const Properties = (() => {
             field.name === 'timestamps' ||
             field.name === 'mapping' || field.name === 'drop_fields' ||
             field.name === 'mappings' || field.name === 'conversions' ||
-            field.name === 'blueprint' || field.name === 'values' ||
+            field.name === 'template' || field.name === 'values' ||
             field.name === 'schema' || field.name === 'aggregations' ||
-            field.name === 'headers' || field.name === 'cache_keys' ||
-            field.name === 'merge_keys';
+            field.name === 'headers' || field.name === 'fields' ||
+            field.name === 'cases' || field.name === 'lora_weights';
 
         let html = `<div class="${fieldClass} ${isModified ? 'prop-field-modified' : ''}" data-field-name="${escapeAttr(field.name)}" data-field-type="${escapeAttr(field.type)}" data-field-default="${defaultStr}" data-field-source="${source}">
             <div class="prop-field-header">

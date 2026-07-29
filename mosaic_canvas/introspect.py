@@ -86,8 +86,12 @@ __all__ = [
 # Parameters that are internal plumbing — never shown to the end user.
 # ---------------------------------------------------------------------------
 _INTERNAL_PARAMS: frozenset[str] = frozenset({
-    "self", "bus", "scheduler", "kwargs", "name", "description",
+    "self", "bus", "scheduler", "kwargs", "description",
     "elements",  # Pipeline.__init__ param
+    # Note: "name" is NOT filtered here because some nodes (e.g. checkpoint)
+    # have a legitimate user-configurable "name" constructor parameter.
+    # The registry key "name" is a class attribute, not an __init__ param,
+    # so it won't be extracted by _extract_params anyway.
 })
 
 # ---------------------------------------------------------------------------
@@ -175,6 +179,14 @@ _ADVANCED_PARAMS: frozenset[str] = frozenset({
     "enable_cpu_offload",
     "enable_chunking",
     "protocol",
+    # LoRA params
+    "lora_weights",
+    "lora_scale",
+    # FunASR advanced params
+    "vad_model",
+    "punc_model",
+    "spk_model",
+    "hotword",
 })
 
 # Pre-defined choices for well-known parameters.
@@ -237,6 +249,11 @@ _NODE_PARAM_CHOICES: dict[str, dict[str, list[str] | None]] = {
     "data-merger": {"strategy": ["overwrite", "deep_merge", "list_concat"]},
     # retry.backoff is a float multiplier, not a choice — override to None.
     "retry": {"backoff": None},
+    "funasr-asr": {
+        "vad_model": ["fsmn-vad", ""],
+        "punc_model": ["ct-punc", ""],
+        "spk_model": ["cam++", ""],
+    },
 }
 
 # Human-readable descriptions for common parameters.
@@ -383,6 +400,17 @@ _PARAM_HELP: dict[str, str] = {
     "zero_shot_model": "Zero-shot classification model for fallback.",
     "include_sources": "Include source references in output.",
     "llm_model": "LLM model identifier for citation generation.",
+    # Thinking/reasoning mode
+    "enable_thinking": "Enable thinking/reasoning mode for compatible models (Qwen2.5, DeepSeek-R1, QwQ). Generates reasoning blocks separately from the answer.",
+    "thinking_content": "Reasoning/thinking content extracted from model output (when enable_thinking is active).",
+    # LoRA
+    "lora_weights": "LoRA adapter weights: HuggingFace repo ID or local .safetensors path. Multiple files as JSON array.",
+    "lora_scale": "LoRA adapter strength (0.0-2.0). Controls how strongly LoRA influences generation.",
+    # FunASR
+    "vad_model": "Voice Activity Detection model (e.g. 'fsmn-vad'). Set to empty to disable.",
+    "punc_model": "Punctuation restoration model (e.g. 'ct-punc'). Set to empty to disable.",
+    "spk_model": "Speaker diarization model (e.g. 'cam++'). Set to empty to disable.",
+    "hotword": "Space-separated hotwords to boost recognition accuracy for proper nouns.",
 }
 
 
@@ -883,6 +911,8 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="Nucleus sampling threshold."),
         InputField(name="do_sample", type="bool", required=False, default=True,
                    description="Use sampling (True) or greedy (False)."),
+        InputField(name="enable_thinking", type="bool", required=False,
+                   description="Enable thinking/reasoning mode for compatible models (Qwen2.5, DeepSeek-R1, QwQ). Generates reasoning blocks separately from the answer."),
     ],
     "chat": [
         InputField(name="messages", type="string", required=True,
@@ -897,6 +927,8 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="Nucleus sampling threshold."),
         InputField(name="do_sample", type="bool", required=False, default=True,
                    description="Use sampling (True) or greedy (False)."),
+        InputField(name="enable_thinking", type="bool", required=False,
+                   description="Enable thinking/reasoning mode for compatible models (Qwen2.5, DeepSeek-R1, QwQ). Generates reasoning blocks separately from the answer."),
     ],
     "text-summarizer": [
         InputField(name="text", type="string", required=True,
@@ -958,6 +990,15 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="task", type="choice", required=False, default="transcribe",
                    choices=["transcribe", "translate"],
                    description="Task: 'transcribe' or 'translate'."),
+    ],
+    "funasr-asr": [
+        InputField(name="audio", type="string", required=True,
+                   description="Audio file path, AudioData, or numpy ndarray."),
+        InputField(name="language", type="choice", required=False,
+                   choices=["auto", "zh", "en", "ja", "ko"],
+                   description="Source language code. None for auto-detection."),
+        InputField(name="hotword", type="string", required=False,
+                   description="Space-separated hotwords to boost recognition accuracy."),
     ],
     "music-generator": [
         InputField(name="prompt", type="string", required=True,
@@ -1397,17 +1438,9 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="List of data dicts to merge (JSON array of objects)."),
     ],
     "data-splitter": [
-        InputField(name="source_field", type="string", required=True,
-                   description="Field to split."),
-        InputField(name="mode", type="choice", required=True,
-                   choices=["items", "batches", "pairs", "dict_keys", "text_chunks", "sequence"],
-                   description="Split mode."),
-        InputField(name="batch_size", type="int", required=False, default=1,
-                   description="Items per batch (batches mode)."),
-        InputField(name="chunk_size", type="int", required=False, default=512,
-                   description="Text chunk size in chars (text_chunks mode)."),
-        InputField(name="target_field", type="string", required=False, default="chunks",
-                   description="Output field name."),
+        # No runtime input fields — source_field, mode, batch_size,
+        # chunk_size, target_field are constructor params auto-extracted
+        # from __init__. run() reads from self._xxx, not input_data.
     ],
     "value-injector": [
         # No runtime input fields — values, overwrite are constructor
@@ -1472,37 +1505,17 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
                    description="Max length for truncate."),
     ],
     "data-flattener": [
-        InputField(name="separator", type="string", required=False, default=".",
-                   description="Key separator for flattened keys."),
-        InputField(name="source_field", type="string", required=False, default="data",
-                   description="Input field to flatten."),
-        InputField(name="target_field", type="string", required=False, default="flattened",
-                   description="Output field name."),
+        # No runtime input fields — separator, source_field, target_field
+        # are constructor params auto-extracted from __init__.
     ],
     "data-grouper": [
-        InputField(name="source_field", type="string", required=True,
-                   description="List field to group."),
-        InputField(name="group_key", type="string", required=True,
-                   description="Field name to group by."),
-        InputField(name="target_field", type="string", required=False, default="groups",
-                   description="Output field name."),
-        InputField(name="sort_groups", type="bool", required=False, default=False,
-                   description="Sort groups alphabetically."),
+        # No runtime input fields — source_field, group_key, target_field,
+        # sort_groups are constructor params auto-extracted from __init__.
     ],
     "text-chunker": [
-        InputField(name="source_field", type="string", required=False, default="text",
-                   description="Text field to chunk (also accepts 'content')."),
-        InputField(name="strategy", type="choice", required=False, default="char",
-                   choices=["char", "paragraph", "sentence", "token", "custom"],
-                   description="Chunking strategy."),
-        InputField(name="chunk_size", type="int", required=False, default=512,
-                   description="Chunk size (chars for char, tokens for token, sentences for sentence)."),
-        InputField(name="chunk_overlap", type="int", required=False, default=50,
-                   description="Overlap between chunks (char strategy only)."),
-        InputField(name="delimiter", type="string", required=False,
-                   description="Custom delimiter (custom strategy only)."),
-        InputField(name="target_field", type="string", required=False, default="chunks",
-                   description="Output field name."),
+        # No runtime input fields — source_field, strategy, chunk_size,
+        # chunk_overlap, delimiter, target_field are constructor params
+        # auto-extracted from __init__.
     ],
     # === Helper nodes: Control Flow ===
     "loop": [
@@ -1538,17 +1551,9 @@ _NODE_INPUT_FIELDS: dict[str, list[InputField]] = {
         # are constructor params auto-extracted from __init__.
     ],
     "batcher": [
-        InputField(name="source_field", type="string", required=False, default="items",
-                   description="Target list field."),
-        InputField(name="batch_size", type="int", required=False, default=8,
-                   description="Items per batch."),
-        InputField(name="overlap", type="int", required=False, default=0,
-                   description="Overlap between batches (sliding window)."),
-        InputField(name="target_field", type="string", required=False, default="batches",
-                   description="Output field name."),
-        InputField(name="collect_mode", type="choice", required=False, default="window",
-                   choices=["window", "collect"],
-                   description="window = sliding window, collect = accumulate."),
+        # No runtime input fields — source_field, batch_size, overlap,
+        # target_field, collect_mode are constructor params auto-extracted
+        # from __init__. run() reads from self._xxx, not input_data.
     ],
     "aggregator": [
         InputField(name="aggregations", type="string", required=True,
@@ -1734,12 +1739,14 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
         InputField(name="text", type="string", description="Generated text."),
         InputField(name="input_tokens", type="int", description="Number of input tokens consumed."),
         InputField(name="output_tokens", type="int", description="Number of output tokens generated."),
+        InputField(name="thinking_content", type="string", description="Reasoning/thinking content extracted from model output (when enable_thinking is active)."),
     ],
     "chat": [
         InputField(name="reply", type="string", description="Chat reply text generated by the model."),
         InputField(name="messages", type="list", description="Full message history including the new assistant reply."),
         InputField(name="input_tokens", type="int", description="Number of input tokens consumed."),
         InputField(name="output_tokens", type="int", description="Number of output tokens generated."),
+        InputField(name="thinking_content", type="string", description="Reasoning/thinking content extracted from model output (when enable_thinking is active)."),
     ],
     "text-summarizer": [
         InputField(name="summary", type="string", description="Generated summary."),
@@ -1774,6 +1781,12 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
     "asr": [
         InputField(name="text", type="string", description="Transcribed text."),
         InputField(name="segments", type="list", description="Time-stamped transcription segments."),
+    ],
+    "funasr-asr": [
+        InputField(name="text", type="string", description="Full transcription text."),
+        InputField(name="language", type="string", description="Detected or specified language code."),
+        InputField(name="segments", type="list", description="Time-stamped segments: [{start, end, text}, ...]."),
+        InputField(name="duration", type="float", description="Total audio duration in seconds."),
     ],
     "music-generator": [
         InputField(name="waveform", type="array", description="Music waveform as numpy array."),
@@ -1911,6 +1924,60 @@ _NODE_OUTPUT_FIELDS: dict[str, list[InputField]] = {
     ],
     "state-store": [
         InputField(name="state", type="any", description="Current state value."),
+    ],
+    # === Helper: Cache ===
+    "result-cache": [
+        InputField(name="*", type="any", description="Cached or computed result (passthrough from body)."),
+    ],
+    "checkpoint": [
+        InputField(name="*", type="any", description="Input data (save mode) or restored checkpoint data (load mode)."),
+    ],
+    "kv-store": [
+        InputField(name="value", type="any", description="Retrieved value (op='get')."),
+        InputField(name="exists", type="bool", description="Whether key exists (op='has')."),
+        InputField(name="*", type="any", description="Passthrough input data."),
+    ],
+    # === Helper: Container ops ===
+    "list-ops": [
+        InputField(name="*", type="any", description="Passthrough with the configured field updated by the list operation."),
+    ],
+    "dict-ops": [
+        InputField(name="result", type="any", description="Extracted nested value (op='get_path')."),
+        InputField(name="*", type="any", description="Passthrough with the configured field updated by the dict operation."),
+    ],
+    "string-ops": [
+        InputField(name="*", type="any", description="Passthrough with the configured field updated by the string operation."),
+    ],
+    # === Helper: Dataflow validation ===
+    "schema-validator": [
+        InputField(name="*", type="any", description="Validated input data (passthrough on success)."),
+    ],
+    # === Helper: Control flow ===
+    "retry": [
+        InputField(name="*", type="any", description="Result of the wrapped body after retry attempts."),
+    ],
+    "timeout": [
+        InputField(name="*", type="any", description="Result of the wrapped body (or passthrough on timeout)."),
+    ],
+    # === Helper: Processing ===
+    "throttler": [
+        InputField(name="*", type="any", description="Passthrough input data (rate-limited)."),
+    ],
+    # === Helper: I/O ===
+    "file-writer": [
+        InputField(name="path", type="string", description="Resolved file path that was written."),
+        InputField(name="format", type="string", description="Effective format used (text/json/csv/binary)."),
+        InputField(name="*", type="any", description="Passthrough input data."),
+    ],
+    # === Helper: Monitoring ===
+    "logger": [
+        InputField(name="*", type="any", description="Passthrough input data (logged as side effect)."),
+    ],
+    "webhook-notifier": [
+        InputField(name="*", type="any", description="Passthrough input data (webhook sent as side effect)."),
+    ],
+    "debugger": [
+        InputField(name="*", type="any", description="Passthrough input data (debug output as side effect)."),
     ],
 }
 

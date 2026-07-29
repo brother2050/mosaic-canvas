@@ -1052,6 +1052,17 @@ const I18n = (() => {
             'start': 'Start',
             'stop': 'Stop',
             'step': 'Step',
+            // Thinking/reasoning
+            'enable_thinking': 'Thinking Mode',
+            'thinking_content': 'Thinking Content',
+            // LoRA
+            'lora_weights': 'LoRA Weights',
+            'lora_scale': 'LoRA Scale',
+            // FunASR
+            'vad_model': 'VAD Model',
+            'punc_model': 'Punctuation Model',
+            'spk_model': 'Speaker Model',
+            'hotword': 'Hotwords',
         },
         zh: {
             'model': '模型',
@@ -1279,6 +1290,17 @@ const I18n = (() => {
             'start': '起始',
             'stop': '结束',
             'step': '步长',
+            // 思维/推理模式
+            'enable_thinking': '思维模式',
+            'thinking_content': '思维内容',
+            // LoRA
+            'lora_weights': 'LoRA 权重',
+            'lora_scale': 'LoRA 强度',
+            // FunASR
+            'vad_model': 'VAD 模型',
+            'punc_model': '标点模型',
+            'spk_model': '说话人模型',
+            'hotword': '热词',
         },
     };
 
@@ -1340,6 +1362,13 @@ const I18n = (() => {
             'speed': 'Speech speed multiplier. 1.0 = normal speed.',
             'duration': 'Duration in seconds.',
             'frames': 'Frame list as JSON array of paths.',
+            'enable_thinking': 'Enable thinking/reasoning mode for compatible models (Qwen2.5, DeepSeek-R1, QwQ). Generates reasoning blocks separately from the answer.',
+            'lora_weights': 'LoRA adapter weights: HuggingFace repo ID or local .safetensors path. Multiple files as JSON array.',
+            'lora_scale': 'LoRA adapter strength (0.0-2.0). Controls how strongly LoRA influences generation.',
+            'vad_model': 'Voice Activity Detection model (e.g. fsmn-vad). Leave empty to disable.',
+            'punc_model': 'Punctuation restoration model (e.g. ct-punc). Leave empty to disable.',
+            'spk_model': 'Speaker diarization model (e.g. cam++). Leave empty to disable.',
+            'hotword': 'Space-separated hotwords to boost recognition accuracy for proper nouns.',
         },
         zh: {
             'model': 'HuggingFace 模型 ID 或本地路径。示例：stabilityai/sdxl-turbo',
@@ -1397,6 +1426,13 @@ const I18n = (() => {
             'speed': '语速倍率。1.0 = 正常速度。',
             'duration': '时长（秒）。',
             'frames': '帧列表 JSON 数组（路径）。',
+            'enable_thinking': '启用思维/推理模式（兼容 Qwen2.5、DeepSeek-R1、QwQ 等模型）。生成推理过程并单独输出。',
+            'lora_weights': 'LoRA 适配器权重：HuggingFace 仓库 ID 或本地 .safetensors 路径。多个文件用 JSON 数组。',
+            'lora_scale': 'LoRA 适配器强度（0.0-2.0）。控制 LoRA 对生成结果的影响程度。',
+            'vad_model': '语音活动检测模型（如 fsmn-vad）。留空禁用。',
+            'punc_model': '标点恢复模型（如 ct-punc）。留空禁用。',
+            'spk_model': '说话人分离模型（如 cam++）。留空禁用。',
+            'hotword': '空格分隔的热词，用于提升专有名词识别准确率。',
         },
     };
 
@@ -1420,6 +1456,7 @@ const I18n = (() => {
             'hunyuan-video': '混元视频',
             'tts': '语音合成',
             'asr': '语音识别',
+            'funasr-asr': 'FunASR 语音识别',
             'music-generator': '音乐生成',
             'sound-effect-generator': '音效生成',
             'voice-clone': '声音克隆',

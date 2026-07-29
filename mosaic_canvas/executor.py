@@ -112,6 +112,8 @@ _JSON_FIELDS: frozenset[str] = frozenset({
     "headers",
     "fields",
     "cases",
+    # LoRA weights can be a JSON array of paths
+    "lora_weights",
 })
 
 
