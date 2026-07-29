@@ -1,0 +1,53 @@
+{
+  "name": "文生图管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "text-to-image",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "model": "stabilityai/sdxl-turbo"
+      },
+      "input_params": {
+        "num_inference_steps": "25",
+        "guidance_scale": "7.5",
+        "negative_prompt": "blurry, low quality, distorted, deformed, watermark, text"
+      },
+      "label": "文生图"
+    },
+    {
+      "id": "n2",
+      "type": "field-mapper",
+      "x": 320,
+      "y": 40,
+      "params": {
+        "mapping": "{\"image\": \"data\"}",
+        "drop_fields": "[]"
+      },
+      "input_params": {},
+      "label": "字段映射"
+    },
+    {
+      "id": "n3",
+      "type": "multi-format-exporter",
+      "x": 600,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "content_type": "image",
+        "formats": "[\"png\"]"
+      },
+      "label": "导出 PNG"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" }
+  ],
+  "input": {
+    "data": {
+      "prompt": "a cute cat sitting on a windowsill, warm sunlight, detailed fur, cozy atmosphere"
+    }
+  }
+}

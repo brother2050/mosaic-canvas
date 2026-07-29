@@ -1,0 +1,54 @@
+{
+  "name": "语音合成管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "tts",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "backend": "edge_tts"
+      },
+      "input_params": {
+        "voice": "zh-CN-XiaoxiaoNeural",
+        "language": "zh",
+        "emotion": "cheerful",
+        "speed": "1.0"
+      },
+      "label": "语音合成"
+    },
+    {
+      "id": "n2",
+      "type": "field-mapper",
+      "x": 320,
+      "y": 40,
+      "params": {
+        "mapping": "{\"audio\": \"data\"}",
+        "drop_fields": "[]"
+      },
+      "input_params": {},
+      "label": "字段映射"
+    },
+    {
+      "id": "n3",
+      "type": "multi-format-exporter",
+      "x": 600,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "content_type": "audio",
+        "formats": "[\"wav\"]"
+      },
+      "label": "导出 WAV"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" }
+  ],
+  "input": {
+    "data": {
+      "text": "大家好，欢迎使用 Mosaic Canvas 可视化管线编辑器。这是一个强大的 AI 内容生成工具。"
+    }
+  }
+}

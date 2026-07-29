@@ -1,5 +1,5 @@
 {
-  "name": "30秒数字人视频测试管线",
+  "name": "30秒数字人视频管线",
   "nodes": [
     {
       "id": "n1",
@@ -49,21 +49,13 @@
     }
   ],
   "edges": [
-    {
-      "id": "e1",
-      "source": "n1",
-      "target": "n2"
-    },
-    {
-      "id": "e2",
-      "source": "n2",
-      "target": "n3"
-    }
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" }
   ],
   "input": {
     "data": {
       "text": "大家好，欢迎来到 Mosaic Canvas 可视化管线编辑器。今天我将演示如何使用数字人系统生成一段三十秒的说话视频。我们通过文本转语音将文字转为音频，再使用 SadTalker 唇形同步生成视频帧，最后编码为 MP4 输出。谢谢观看！",
-      "face_image": "/workspace/mosaic-canvas/test-data/portrait.png"
+      "face_image": "请替换为你的人脸图片路径，例如 /data/portrait.png"
     }
   }
 }

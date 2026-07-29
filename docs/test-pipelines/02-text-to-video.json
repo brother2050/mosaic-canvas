@@ -1,0 +1,38 @@
+{
+  "name": "文生视频管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "text-to-video",
+      "x": 40,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "num_frames": "49",
+        "fps": "8",
+        "num_inference_steps": "50",
+        "guidance_scale": "6.0"
+      },
+      "label": "文生视频"
+    },
+    {
+      "id": "n2",
+      "type": "video-encoder",
+      "x": 320,
+      "y": 40,
+      "params": {
+        "format": "mp4"
+      },
+      "input_params": {},
+      "label": "MP4 编码"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" }
+  ],
+  "input": {
+    "data": {
+      "prompt": "a cat playing with a ball of yarn, cinematic, slow motion, warm lighting"
+    }
+  }
+}

@@ -1,124 +1,110 @@
-# Mosaic Canvas 流模型规则文档
+# Mosaic Canvas 流模型使用指南
 
-> **版本**: 1.0  
-> **最后更新**: 2026-07-29  
-> **适用范围**: Mosaic Canvas 可视化管线编辑器及执行引擎
+Mosaic Canvas 是一个可视化管线编辑器。你把各种 AI 能力（文生图、语音合成、视频生成等）拖到画布上，用线连起来，数据就会沿着连线从上游节点流向下游节点，最终产出你想要的结果。
 
----
-
-## 1. 概述
-
-Mosaic Canvas 使用**有向无环图（DAG）**作为流模型的核心数据结构。一个流模型（Pipeline）由节点（Node）、边（Edge）和全局输入（Input）三部分组成，序列化为 JSON 格式存储和传输。
-
-### 1.1 设计原则
-
-- **JSON 可序列化**：所有数据结构可无损序列化为 JSON，支持保存、加载、版本控制
-- **前后端一致**：前端画布状态与后端执行引擎使用同一套数据模型
-- **拓扑执行**：节点按拓扑序执行，数据沿边流动
-- **类型安全**：端口类型系统防止不兼容的节点连接
+这篇文章讲清楚一件事：画布上那些方块和连线，在底层到底是怎么运作的。理解了这些规则，你就能自己手写 JSON 管线文件，也能快速排查为什么某个管线跑不通。
 
 ---
 
-## 2. JSON 顶层结构
+## 一张图长什么样
+
+一个管线就是一份 JSON 文件，包含三个部分：节点、连线和输入数据。
 
 ```json
 {
-  "name": "管线名称",
-  "nodes": [ /* GraphNode[] */ ],
-  "edges": [ /* GraphEdge[] */ ],
-  "input": {
-    "data": { /* key: value 键值对 */ }
-  }
+  "name": "我的管线",
+  "nodes": [ ... ],
+  "edges": [ ... ],
+  "input": { "data": { ... } }
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `name` | string | 否 | 管线名称，默认 `"Untitled Pipeline"` |
-| `nodes` | array | 是 | 节点数组，至少包含一个节点 |
-| `edges` | array | 否 | 边数组，空数组表示各节点独立执行 |
-| `input` | object | 否 | 全局输入，默认 `{"data": {}}` |
-| `input.data` | object | 否 | 扁平 key-value 字典，注入到源节点的输入中 |
+- `nodes` 是画布上那些方块，每个方块代表一种 AI 能力
+- `edges` 是方块之间的连线，决定了数据流动的方向
+- `input.data` 是你提供给整个管线的外部数据，比如一段文字、一张图片路径
+
+这三部分缺一不可，但 `edges` 可以是空数组（表示只有一个节点，独立运行）。
 
 ---
 
-## 3. 节点定义（GraphNode）
+## 节点：画布上的方块
 
-### 3.1 完整字段
+每个节点描述了一个具体的 AI 操作。它的核心信息是「我是什么类型的节点」和「我要怎么配置」。
 
 ```json
 {
   "id": "n1",
-  "type": "text-to-video",
-  "x": 40.0,
-  "y": 40.0,
-  "params": {
-    "model": "THUDM/CogVideoX-5b"
-  },
-  "input_params": {
-    "num_frames": "49",
-    "fps": "8"
-  },
-  "label": "视频生成"
+  "type": "text-to-image",
+  "params": { "model": "stabilityai/sdxl-turbo" },
+  "input_params": { "num_inference_steps": "25", "guidance_scale": "7.5" },
+  "x": 40,
+  "y": 40,
+  "label": "文生图"
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `id` | string | **是** | 节点唯一标识符，同一图内不可重复 |
-| `type` | string | **是** | 节点注册名（registry key），如 `"text-to-video"` |
-| `x` | number | 否 | 画布 X 坐标，仅用于 UI 展示，不影响执行 |
-| `y` | number | 否 | 画布 Y 坐标，仅用于 UI 展示，不影响执行 |
-| `params` | object | 否 | **构造函数参数**，传递给 `Node.__init__()` |
-| `input_params` | object | 否 | **运行时参数**，合并进 `MosaicData` 传给 `run()` |
-| `label` | string | 否 | 用户自定义标签，仅用于 UI 显示 |
+### id 和 type
 
-### 3.2 params 与 input_params 的关键区别
+`id` 是节点在当前管线中的唯一名字，你随便取，只要不重复就行。`type` 是节点类型，必须是系统已注册的名称，比如 `text-to-image`、`tts`、`video-encoder`。类型决定了这个节点能干什么、接受什么输入、产出什么输出。
 
-**这是流模型中最重要的规则，混淆会导致实例化失败或执行异常。**
+`x` 和 `y` 是画布坐标，只影响在界面上的显示位置，不影响执行结果。`label` 是显示名称，也是纯 UI 用途。
 
-| 维度 | `params`（构造参数） | `input_params`（运行参数） |
-|------|---------------------|-------------------------|
-| 用途 | 节点实例化时传入 `__init__()` | 执行时合并进 `MosaicData` 传给 `run()` |
-| 典型字段 | `model`, `device`, `dtype`, `format`, `method`, `mapping` | `prompt`, `num_frames`, `fps`, `guidance_scale`, `negative_prompt` |
-| 类型转换 | 按 `ui_type` 自动转换（int/float/bool） | 按 `ui_type` 自动转换；JSON 字段自动解析 |
-| 优先级 | 实例化时一次性设置 | 执行时覆盖前驱输出和全局输入的同名字段 |
+### params 和 input_params：最容易搞混的地方
 
-**判断规则**：
-- 如果参数在 `Node.__init__()` 签名中声明 → 放入 `params`
-- 如果参数在 `run()` 方法中通过 `MosaicData` 读取 → 放入 `input_params`
-- 不确定时，查看节点的 `input_fields`（内省输出），在其中声明的字段用 `input_params`
+这是整个系统里最关键的概念。每个节点有两类参数，放错了节点就会报错或者不工作。
 
-### 3.3 值类型规则
+**`params` 是构造参数**。你可以理解为「造这台机器时的出厂设置」。节点在启动时会用这些参数初始化自己，比如选哪个模型、用什么编码格式、选哪个推理引擎。设置好之后整个执行过程中不会变。
 
-UI 传过来的值默认为**字符串**，后端按参数的 `ui_type` 自动转换：
+常见的 `params` 参数：
+- `model` — 指定使用哪个模型，如 `"stabilityai/sdxl-turbo"`
+- `format` — 输出格式，如 `"mp4"`、`"wav"`
+- `method` — 数字人引擎选择，如 `"sadtalker"`、`"wav2lip"`
+- `backend` — TTS 后端选择，如 `"edge_tts"`、`"chattts"`
+- `mapping` — 字段重映射规则，如 `'{"image": "data"}'`
 
-| ui_type | 转换规则 | 示例 |
-|---------|---------|------|
-| `int` | `int(float(value))` | `"49"` → `49` |
-| `float` | `float(value)` | `"6.0"` → `6.0` |
-| `bool` | `str(value).lower() in ("true","1","yes","on")` | `"true"` → `True` |
-| `choice` | `str(value)` | `"mp4"` → `"mp4"` |
-| `string` | 原样保留 | `"hello"` → `"hello"` |
-| 空字符串 | 转为 `None`（使用节点默认值） | `""` → `None` |
+**`input_params` 是运行参数**。这是「每次加工时调节的旋钮」，比如生成多少帧、引导系数多大、负面提示词是什么。这些参数在执行时和上游传来的数据合并在一起，传给节点处理。
 
-### 3.4 JSON 字段自动解析
+常见的 `input_params` 参数：
+- `prompt` / `negative_prompt` — 提示词
+- `num_frames` / `fps` — 视频帧数和帧率
+- `num_inference_steps` / `guidance_scale` — 扩散模型参数
+- `voice` / `language` / `emotion` — 语音合成参数
+- `seed` — 随机种子
 
-以下字段名在 `input_params` 或 `input.data` 中为字符串时，会自动解析为 Python 对象：
+**怎么判断一个参数该放哪里？** 如果你不确定，可以这样想：这个参数是在「选机器」时就决定的（比如用哪个模型），还是每次「加工」时可能调的（比如提示词）。前者放 `params`，后者放 `input_params`。
 
-```
-messages, formats, filter_metadata, padding, labels, results, prompts,
-metadata, timestamps, mapping, drop_fields, mappings, conversions,
-template, values, schema, aggregations, headers, fields, cases
-```
+### 值都是字符串
 
-例如：`"padding": "[0, 20, 0, 20]"` 会被解析为 `[0, 20, 0, 20]`。
+从界面传过来的值默认都是字符串。后端会自动做类型转换：`"25"` 会变成整数 25，`"true"` 会变成布尔值 True，`"7.5"` 会变成浮点数 7.5。空字符串 `""` 会被当作 None，让节点使用自己的默认值。
+
+有些字段名比较特殊，它们虽然写成字符串，但实际上是 JSON 结构。比如 `padding`、`mapping`、`formats` 这些字段，你写成 `"[0, 20, 0, 20]"`，后端会自动解析成列表 `[0, 20, 0, 20]`。
 
 ---
 
-## 4. 边定义（GraphEdge）
+## 连线：数据怎么流动
 
-### 4.1 完整字段
+连线决定了数据从哪个节点流到哪个节点。每条边有三个必填字段：`id`（唯一标识）、`source`（起点节点 id）、`target`（终点节点 id）。
+
+```json
+{
+  "id": "e1",
+  "source": "n1",
+  "target": "n2"
+}
+```
+
+### 连线有四条规则
+
+1. 不能自己连自己（`source` 和 `target` 不能相同）
+2. 同一对节点之间只能有一条连线
+3. 不能形成环——数据只能往前流，不能绕回来
+4. 连线的两端必须指向真实存在的节点
+
+### 数据过滤：不是所有数据都会传过去
+
+默认情况下，连线会把上游节点产出的数据智能过滤后再传给下游。过滤的依据是下游节点声明了需要哪些字段。比如 `video-encoder` 需要的是 `frames` 和 `fps`，那么上游传过来的其他字段（比如 `text`、`audio`）就会被过滤掉。
+
+如果你想要精确控制，可以用 `pass_fields` 字段显式指定只传哪些字段：
 
 ```json
 {
@@ -129,510 +115,180 @@ template, values, schema, aggregations, headers, fields, cases
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `id` | string | **是** | 边唯一标识符 |
-| `source` | string | **是** | 源节点 ID（必须存在于 nodes 中） |
-| `target` | string | **是** | 目标节点 ID（必须存在于 nodes 中） |
-| `pass_fields` | array\|null | 否 | 字段白名单，`null` 或省略表示智能过滤 |
+### 字段别名：名字对不上怎么办
 
-### 4.2 边的约束规则
+有时候上游输出的字段名和下游期望的不一样。比如 `tts` 节点输出的是 `waveform`，但 `lip-syncer` 节点需要的是 `audio`。系统内置了一张别名映射表，会自动帮你桥接：
 
-1. **禁止自环**：`source` 不能等于 `target`
-2. **禁止重复边**：同一 `source → target` 对只能存在一条边
-3. **禁止成环**：图中不允许存在环（DAG 约束），通过 DFS 三色标记法检测
-4. **引用完整性**：`source` 和 `target` 必须指向 `nodes` 中已定义的节点 ID
+- 需要 `audio` → 会去找 `waveform`、`voice`、`audio_path`
+- 需要 `face_image` → 会去找 `image`、`images`、`avatar`、`source_image`
+- 需要 `frames` → 会去找 `video`、`images`、`image`、`frame_list`
+- 需要 `prompt` → 会去找 `text`、`reply`、`response`、`summary`
 
-### 4.3 数据传递规则
-
-数据沿边从源节点输出传递到目标节点输入，传递规则按优先级从高到低：
-
-**优先级 1：边级白名单（`pass_fields`）**
-- 若 `pass_fields` 非空，仅传递列表中指定的字段
-- 示例：`"pass_fields": ["frames", "fps"]` → 只传递 `frames` 和 `fps`
-
-**优先级 2：节点级智能过滤（默认）**
-- 若 `pass_fields` 为 `null`（默认），根据目标节点声明的 `input_fields` 过滤
-- 仅传递目标节点 `input_fields` 中声明的字段
-- 若目标节点 `input_types` 包含 `"mosaic"`，则传递所有字段（全量传递）
-
-**优先级 3：字段别名自动映射**
-- 当目标节点需要的字段名与源节点输出的字段名不一致时，自动桥接
-- 别名映射表见下方 §5.3
-
-### 4.4 端口类型兼容矩阵
-
-前端在连线时进行类型校验，后端不做类型检查（依赖前端校验）。支持 12 种端口类型：
-
-| 输出类型 \ 可连接的输入类型 | 兼容列表 |
-|---------------------------|---------|
-| `text` | text, image, audio, video, document, json, rag_query_result, mosaic |
-| `image` | image, video, avatar, json, mosaic |
-| `audio` | audio, text, subtitle, json, mosaic |
-| `video` | video, image, json, mosaic |
-| `subtitle` | subtitle, text, json, mosaic |
-| `file` | file, text, image, audio, video, subtitle, document, json, mosaic |
-| `motion` | motion, mosaic |
-| `avatar` | avatar, image, mosaic |
-| `document` | document, text, json, mosaic |
-| `rag_query_result` | rag_query_result, text, json, mosaic |
-| `json` | json, text, mosaic |
-| `mosaic` | 所有类型（通配） |
-
-校验规则（按优先级）：
-1. 任一方端口类型声明为空 → 允许（向后兼容）
-2. 目标 `input_types` 含 `"mosaic"` → 允许任何连接
-3. 输出类型与输入类型有精确交集 → 允许
-4. 根据兼容矩阵可转换 → 允许
-5. 都不满足 → 拒绝
+大部分时候你不需要操心这个，系统会自动处理。但如果管线跑不通、提示缺少某个字段，可能就是别名没覆盖到的情况，这时候可以加一个 `field-mapper` 节点手动做字段重命名。
 
 ---
 
-## 5. 执行引擎规则
+## 全局输入：给管线喂料
 
-### 5.1 执行流程
-
-```
-1. 实例化节点 → 2. 拓扑排序 → 3. 按序执行 → 4. 收集输出 → 5. 清理资源
-```
-
-**阶段 1：实例化节点**
-- 对每个节点，通过 `registry.get_class(type)` 获取节点类
-- 将 `params` 按 `ui_type` 做类型转换
-- 执行 `instance = NodeClass(**params)` 实例化
-- 任一节点实例化失败 → fail-fast 中断
-
-**阶段 2：拓扑排序**
-- 使用 Kahn 算法（入度法）计算拓扑序
-- 先通过 DFS 三色标记法检测环，有环则抛出异常
-- 入度为 0 的节点先入队，逐步删除边并收集顺序
-
-**阶段 3：按拓扑序执行**
-对每个节点：
-1. 组装输入 `MosaicData`（见 §5.2）
-2. 调用 `instance.run(node_input)`
-3. 成功 → 序列化输出，继续下一节点
-4. 失败 → fail-fast 中断剩余节点
-
-**阶段 4：收集最终输出**
-- 从 sink 节点（无出边的节点）收集结果
-- 单 sink → 直接取其输出
-- 多 sink → 返回 `{node_id: output}` 字典
-
-**阶段 5：清理**
-- 释放所有节点占用的 GPU 内存
-
-### 5.2 输入数据组装规则
-
-每个节点的 `node_input`（MosaicData）按以下优先级从低到高合并：
-
-```
-① 前驱输出字段（经 pass_fields / 智能过滤 / 别名映射）
-    ↓ 合并（仅填充缺失键）
-② pipeline input.data（全局输入，对非源节点仅填充缺失键）
-    ↓ 合并（覆盖同名键）
-③ node.input_params（节点级运行参数，最高优先级）
-```
-
-**源节点（无前驱）**：
-- `node_input = MosaicData(pipeline_input.data)` — 全局输入直接注入
-- 应用字段别名安全网
-
-**非源节点（有前驱）**：
-- 从每个前驱的输出中提取字段（按 §4.3 传递规则）
-- 全局 `input.data` 仅填充尚未存在的键（不覆盖前驱输出）
-- `input_params` 覆盖同名键（最高优先级）
-
-### 5.3 字段别名映射表
-
-当目标节点需要的字段名与源节点输出不匹配时，执行器自动查找别名：
-
-| 目标字段 | 可接受的源字段（按查找顺序） |
-|---------|---------------------------|
-| `data` | image, images, video, audio, text, reply, response, frames, subtitles, subtitle, segments, waveform, document, pages |
-| `prompt` | reply, response, text, message, summary, query, question, results, context, translated_text |
-| `image` | images, data, face_image, source_image |
-| `images` | image, data |
-| `text` | reply, response, prompt, summary, transcript, results, context |
-| `frames` | video, images, image, frame_list, data |
-| `face_image` | image, images, avatar, source_image, data |
-| `source_image` | image, images, avatar, face_image, data |
-| `input_stream` | audio, text, video, data, frames |
-| `audio` | audio_path, audio_data, voice, waveform |
-| `subtitle` | subtitles, segments, subtitle_data |
-| `document` | text, pages, content, data |
-| `results` | context, text, rag_query_result, reply, response |
-| `query` | question, search_query, text |
-| `reference_audio` | audio, audio_path, voice, waveform |
-| `driving_audio` | audio, audio_path, voice, waveform |
-| `driving_video` | video, frames, motion, keypoints |
-| `file_path` | file, path, document, filename |
-| `stream_url` | url, rtmp_url, stream |
-| `mask_image` | mask, mask_path, mask_image_path |
-
-### 5.4 输出序列化规则
-
-节点输出通过 `_serialize_output` 转换为 UI 友好格式：
-
-| 内部类型 | 序列化结果 |
-|---------|-----------|
-| PIL Image | 保存为 PNG/JPG 文件，返回 `{"__display_type__": "image", "src": "/outputs/xxx.png"}` |
-| waveform (ndarray) | 编码为 WAV 文件（截断 60s），返回 audio descriptor |
-| frames (list) | 生成缩略图 + 尝试用 imageio 编码 MP4 |
-| 超长字符串 (>10000 字符) | 截断 |
-| 超长列表 (>50 项) | 转为 summary |
-
----
-
-## 6. 全局输入（PipelineInput）
-
-### 6.1 结构
+`input.data` 是你提供给整个管线的外部数据。它是一个扁平的键值对字典：
 
 ```json
 {
   "input": {
     "data": {
       "prompt": "一只猫在玩毛线球",
-      "seed": 42,
-      "face_image": "/path/to/avatar.png"
+      "text": "你好，欢迎使用数字人系统",
+      "negative_prompt": "blurry, low quality"
     }
   }
 }
 ```
 
-### 6.2 注入规则
+### 注入规则
 
-- `input.data` 是扁平的 key-value 字典
-- 值可以是字符串、数字、布尔，或 JSON 字符串（对 `_JSON_FIELDS` 中的字段自动解析）
-- **对源节点**：所有字段直接合并进 `node_input`，作为主要输入数据源
-- **对非源节点**：仅填充 `node_input` 中尚不存在的键（补充默认值）
-- 常用于设置全局默认值：`negative_prompt`、`seed`、`face_image`、`audio` 等路径
+对于管线中最前面的节点（没有上游连线的节点，叫「源节点」），`input.data` 里的所有字段会直接注入到它的输入中。比如源节点是 `tts`，那么 `input.data.text` 就会成为它的文本输入。
 
-### 6.3 优先级
+对于后面的节点，`input.data` 只起补充作用——如果某个字段上游已经传过来了，就不会被覆盖；如果没传过来，才从 `input.data` 里取。这个机制让你可以设置全局默认值，比如所有节点共用一个 `seed` 或 `negative_prompt`。
 
-```
-前驱输出 < pipeline input.data < node.input_params
-```
+### 优先级
 
----
+一个节点最终拿到的输入数据，按优先级从低到高是：
 
-## 7. 节点注册名速查
-
-### 7.1 文本域 (text)
-
-| 注册名 | 输入类型 | 输出类型 | 说明 |
-|--------|---------|---------|------|
-| `text-generator` | text, mosaic | text | 文本生成 |
-| `chat` | text, mosaic | text | 多轮对话 |
-| `text-summarizer` | text, mosaic | text | 文本摘要 |
-| `translator` | text, mosaic | text | 翻译 |
-| `text-classifier` | text, mosaic | text | 文本分类 |
-| `text-rewriter` | text, mosaic | text | 文本改写 |
-
-### 7.2 图像域 (image)
-
-| 注册名 | 输入类型 | 输出类型 | 说明 |
-|--------|---------|---------|------|
-| `text-to-image` | text, mosaic | image | 文生图 |
-| `image-to-image` | image, mosaic | image | 图生图 |
-| `inpainting` | image, mosaic | image | 图像修复 |
-| `upscaler` | image, mosaic | image | 超分辨率 |
-| `background-remover` | image, mosaic | image | 背景移除 |
-| `stylizer` | image, mosaic | image | 风格化 |
-
-### 7.3 视频域 (video)
-
-| 注册名 | 输入类型 | 输出类型 | 关键参数 |
-|--------|---------|---------|---------|
-| `text-to-video` | text, mosaic | video | `num_frames`, `fps`, `width`, `height` |
-| `image-to-video` | image, mosaic | video | `image`, `num_frames`, `fps` |
-| `hunyuan-video` | text, mosaic | video | `num_frames`, `width`, `height`, `fps` |
-| `ltx-video` | text, mosaic | video | `num_frames`, `width`, `height`, `fps` |
-| `wan-video` | text, mosaic | video | `num_frames`, `width`, `height`, `fps` |
-| `video-continuation` | video, mosaic | video | `num_frames`, `fps` |
-| `frame-interpolation` | video, mosaic | video | `target_fps`, `method` |
-| `frame-extractor` | video, mosaic | image | `fps`, `count` |
-
-### 7.4 音频域 (audio)
-
-| 注册名 | 输入类型 | 输出类型 | 关键参数 |
-|--------|---------|---------|---------|
-| `tts` | text, mosaic | audio | `text`, `emotion`, `voice`, `language`, `speed` |
-| `asr` | audio, mosaic | text | `audio`, `language`, `task` |
-| `funasr-asr` | audio, mosaic | text | `audio`, `language` |
-| `music-generator` | text, mosaic | audio | `prompt`, `duration` |
-| `sound-effect-generator` | text, mosaic | audio | `prompt`, `duration` |
-| `voice-clone` | audio, text, mosaic | audio | `reference_audio`, `text` |
-
-### 7.5 数字人域 (digital_human)
-
-| 注册名 | 输入类型 | 输出类型 | 关键参数 |
-|--------|---------|---------|---------|
-| `lip-syncer` | image, audio, video, mosaic | video, image, audio, mosaic | `face_image`, `audio`, `fps`, `padding` |
-| `realtime-renderer` | image, audio, text, motion, mosaic | video, image, mosaic | `source_image`, `mode`, `input_stream`, `target_fps` |
-| `avatar-driver` | image, video, audio, mosaic | video, image, mosaic | `source_image`, `driving_video`, `driving_audio`, `fps` |
-| `motion-generator` | text, audio, mosaic | motion, mosaic | `prompt`, `audio`, `duration`, `fps` |
-
-**数字人引擎选择**：通过 `lip-syncer` 或 `avatar-driver` 的 `params.method` 构造参数切换引擎：
-
-| method 值 | 说明 | 典型 input_params |
-|-----------|------|-------------------|
-| `sadtalker` | SadTalker 3DMM | `pose_style`, `still`, `expression_scale`, `enhancer`, `size` |
-| `liveportrait` | LivePortrait | `relative_motion`, `animate_eyes`, `lip_zero` |
-| `geneface` | GeneFace | `torso`, `head_torso_threshold` |
-| `wav2lip` | Wav2Lip | `enhancer`, `face_restore_weight`, `crop_size` |
-| `wav2lip-original` | Wav2Lip 原版 | 同上 |
-| `ultralight` | 轻量级 | 同上 |
-| `audio2face` | Audio2Face | `quality_preset` |
-| `hallo` | Hallo | `batch_size`, `vae_dtype` |
-| `tpsmn` | TPSMN | （空） |
-| `anitalker` | AniTalker | `pose_style` |
-| `aniportrait` | AniPortrait | `dtype` |
-
-### 7.6 字幕域 (subtitle)
-
-| 注册名 | 输入类型 | 输出类型 | 说明 |
-|--------|---------|---------|------|
-| `subtitle-generator` | audio, mosaic | subtitle | 字幕生成 |
-| `subtitle-aligner` | subtitle, audio, mosaic | subtitle | 字幕对齐 |
-| `subtitle-translator` | subtitle, mosaic | subtitle | 字幕翻译 |
-
-### 7.7 一致性域 (consistency)
-
-| 注册名 | 输入类型 | 输出类型 | 说明 |
-|--------|---------|---------|------|
-| `identity-keeper` | image, mosaic | image | 身份保持 |
-| `style-keeper` | image, mosaic | image | 风格保持 |
-| `cross-frame-consistency` | image, text, mosaic | image | 跨帧一致性 |
-
-### 7.8 导出域 (export)
-
-| 注册名 | 输入类型 | 输出类型 | 关键参数 |
-|--------|---------|---------|---------|
-| `video-encoder` | video, image, mosaic | file | `params.format`: mp4/avi/webm/gif |
-| `multi-format-exporter` | video, image, audio, subtitle, text, mosaic | file | `input_params.formats`, `content_type` |
-| `livestreamer` | video, image, mosaic | file | `input_params.stream_url` |
-
-### 7.9 RAG 域 (rag)
-
-| 注册名 | 输入类型 | 输出类型 | 说明 |
-|--------|---------|---------|------|
-| `document-parser` | text, mosaic | document, mosaic | 文档解析 |
-| `vector-indexer` | document, mosaic | mosaic | 向量索引 |
-| `retriever` | text, mosaic | rag_query_result, mosaic | 向量检索 |
-| `citation-generator` | rag_query_result, mosaic | text, mosaic | 引用生成 |
-
-### 7.10 辅助节点 (helpers)
-
-| 子域 | 节点列表 |
-|------|---------|
-| dataflow | `field-mapper`, `type-converter`, `data-merger`, `data-splitter`, `value-injector`, `schema-validator` |
-| container | `json-parser`, `json-builder`, `json-path`, `list-ops`, `dict-ops`, `string-ops`, `data-flattener`, `data-grouper`, `text-chunker` |
-| controlflow | `loop`, `retry`, `timeout`, `switch`, `parallel-map` |
-| processing | `filter`, `batcher`, `aggregator`, `template-renderer`, `throttler` |
-| cache | `result-cache`, `checkpoint`, `kv-store`, `state-store` |
-| monitoring | `logger`, `profiler`, `webhook-notifier`, `debugger` |
-| io | `file-reader`, `file-writer`, `api-caller`, `data-injector` |
+1. 上游节点传来的数据（优先级最低）
+2. 全局 `input.data` 里的字段（只填补上游没传的空缺）
+3. 节点自己的 `input_params`（优先级最高，会覆盖同名字段）
 
 ---
 
-## 8. 视频时长计算规则
+## 执行顺序：谁先跑谁后跑
 
-视频时长由帧数和帧率决定：
+系统会自动分析节点之间的依赖关系，算出一个执行顺序（拓扑排序）。规则很简单：一个节点必须等它所有上游节点都跑完，才能开始执行。如果节点之间没有依赖关系，它们可能会并行执行。
 
-```
-时长（秒）= num_frames / fps
-```
+执行过程中如果任何一个节点报错，整个管线会立即停止（fail-fast 机制），不会继续跑后面的节点。
 
-### 8.1 常见配置
-
-| 目标时长 | fps | num_frames | 适用场景 |
-|---------|-----|-----------|---------|
-| 6s | 8 | 49 | CogVideoX 默认 |
-| 10s | 8 | 81 | Wan Video |
-| 10s | 30 | 301 | LTX Video |
-| 30s | 8 | 241 | 长视频生成 |
-| 30s | 25 | 751 | 数字人唇形同步 |
-
-### 8.2 30 秒视频配置示例
-
-**方案 A：文生视频直接生成**
-- 节点：`text-to-video` → `video-encoder`
-- 参数：`num_frames: "241"`, `fps: "8"`（241/8 ≈ 30.1s）
-
-**方案 B：TTS + 数字人唇形同步**
-- 节点：`tts` → `lip-syncer` → `video-encoder`
-- TTS 生成约 30 秒音频，lip-syncer 以 `fps: "25"` 生成 750 帧视频
-
-**方案 C：图生视频 + 帧插值**
-- 节点：`image-to-video` → `frame-interpolation` → `video-encoder`
-- 先以低帧率生成，再插值提升到目标帧率
+最终结果从管线末端的节点（没有下游连线的节点，叫「汇节点」）收集。如果只有一个汇节点，直接返回它的输出；如果有多个，返回一个字典，key 是节点 id，value 是各自的输出。
 
 ---
 
-## 9. 完整 JSON 示例
+## 常用节点速查
 
-### 9.1 最小有效图
+以下是搭建管线时最常用的节点类型。完整列表可以在画布左侧的节点面板里查看。
 
-```json
-{
-  "name": "最小示例",
-  "nodes": [
-    {
-      "id": "n1",
-      "type": "text-generator",
-      "x": 40,
-      "y": 40,
-      "params": {},
-      "input_params": {},
-      "label": ""
-    }
-  ],
-  "edges": [],
-  "input": {
-    "data": {
-      "prompt": "你好"
-    }
-  }
-}
-```
+### 文本类
 
-### 9.2 线性管线（文生视频 → 编码）
+| 类型 | 做什么 | 需要的输入 | 产出 |
+|------|--------|-----------|------|
+| `text-generator` | 文本生成 | prompt | text |
+| `text-summarizer` | 文本摘要 | text | text |
+| `translator` | 翻译 | text | text |
+| `chat` | 多轮对话 | messages | text |
 
-```json
-{
-  "name": "文生视频管线",
-  "nodes": [
-    {
-      "id": "n1",
-      "type": "text-to-video",
-      "x": 40,
-      "y": 40,
-      "params": {},
-      "input_params": {
-        "num_frames": "49",
-        "fps": "8"
-      },
-      "label": ""
-    },
-    {
-      "id": "n2",
-      "type": "video-encoder",
-      "x": 320,
-      "y": 40,
-      "params": { "format": "mp4" },
-      "input_params": {},
-      "label": ""
-    }
-  ],
-  "edges": [
-    { "id": "e1", "source": "n1", "target": "n2" }
-  ],
-  "input": {
-    "data": {
-      "prompt": "a cat playing with a ball of yarn, cinematic"
-    }
-  }
-}
-```
+### 图像类
 
-### 9.3 分支图（多输出并行）
+| 类型 | 做什么 | 需要的输入 | 产出 |
+|------|--------|-----------|------|
+| `text-to-image` | 文生图 | prompt | image |
+| `image-to-image` | 图生图 | image + prompt | image |
+| `upscaler` | 超分辨率放大 | image | image |
+| `background-remover` | 背景移除 | image | image |
 
-```json
-{
-  "name": "多引擎并行视频生成",
-  "nodes": [
-    {
-      "id": "n1",
-      "type": "wan-video",
-      "x": 40, "y": 40,
-      "params": {},
-      "input_params": { "num_frames": "81", "fps": "16" },
-      "label": ""
-    },
-    {
-      "id": "n2",
-      "type": "video-encoder",
-      "x": 320, "y": 40,
-      "params": { "format": "mp4" },
-      "input_params": {},
-      "label": ""
-    },
-    {
-      "id": "n3",
-      "type": "ltx-video",
-      "x": 40, "y": 160,
-      "params": {},
-      "input_params": { "num_frames": "97", "fps": "30" },
-      "label": ""
-    },
-    {
-      "id": "n4",
-      "type": "video-encoder",
-      "x": 320, "y": 160,
-      "params": { "format": "mp4" },
-      "input_params": {},
-      "label": ""
-    }
-  ],
-  "edges": [
-    { "id": "e1", "source": "n1", "target": "n2" },
-    { "id": "e2", "source": "n3", "target": "n4" }
-  ],
-  "input": {
-    "data": {
-      "prompt": "a cat playing with a ball of yarn, slow motion"
-    }
-  }
-}
-```
+### 视频类
+
+| 类型 | 做什么 | 需要的输入 | 产出 |
+|------|--------|-----------|------|
+| `text-to-video` | 文生视频 | prompt | frames + fps |
+| `image-to-video` | 图生视频 | image + prompt | frames + fps |
+| `wan-video` | 万相视频 | prompt | frames + fps |
+| `ltx-video` | LTX 视频 | prompt | frames + fps |
+
+### 音频类
+
+| 类型 | 做什么 | 需要的输入 | 产出 |
+|------|--------|-----------|------|
+| `tts` | 语音合成 | text | audio |
+| `asr` | 语音识别 | audio | text |
+| `music-generator` | 音乐生成 | prompt | audio |
+| `voice-clone` | 语音克隆 | reference_audio + text | audio |
+
+### 数字人类
+
+| 类型 | 做什么 | 需要的输入 | 产出 |
+|------|--------|-----------|------|
+| `lip-syncer` | 唇形同步 | face_image + audio | frames + fps |
+| `avatar-driver` | 头像驱动 | source_image + driving_audio | frames + fps |
+
+### 导出类
+
+| 类型 | 做什么 | 需要的输入 | 产出 |
+|------|--------|-----------|------|
+| `video-encoder` | 视频编码 | frames + fps | file |
+| `multi-format-exporter` | 多格式导出 | data | file |
+
+### 辅助类
+
+| 类型 | 做什么 |
+|------|--------|
+| `field-mapper` | 字段重命名/映射/删除 |
+| `data-merger` | 合并多个来源的数据 |
+| `value-injector` | 注入静态值 |
 
 ---
 
-## 10. API 端点
+## 数字人引擎选择
 
-| 端点 | 方法 | 用途 | 请求体 |
-|------|------|------|--------|
-| `/api/validate` | POST | 校验图结构 | Graph JSON |
-| `/api/run` | POST | 同步执行 | Graph JSON |
-| `/ws/run` | WS | 实时执行（流式） | Graph JSON |
-| `/api/export/python` | POST | 导出 Python 代码 | Graph JSON |
-| `/api/templates` | GET | 列出已保存模板 | — |
-| `/api/templates` | POST | 保存模板 | Graph JSON |
-| `/api/templates/{filename}` | GET | 加载模板 | — |
-| `/api/templates/{filename}` | DELETE | 删除模板 | — |
-| `/api/modules` | GET | 列出组合模块 | — |
-| `/api/modules` | POST | 保存组合模块 | Module JSON |
-| `/api/modules/{filename}` | GET | 加载组合模块 | — |
-| `/api/modules/{filename}` | DELETE | 删除组合模块 | — |
+`lip-syncer` 和 `avatar-driver` 通过 `params.method` 切换底层引擎：
+
+| method | 引擎 | 说明 |
+|--------|------|------|
+| `sadtalker` | SadTalker | 3DMM 驱动，适合肖像照片 |
+| `wav2lip` | Wav2Lip | 经典唇形同步，速度快 |
+| `liveportrait` | LivePortrait | 表情更自然，支持眼睛动画 |
+| `geneface` | GeneFace | 支持头部和躯干动画 |
+| `hallo` | Hallo | 高质量音频驱动肖像动画 |
+| `audio2face` | Audio2Face | Nvidia 方案，需 GPU |
+| `anitalker` | AniTalker | 轻量级方案 |
 
 ---
 
-## 11. 校验规则清单
+## 视频时长怎么算
 
-在提交执行前，图必须通过以下校验：
+视频时长由帧数和帧率决定：`时长（秒）= num_frames / fps`。
 
-1. **节点 ID 唯一性**：所有 `nodes[].id` 不可重复
-2. **边引用完整性**：所有 `edges[].source` 和 `edges[].target` 必须存在于 `nodes` 中
-3. **无环检测**：图中不允许存在环
-4. **节点类型有效**：所有 `nodes[].type` 必须是已注册的节点名
-5. **参数类型匹配**：`params` 中的参数必须是节点构造函数的合法参数
-6. **禁止自环**：边的 `source` 不能等于 `target`
-7. **禁止重复边**：同一 `source → target` 对只能有一条边
+比如 `num_frames: "241"` 配合 `fps: "8"`，生成的视频大约 30 秒。`num_frames: "49"` 配合 `fps: "8"`，大约 6 秒。
+
+注意 `num_frames` 和 `fps` 都是放在 `input_params` 里的运行参数，不是 `params`。
 
 ---
 
-## 12. 常见错误与规避
+## 常见问题
 
-| 错误 | 原因 | 规避方法 |
-|------|------|---------|
-| `TypeError: __init__() got unexpected keyword` | `params` 中包含了构造函数不接受的参数 | 查看 `introspect` 输出的 `params` 列表 |
-| 节点执行时缺少必需字段 | 前驱输出字段名与目标节点期望的不匹配 | 使用 `field-mapper` 节点显式映射，或依赖别名机制 |
-| 视频时长不正确 | `num_frames / fps` 计算错误 | 按 §8 公式计算 |
-| `input_params` 不生效 | 参数放在了 `params` 中（或反之） | 按 §3.2 规则区分 |
-| JSON 字段未解析 | 字段名不在 `_JSON_FIELDS` 列表中 | 手动在 `field-mapper` 中处理 |
-| 端口类型不兼容 | 前驱输出类型与后继输入类型不匹配 | 查阅 §4.4 兼容矩阵 |
+**节点报 TypeError: unexpected keyword argument**
+你把运行参数放到了 `params` 里。检查这个参数是不是应该放在 `input_params`。
+
+**节点提示缺少必需字段**
+上游输出的字段名和下游期望的对不上。试试加一个 `field-mapper` 节点做手动映射，比如 `{"image": "data"}` 把 `image` 字段重命名为 `data`。
+
+**导出的文件是空的或格式不对**
+检查 `video-encoder` 的 `params.format` 是否正确（mp4/avi/webm/gif），以及上游是否真的输出了 `frames` 字段。
+
+**多格式导出器报错**
+`multi-format-exporter` 需要的输入字段名是 `data`，但大多数节点输出的字段名是 `image`、`audio` 等。在前面加一个 `field-mapper`，设置 `mapping: '{"image": "data"}'` 或 `mapping: '{"audio": "data"}'`。
 
 ---
 
-*本文档基于 Mosaic Canvas 代码库自动生成，对应 `graph.py`、`executor.py`、`introspect.py` 的实现逻辑。*
+## 测试用 JSON 文件
+
+`docs/test-pipelines/` 目录下有一组开箱即用的管线 JSON 文件，覆盖了最常见的使用场景。每个文件都可以直接在 Mosaic Canvas 中加载运行，不需要额外准备素材。
+
+| 文件 | 场景 | 节点数 | 说明 |
+|------|------|--------|------|
+| `01-text-to-image.json` | 文生图 | 3 | 文生图 → 字段映射 → 导出 PNG |
+| `02-text-to-video.json` | 文生视频 | 2 | 文生视频 → 编码 MP4 |
+| `03-tts-audio.json` | 语音合成 | 3 | TTS → 字段映射 → 导出 WAV |
+| `04-music-generation.json` | 音乐生成 | 3 | 音乐生成 → 字段映射 → 导出 |
+| `05-text-summarizer.json` | 文本摘要 | 2 | 文本摘要 → 输出 |
+| `06-translate-tts.json` | 翻译 + 语音 | 3 | 翻译 → TTS → 导出 |
+| `07-digital-human-30s.json` | 30s 数字人 | 3 | TTS → 唇形同步 → 编码 MP4 |
+| `08-multi-engine-video.json` | 多引擎并行 | 6 | 两种视频引擎并行生成 |
+
+前 6 个文件只需要文本输入，不依赖任何外部文件。第 7 个数字人管线需要提供一张人脸图片路径（`face_image` 字段），这是唇形同步的必要输入。第 8 个展示了分支拓扑——两个视频引擎各走一条链路，互不干扰。

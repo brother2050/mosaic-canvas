@@ -1,0 +1,49 @@
+{
+  "name": "音乐生成管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "music-generator",
+      "x": 40,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "duration": "10"
+      },
+      "label": "音乐生成"
+    },
+    {
+      "id": "n2",
+      "type": "field-mapper",
+      "x": 320,
+      "y": 40,
+      "params": {
+        "mapping": "{\"audio\": \"data\"}",
+        "drop_fields": "[]"
+      },
+      "input_params": {},
+      "label": "字段映射"
+    },
+    {
+      "id": "n3",
+      "type": "multi-format-exporter",
+      "x": 600,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "content_type": "audio",
+        "formats": "[\"wav\", \"mp3\"]"
+      },
+      "label": "导出音频"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" }
+  ],
+  "input": {
+    "data": {
+      "prompt": "upbeat electronic dance music with a catchy melody, energetic rhythm, synth pads"
+    }
+  }
+}

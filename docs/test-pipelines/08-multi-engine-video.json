@@ -1,0 +1,64 @@
+{
+  "name": "多引擎并行视频生成管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "wan-video",
+      "x": 40,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "num_frames": "81",
+        "fps": "16",
+        "width": "1280",
+        "height": "720"
+      },
+      "label": "万相视频"
+    },
+    {
+      "id": "n2",
+      "type": "video-encoder",
+      "x": 320,
+      "y": 40,
+      "params": {
+        "format": "mp4"
+      },
+      "input_params": {},
+      "label": "万相 MP4 编码"
+    },
+    {
+      "id": "n3",
+      "type": "ltx-video",
+      "x": 40,
+      "y": 200,
+      "params": {},
+      "input_params": {
+        "num_frames": "97",
+        "fps": "30",
+        "width": "768",
+        "height": "512"
+      },
+      "label": "LTX 视频"
+    },
+    {
+      "id": "n4",
+      "type": "video-encoder",
+      "x": 320,
+      "y": 200,
+      "params": {
+        "format": "mp4"
+      },
+      "input_params": {},
+      "label": "LTX MP4 编码"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n3", "target": "n4" }
+  ],
+  "input": {
+    "data": {
+      "prompt": "a cat playing with a ball of yarn, slow motion, cinematic lighting"
+    }
+  }
+}

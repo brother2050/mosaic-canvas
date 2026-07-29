@@ -1,0 +1,65 @@
+{
+  "name": "翻译 + 语音合成管线",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "translator",
+      "x": 40,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "target_language": "en"
+      },
+      "label": "中文翻译为英文"
+    },
+    {
+      "id": "n2",
+      "type": "tts",
+      "x": 320,
+      "y": 40,
+      "params": {
+        "backend": "edge_tts"
+      },
+      "input_params": {
+        "voice": "en-US-JennyNeural",
+        "language": "en",
+        "speed": "1.0"
+      },
+      "label": "英文语音合成"
+    },
+    {
+      "id": "n3",
+      "type": "field-mapper",
+      "x": 600,
+      "y": 40,
+      "params": {
+        "mapping": "{\"audio\": \"data\"}",
+        "drop_fields": "[]"
+      },
+      "input_params": {},
+      "label": "字段映射"
+    },
+    {
+      "id": "n4",
+      "type": "multi-format-exporter",
+      "x": 880,
+      "y": 40,
+      "params": {},
+      "input_params": {
+        "content_type": "audio",
+        "formats": "[\"wav\"]"
+      },
+      "label": "导出 WAV"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n1", "target": "n2" },
+    { "id": "e2", "source": "n2", "target": "n3" },
+    { "id": "e3", "source": "n3", "target": "n4" }
+  ],
+  "input": {
+    "data": {
+      "text": "人工智能正在改变我们的生活方式。从智能手机到自动驾驶汽车，从医疗诊断到金融分析，AI 技术已经渗透到社会的各个角落。"
+    }
+  }
+}
