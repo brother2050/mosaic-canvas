@@ -25,6 +25,10 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
                 <span data-i18n="btn.save_template">Save as Template</span>
             </button>
+            <button class="btn btn-icon" id="btn-create-module" data-i18n-title="module.create">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/><rect x="2" y="13" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/></svg>
+                <span data-i18n="module.create">Create Module</span>
+            </button>
             <button class="btn btn-icon" id="btn-new" data-i18n-title="btn.new">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                 <span data-i18n="btn.new">New</span>
@@ -95,6 +99,7 @@
             <div class="palette-tabs">
                 <button class="palette-tab active" data-tab="palette-list" id="tab-nodes" data-i18n="palette.tab_nodes">Nodes</button>
                 <button class="palette-tab" data-tab="prompts-panel" id="tab-prompts" data-i18n="palette.tab_prompts">Prompts</button>
+                <button class="palette-tab" data-tab="modules-panel" id="tab-modules" data-i18n="module.tab_modules">Modules</button>
             </div>
             <div class="palette-header">
                 <div class="palette-search">
@@ -107,6 +112,10 @@
             </div>
             <div id="prompts-panel" class="palette-list palette-tab-content" style="display:none">
                 <div class="prompts-empty" data-i18n="prompts.loading">Loading prompts…</div>
+            </div>
+            <div id="modules-panel" class="palette-list palette-tab-content" style="display:none">
+                <div style="padding:12px;font-size:12px;color:var(--text-dim);" data-i18n="module.select_hint">Select nodes on canvas, then click "Create Module" to group them</div>
+                <div id="modules-list"></div>
             </div>
         </aside>
 
@@ -345,6 +354,77 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-sm" data-close="guide-modal" data-i18n="modal.close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module Creation Modal -->
+    <div class="modal-overlay" id="module-modal" style="display:none;">
+        <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+                <h3 data-i18n="module.create_title">Create Composite Module</h3>
+                <button class="modal-close" data-close="module-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;" data-i18n="module.name">Module Name</label>
+                    <input type="text" id="module-name-input" class="modal-input" data-i18n-placeholder="module.name_placeholder" style="width:100%;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;" data-i18n="module.description">Description (optional)</label>
+                    <textarea id="module-desc-input" class="modal-input" data-i18n-placeholder="module.description_placeholder" style="width:100%;min-height:60px;resize:vertical;"></textarea>
+                </div>
+                <div style="display:flex;gap:16px;margin-bottom:16px;">
+                    <div style="flex:1;">
+                        <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;" data-i18n="module.icon">Icon</label>
+                        <select id="module-icon-select" class="modal-input" style="width:100%;">
+                            <option value="📦">📦 Box</option>
+                            <option value="🔧">🔧 Wrench</option>
+                            <option value="🎬">🎬 Clapperboard</option>
+                            <option value="🎨">🎨 Palette</option>
+                            <option value="🤖">🤖 Robot</option>
+                            <option value="📊">📊 Chart</option>
+                            <option value="🔄">🔄 Cycle</option>
+                            <option value="📝">📝 Memo</option>
+                            <option value="🎵">🎵 Music</option>
+                            <option value="💬">💬 Speech</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;" data-i18n="module.color">Color</label>
+                        <select id="module-color-select" class="modal-input" style="width:100%;">
+                            <option value="#6c8eef">🔵 Blue</option>
+                            <option value="#4ec9b0">🟢 Teal</option>
+                            <option value="#dcdcaa">🟡 Yellow</option>
+                            <option value="#c586c0">🟣 Purple</option>
+                            <option value="#ce9178">🟠 Orange</option>
+                            <option value="#f44747">🔴 Red</option>
+                            <option value="#6a9955">🟢 Green</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="module-selected-info" style="font-size:12px;color:var(--text-dim);padding:8px 12px;background:var(--bg-elevated);border-radius:4px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" data-close="module-modal" data-i18n="module.cancel">Cancel</button>
+                <button class="btn btn-sm btn-primary" id="btn-save-module-confirm" data-i18n="module.save">Save Module</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module Library Modal -->
+    <div class="modal-overlay" id="module-library-modal" style="display:none;">
+        <div class="modal" style="max-width:600px;">
+            <div class="modal-header">
+                <h3 data-i18n="module.title">Composite Modules</h3>
+                <button class="modal-close" data-close="module-library-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="module-library-list" style="min-height:200px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" data-close="module-library-modal" data-i18n="modal.close">Close</button>
             </div>
         </div>
     </div>

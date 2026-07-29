@@ -29,7 +29,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -493,6 +493,78 @@ def create_app() -> FastAPI:
         filepath.unlink()
         logger.info("Deleted template %s", filepath)
         return JSONResponse(content={"ok": True, "message": "Template deleted."})
+
+    # -- Composite module persistence (save / load / list / delete) -----
+
+    modules_dir = _get_data_dir("modules")
+
+    @app.get("/api/modules")
+    def api_list_modules() -> JSONResponse:
+        """List all saved composite modules on the server."""
+        result = []
+        for f in sorted(modules_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                result.append({
+                    "name": data.get("name", f.stem),
+                    "filename": f.name,
+                    "saved_at": f.stat().st_mtime,
+                    "description": data.get("description", ""),
+                    "icon": data.get("icon", "📦"),
+                    "color": data.get("color", "#6c8eef"),
+                    "nodes_count": len(data.get("nodes", [])),
+                    "edges_count": len(data.get("edges", [])),
+                })
+            except Exception:
+                logger.warning("Failed to read module file %s", f, exc_info=True)
+        return JSONResponse(content={"modules": result})
+
+    @app.post("/api/modules")
+    async def api_save_module(request: Request) -> JSONResponse:
+        """Save a composite module to the server."""
+        body = await request.json()
+        name = (body.get("name") or "").strip() or "Untitled Module"
+        filename = _safe_filename(name) + ".json"
+        filepath = modules_dir / filename
+        body["name"] = name
+        filepath.write_text(json.dumps(body, indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info("Saved module '%s' to %s", name, filepath)
+        return JSONResponse(content={
+            "ok": True,
+            "name": name,
+            "filename": filename,
+            "message": f"Module '{name}' saved to server.",
+        })
+
+    @app.get("/api/modules/{filename}")
+    def api_load_module(filename: str) -> JSONResponse:
+        """Load a saved composite module from the server."""
+        if "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(status_code=400, content={"error": "Invalid filename."})
+        if not filename.endswith(".json"):
+            filename += ".json"
+        filepath = modules_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": f"Module '{filename}' not found."})
+        try:
+            data = json.loads(filepath.read_text(encoding="utf-8"))
+            return JSONResponse(content=data)
+        except Exception as exc:
+            return JSONResponse(status_code=500, content={"error": f"Failed to load: {exc}"})
+
+    @app.delete("/api/modules/{filename}")
+    def api_delete_module(filename: str) -> JSONResponse:
+        """Delete a saved composite module from the server."""
+        if "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(status_code=400, content={"error": "Invalid filename."})
+        if not filename.endswith(".json"):
+            filename += ".json"
+        filepath = modules_dir / filename
+        if not filepath.exists():
+            return JSONResponse(status_code=404, content={"error": f"Module '{filename}' not found."})
+        filepath.unlink()
+        logger.info("Deleted module %s", filepath)
+        return JSONResponse(content={"ok": True, "message": "Module deleted."})
 
     # -- Log management API ------------------------------------------------
 

@@ -14,6 +14,7 @@
 const I18n = (() => {
     const STORAGE_KEY = 'mosaic-canvas-lang';
     let _lang = localStorage.getItem(STORAGE_KEY) || (navigator.language.startsWith('zh') ? 'zh' : 'en');
+    document.documentElement.lang = _lang;
     const _listeners = [];
 
     // ---- Translation dictionaries ----
@@ -309,6 +310,115 @@ const I18n = (() => {
             'input_key.avatar': 'Avatar image path',
             'input_key.messages': 'Conversation messages (JSON)',
             'input_key.mask': 'Mask image path',
+
+            // Logs page
+            'logs.title': '📋 Mosaic Canvas Logs',
+            'logs.back_to_canvas': '← Back to Canvas',
+            'logs.execution_logs': 'Execution Logs',
+            'logs.server_log': 'Server Log',
+            'logs.search': 'Search',
+            'logs.all_levels': 'All Levels',
+            'logs.refresh': '🔄 Refresh',
+            'logs.cleanup': '🧹 Cleanup',
+            'logs.cleanup_title': 'Delete logs older than 7 days',
+            'logs.loading': 'Loading...',
+            'logs.select_log': 'Select a log file to view',
+            'logs.no_execution_logs': 'No execution logs yet',
+            'logs.unnamed': 'unnamed',
+            'logs.download': 'Download',
+            'logs.delete': 'Delete',
+            'logs.active': 'Active',
+            'logs.lines': 'lines',
+            'logs.main_server_log': 'Main server log (all modules)',
+            'logs.errors_only': 'Errors only',
+            'logs.warnings_and_errors': 'Warnings and errors',
+            'logs.search_placeholder': 'Search regex...',
+            'logs.search_hint': 'Searches across all log files. Supports regex.',
+            'logs.enter_search_query': 'Enter a search query',
+            'logs.searching': 'Searching...',
+            'logs.results_for': 'results for',
+            'logs.error': 'Error',
+            'logs.confirm_delete': 'Delete log file "{filename}"?',
+            'logs.delete_failed': 'Delete failed',
+            'logs.confirm_cleanup': 'Delete all logs older than 7 days (keeping max 100 files)?',
+            'logs.cleanup_complete': 'Cleanup complete: deleted {deleted} files, {remaining} remaining.',
+            'logs.cleanup_failed': 'Cleanup failed',
+            'logs.stat_total': 'Total',
+            'logs.stat_executions': 'Executions',
+            'logs.stat_active': 'Active',
+            'logs.stat_server_log': 'Server log',
+
+            // Resources page
+            'resources.title': '🖼️ Mosaic Canvas Resources',
+            'resources.back_to_canvas': '← Back to Canvas',
+            'resources.all': 'All',
+            'resources.images': 'Images',
+            'resources.videos': 'Videos',
+            'resources.audio': 'Audio',
+            'resources.subtitles': 'Subtitles',
+            'resources.other': 'Other',
+            'resources.search_placeholder': 'Search files...',
+            'resources.sort_newest': 'Newest first',
+            'resources.sort_oldest': 'Oldest first',
+            'resources.sort_name_az': 'Name A-Z',
+            'resources.sort_name_za': 'Name Z-A',
+            'resources.sort_largest': 'Largest first',
+            'resources.sort_smallest': 'Smallest first',
+            'resources.download_selected': '⬇ Download Selected',
+            'resources.delete_selected': '🗑 Delete Selected',
+            'resources.cancel': 'Cancel',
+            'resources.refresh': '🔄 Refresh',
+            'resources.cleanup': '🧹 Cleanup',
+            'resources.cleanup_title': 'Delete files older than 30 days',
+            'resources.loading': 'Loading...',
+            'resources.files': 'files',
+            'resources.total': 'total',
+            'resources.download': 'Download',
+            'resources.delete': 'Delete',
+            'resources.selected': 'selected',
+            'resources.no_resources': 'No resources found',
+            'resources.matching': 'matching "{search}"',
+            'resources.error': 'Error',
+            'resources.confirm_delete': 'Delete "{filename}"?',
+            'resources.delete_failed': 'Delete failed',
+            'resources.confirm_delete_multiple': 'Delete {count} selected file(s)?',
+            'resources.deleted_count': 'Deleted {count} file(s)',
+            'resources.failed_count': '{count} failed',
+            'resources.bulk_delete_failed': 'Bulk delete failed',
+            'resources.confirm_cleanup': 'Delete all files older than 30 days (keeping max 500 files)?',
+            'resources.cleanup_complete': 'Cleanup complete: deleted {deleted} files, {remaining} remaining.',
+            'resources.cleanup_failed': 'Cleanup failed',
+            'resources.time_just_now': 'just now',
+            'resources.time_minutes_ago': 'm ago',
+            'resources.time_hours_ago': 'h ago',
+            'resources.time_days_ago': 'd ago',
+
+            // Composite module
+            'module.title': 'Composite Modules',
+            'module.create': 'Create Module',
+            'module.create_title': 'Create Composite Module',
+            'module.name': 'Module Name',
+            'module.name_placeholder': 'Enter module name...',
+            'module.description': 'Description (optional)',
+            'module.description_placeholder': 'What does this module do?',
+            'module.icon': 'Icon',
+            'module.color': 'Color',
+            'module.save': 'Save Module',
+            'module.cancel': 'Cancel',
+            'module.no_selection': 'Select at least 2 nodes to create a module',
+            'module.saved': 'Module "{name}" saved',
+            'module.save_failed': 'Failed to save module',
+            'module.delete_confirm': 'Delete module "{name}"?',
+            'module.deleted': 'Module deleted',
+            'module.expand': 'Expand',
+            'module.collapse': 'Collapse',
+            'module.edit': 'Edit',
+            'module.ungroup': 'Ungroup',
+            'module.insert': 'Insert Module',
+            'module.no_modules': 'No saved modules',
+            'module.nodes_count': '{count} nodes',
+            'module.tab_modules': 'Modules',
+            'module.select_hint': 'Select nodes on canvas, then click "Create Module" to group them',
         },
 
         zh: {
@@ -602,6 +712,115 @@ const I18n = (() => {
             'input_key.avatar': '虚拟人形象路径',
             'input_key.messages': '对话消息 (JSON)',
             'input_key.mask': '遮罩图像路径',
+
+            // Logs page
+            'logs.title': '📋 Mosaic Canvas 日志',
+            'logs.back_to_canvas': '← 返回画布',
+            'logs.execution_logs': '执行日志',
+            'logs.server_log': '服务器日志',
+            'logs.search': '搜索',
+            'logs.all_levels': '所有级别',
+            'logs.refresh': '🔄 刷新',
+            'logs.cleanup': '🧹 清理',
+            'logs.cleanup_title': '删除 7 天前的日志',
+            'logs.loading': '加载中...',
+            'logs.select_log': '选择日志文件查看',
+            'logs.no_execution_logs': '暂无执行日志',
+            'logs.unnamed': '未命名',
+            'logs.download': '下载',
+            'logs.delete': '删除',
+            'logs.active': '活动中',
+            'logs.lines': '行',
+            'logs.main_server_log': '主服务器日志（所有模块）',
+            'logs.errors_only': '仅错误',
+            'logs.warnings_and_errors': '警告和错误',
+            'logs.search_placeholder': '搜索正则表达式...',
+            'logs.search_hint': '搜索所有日志文件，支持正则表达式。',
+            'logs.enter_search_query': '输入搜索关键词',
+            'logs.searching': '搜索中...',
+            'logs.results_for': '条结果，关键词',
+            'logs.error': '错误',
+            'logs.confirm_delete': '删除日志文件 "{filename}"？',
+            'logs.delete_failed': '删除失败',
+            'logs.confirm_cleanup': '删除所有 7 天前的日志（最多保留 100 个文件）？',
+            'logs.cleanup_complete': '清理完成：删除了 {deleted} 个文件，剩余 {remaining} 个。',
+            'logs.cleanup_failed': '清理失败',
+            'logs.stat_total': '总计',
+            'logs.stat_executions': '执行次数',
+            'logs.stat_active': '活动中',
+            'logs.stat_server_log': '服务器日志',
+
+            // Resources page
+            'resources.title': '🖼️ Mosaic Canvas 资源',
+            'resources.back_to_canvas': '← 返回画布',
+            'resources.all': '全部',
+            'resources.images': '图片',
+            'resources.videos': '视频',
+            'resources.audio': '音频',
+            'resources.subtitles': '字幕',
+            'resources.other': '其他',
+            'resources.search_placeholder': '搜索文件...',
+            'resources.sort_newest': '最新优先',
+            'resources.sort_oldest': '最旧优先',
+            'resources.sort_name_az': '名称 A-Z',
+            'resources.sort_name_za': '名称 Z-A',
+            'resources.sort_largest': '最大优先',
+            'resources.sort_smallest': '最小优先',
+            'resources.download_selected': '⬇ 下载选中',
+            'resources.delete_selected': '🗑 删除选中',
+            'resources.cancel': '取消',
+            'resources.refresh': '🔄 刷新',
+            'resources.cleanup': '🧹 清理',
+            'resources.cleanup_title': '删除 30 天前的文件',
+            'resources.loading': '加载中...',
+            'resources.files': '个文件',
+            'resources.total': '总计',
+            'resources.download': '下载',
+            'resources.delete': '删除',
+            'resources.selected': '已选',
+            'resources.no_resources': '未找到资源',
+            'resources.matching': '匹配 "{search}"',
+            'resources.error': '错误',
+            'resources.confirm_delete': '删除 "{filename}"？',
+            'resources.delete_failed': '删除失败',
+            'resources.confirm_delete_multiple': '删除 {count} 个选中文件？',
+            'resources.deleted_count': '已删除 {count} 个文件',
+            'resources.failed_count': '{count} 个失败',
+            'resources.bulk_delete_failed': '批量删除失败',
+            'resources.confirm_cleanup': '删除所有 30 天前的文件（最多保留 500 个文件）？',
+            'resources.cleanup_complete': '清理完成：删除了 {deleted} 个文件，剩余 {remaining} 个。',
+            'resources.cleanup_failed': '清理失败',
+            'resources.time_just_now': '刚刚',
+            'resources.time_minutes_ago': '分钟前',
+            'resources.time_hours_ago': '小时前',
+            'resources.time_days_ago': '天前',
+
+            // Composite module
+            'module.title': '组合模块',
+            'module.create': '创建模块',
+            'module.create_title': '创建组合模块',
+            'module.name': '模块名称',
+            'module.name_placeholder': '输入模块名称...',
+            'module.description': '描述（可选）',
+            'module.description_placeholder': '这个模块做什么？',
+            'module.icon': '图标',
+            'module.color': '颜色',
+            'module.save': '保存模块',
+            'module.cancel': '取消',
+            'module.no_selection': '至少选择 2 个节点才能创建模块',
+            'module.saved': '模块「{name}」已保存',
+            'module.save_failed': '保存模块失败',
+            'module.delete_confirm': '删除模块「{name}」？',
+            'module.deleted': '模块已删除',
+            'module.expand': '展开',
+            'module.collapse': '折叠',
+            'module.edit': '编辑',
+            'module.ungroup': '取消分组',
+            'module.insert': '插入模块',
+            'module.no_modules': '暂无已保存模块',
+            'module.nodes_count': '{count} 个节点',
+            'module.tab_modules': '模块',
+            'module.select_hint': '在画布上选择节点，然后点击"创建模块"进行分组',
         },
     };
 
@@ -1274,6 +1493,109 @@ const I18n = (() => {
         },
     };
 
+    // ---- Node description translations ----
+    const _nodeDesc = {
+        en: {}, // English uses backend descriptions
+        zh: {
+            // Image
+            'text-to-image': '使用扩散模型从文本提示词生成图片。',
+            'image-to-image': '基于输入图片和提示词生成变换后的图片。',
+            'inpainting': '使用遮罩编辑图片的特定区域。',
+            'upscaler': '将图片放大至更高分辨率。',
+            'background-remover': '自动移除图片背景，生成透明 PNG。',
+            'stylizer': '对图片进行艺术风格迁移。',
+            // Video
+            'text-to-video': '从文本提示词生成短视频（CogVideoX）。',
+            'image-to-video': '从图片生成动态视频（SVD-XT）。',
+            'video-continuation': '为已有视频生成后续帧。',
+            'frame-interpolation': '在视频帧之间插值，提高帧率。',
+            'frame-extractor': '从视频中提取帧为图片。',
+            'ltx-video': '使用 LTX 视频模型生成高质量视频。',
+            'wan-video': '使用 Wan2.1/2.2 DiT 模型生成视频。',
+            'hunyuan-video': '使用腾讯混元模型生成高分辨率视频。',
+            // Audio
+            'tts': '将文本转换为语音（支持多后端）。',
+            'asr': '将语音转录为文本（Whisper）。',
+            'funasr-asr': '使用 FunASR 进行中文语音识别。',
+            'music-generator': '从文本提示词生成音乐。',
+            'sound-effect-generator': '从文本提示词生成音效。',
+            'voice-clone': '克隆参考音频的音色进行语音合成。',
+            // Digital Human
+            'lip-syncer': '根据音频驱动人脸生成唇形同步的说话视频。',
+            'avatar-driver': '使用音频/动作驱动虚拟人形象生成视频。',
+            'motion-generator': '从文本/音频生成人体动作序列。',
+            'realtime-renderer': '实时渲染数字人形象。',
+            // Subtitle
+            'subtitle-generator': '从音频自动生成字幕。',
+            'subtitle-translator': '翻译字幕文本。',
+            'subtitle-aligner': '将字幕与音频时间轴对齐。',
+            // Consistency
+            'cross-frame-consistency': '增强视频帧间一致性。',
+            'identity-keeper': '生成时保持角色面部身份。',
+            'style-keeper': '生成时保持参考风格。',
+            // Export
+            'video-encoder': '将帧列表编码为视频文件。',
+            'livestreamer': '将视频推流到 RTMP/RTSP 服务器。',
+            'multi-format-exporter': '多格式批量导出（图片/视频/音频/字幕/文本）。',
+            // RAG
+            'document-parser': '解析文档为结构化文本。',
+            'vector-indexer': '将文档向量化并建立索引。',
+            'retriever': '从向量索引中检索相关文档。',
+            'citation-generator': '根据检索结果生成引用。',
+            // Text
+            'text-generator': '使用 LLM 生成文本。',
+            'chat': '与 LLM 进行对话。',
+            'text-rewriter': '改写/润色文本。',
+            'translator': '翻译文本。',
+            'text-summarizer': '生成文本摘要。',
+            'text-classifier': '对文本进行分类。',
+            'text-chunker': '将长文本分块。',
+            // Helpers - Data Flow
+            'field-mapper': '重命名/映射数据字段。',
+            'type-converter': '转换数据字段类型。',
+            'data-merger': '合并多个数据源。',
+            'data-splitter': '拆分数据为多个部分。',
+            'value-injector': '注入静态值到数据中。',
+            'schema-validator': '校验数据结构。',
+            // Helpers - Container
+            'json-parser': '解析 JSON 字符串为对象。',
+            'json-builder': '从字段模板构建 JSON 对象。',
+            'json-path': '使用 JSONPath 查询数据。',
+            'list-ops': '列表操作（追加/过滤/排序等）。',
+            'dict-ops': '字典操作（合并/删除/更新等）。',
+            'string-ops': '字符串操作（分割/替换/格式化等）。',
+            'data-flattener': '扁平化嵌套数据结构。',
+            'data-grouper': '按字段分组数据。',
+            // Helpers - Control Flow
+            'loop': '循环执行子流程。',
+            'retry': '失败时自动重试。',
+            'timeout': '超时控制。',
+            'switch': '条件路由分发。',
+            'parallel-map': '并行映射处理列表。',
+            // Helpers - Processing
+            'filter': '按条件过滤数据。',
+            'batcher': '将数据切分为批次。',
+            'aggregator': '聚合统计数据。',
+            'template-renderer': '使用模板引擎渲染文本。',
+            'throttler': '限速控制。',
+            // Helpers - Cache
+            'result-cache': '缓存执行结果，避免重复计算。',
+            'checkpoint': '断点存档/恢复。',
+            'kv-store': '键值存储。',
+            'state-store': '状态管理。',
+            // Helpers - Monitoring
+            'logger': '记录日志。',
+            'profiler': '性能剖析。',
+            'webhook-notifier': 'Webhook 通知。',
+            'debugger': '调试探针。',
+            // Helpers - I/O
+            'file-reader': '读取文件（文本/JSON/CSV/二进制）。',
+            'file-writer': '写入文件（文本/JSON/CSV/二进制）。',
+            'api-caller': '调用外部 API。',
+            'data-injector': '注入外部数据。',
+        },
+    };
+
     function t(key, params) {
         let str = (_dict[_lang] && _dict[_lang][key]) || (_dict.en && _dict.en[key]) || key;
         if (params) {
@@ -1302,6 +1624,13 @@ const I18n = (() => {
             || name;
     }
 
+    function nodeDesc(name, fallback) {
+        return (_nodeDesc[_lang] && _nodeDesc[_lang][name])
+            || (_nodeDesc.en && _nodeDesc.en[name])
+            || fallback
+            || '';
+    }
+
     function domainLabel(domain) {
         return t('domain.' + domain) !== ('domain.' + domain) ? t('domain.' + domain) : domain;
     }
@@ -1310,6 +1639,7 @@ const I18n = (() => {
         if (lang === _lang) return;
         _lang = lang;
         localStorage.setItem(STORAGE_KEY, lang);
+        document.documentElement.lang = lang;
         _listeners.forEach(fn => fn(lang));
         applyToDOM();
     }
@@ -1337,5 +1667,5 @@ const I18n = (() => {
         });
     }
 
-    return { t, paramLabel, paramHelp, nodeName, domainLabel, setLang, getLang, on, applyToDOM };
+    return { t, paramLabel, paramHelp, nodeName, nodeDesc, domainLabel, setLang, getLang, on, applyToDOM };
 })();

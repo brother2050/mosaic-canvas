@@ -2573,3 +2573,114 @@ textarea.prop-input { resize: vertical; min-height: 60px; font-family: var(--fon
 .prop-schema-row, .result-subtitle-text {
     user-select: text;
 }
+
+/* ===== Composite Module / Group Container ===== */
+.canvas-group-container {
+    position: absolute;
+    border: 2px dashed;
+    border-radius: 8px;
+    background: rgba(108, 142, 239, 0.04);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.canvas-group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px 6px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: all;
+    cursor: default;
+}
+
+.canvas-group-icon {
+    font-size: 14px;
+}
+
+.canvas-group-name {
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.canvas-group-count {
+    font-size: 10px;
+    color: var(--text-dim);
+    background: rgba(0,0,0,0.3);
+    padding: 1px 6px;
+    border-radius: 8px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.canvas-group-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+.canvas-group-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 12px;
+    border-radius: 3px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.canvas-group-btn:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.1);
+}
+
+/* Multi-selected node highlight */
+.canvas-node.multi-selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent), 0 4px 16px var(--accent-glow);
+}
+
+/* Module palette items */
+.module-item {
+    transition: background 0.15s;
+}
+
+.module-item:hover {
+    background: var(--bg-hover);
+}
+
+.module-insert-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.module-delete-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* Modal input styling for module dialog */
+.modal-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.modal-input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+textarea.modal-input {
+    font-family: inherit;
+}

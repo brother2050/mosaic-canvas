@@ -84,6 +84,35 @@
         .toolbar input { flex: 1; min-width: 200px; }
         .toolbar .spacer { flex: 1; }
 
+        .lang-switcher {
+            position: relative;
+            display: inline-flex;
+        }
+        .lang-switcher .lang-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            flex-direction: column;
+            z-index: 100;
+            margin-top: 4px;
+        }
+        .lang-switcher.open .lang-dropdown { display: flex; }
+        .lang-switcher .lang-option {
+            background: none;
+            border: none;
+            color: var(--text);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: left;
+            border-radius: 3px;
+        }
+        .lang-switcher .lang-option:hover { background: var(--bg-hover); }
+
         .main {
             display: flex;
             flex: 1;
@@ -174,49 +203,71 @@
 </head>
 <body>
     <header>
-        <h1>📋 Mosaic Canvas Logs</h1>
-        <a href="/">← Back to Canvas</a>
+        <h1 data-i18n="logs.title">📋 Mosaic Canvas Logs</h1>
+        <a href="/" data-i18n="logs.back_to_canvas">← Back to Canvas</a>
         <div class="stats" id="stats"></div>
+        <div class="lang-switcher" id="lang-switcher">
+            <button class="toolbar-button" id="btn-lang" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;">
+                <span id="lang-label">EN</span>
+            </button>
+            <div class="lang-dropdown" id="lang-dropdown">
+                <button class="lang-option" data-lang="en">🇬🇧 English</button>
+                <button class="lang-option" data-lang="zh">🇨🇳 中文</button>
+            </div>
+        </div>
     </header>
 
     <div class="toolbar">
-        <button id="btn-executions" class="active" onclick="showExecutions()">Execution Logs</button>
-        <button id="btn-main" onclick="showMainLog()">Server Log</button>
-        <button id="btn-search" onclick="showSearch()">Search</button>
+        <button id="btn-executions" class="active" onclick="showExecutions()" data-i18n="logs.execution_logs">Execution Logs</button>
+        <button id="btn-main" onclick="showMainLog()" data-i18n="logs.server_log">Server Log</button>
+        <button id="btn-search" onclick="showSearch()" data-i18n="logs.search">Search</button>
         <div class="spacer"></div>
         <select id="level-filter" onchange="applyFilter()" style="display:none">
-            <option value="">All Levels</option>
+            <option value="" data-i18n="logs.all_levels">All Levels</option>
             <option value="ERROR">ERROR</option>
             <option value="WARNING">WARNING</option>
             <option value="INFO">INFO</option>
             <option value="DEBUG">DEBUG</option>
         </select>
-        <button onclick="refresh()">🔄 Refresh</button>
-        <button onclick="cleanupOldLogs()" title="Delete logs older than 7 days">🧹 Cleanup</button>
+        <button onclick="refresh()" data-i18n="logs.refresh">🔄 Refresh</button>
+        <button onclick="cleanupOldLogs()" data-i18n-title="logs.cleanup_title" data-i18n="logs.cleanup">🧹 Cleanup</button>
     </div>
 
     <div class="main">
         <div class="sidebar" id="sidebar">
-            <div class="empty">Loading...</div>
+            <div class="empty" data-i18n="logs.loading">Loading...</div>
         </div>
         <div class="content" id="content">
-            <div class="empty">Select a log file to view</div>
+            <div class="empty" data-i18n="logs.select_log">Select a log file to view</div>
         </div>
     </div>
 
+    <script src="/static/js/i18n.js"></script>
     <script src="/static/js/api.js"></script>
     <script>
         let currentView = 'executions';
         let currentLogFile = null;
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function escapeAttr(text) {
+            return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function t(key) { return I18n.t(key); }
+
         async function loadStats() {
             try {
                 const stats = await API.getLogStats();
                 document.getElementById('stats').innerHTML = `
-                    <span>Total: <b>${stats.total_size}</b></span>
-                    <span>Executions: <b>${stats.execution_log_count}</b></span>
-                    <span>Active: <b>${stats.active_executions}</b></span>
-                    <span>Server log: <b>${stats.main_log_size}</b></span>
+                    <span>${t('logs.stat_total')}: <b>${stats.total_size}</b></span>
+                    <span>${t('logs.stat_executions')}: <b>${stats.execution_log_count}</b></span>
+                    <span>${t('logs.stat_active')}: <b>${stats.active_executions}</b></span>
+                    <span>${t('logs.stat_server_log')}: <b>${stats.main_log_size}</b></span>
                 `;
             } catch (e) {
                 console.error('Failed to load stats:', e);
@@ -231,16 +282,16 @@
             document.getElementById('level-filter').style.display = 'none';
 
             const sidebar = document.getElementById('sidebar');
-            sidebar.innerHTML = '<div class="loading">Loading...</div>';
+            sidebar.innerHTML = `<div class="loading">${t('logs.loading')}</div>`;
 
             try {
                 const data = await API.listExecutionLogs(50);
                 if (data.logs.length === 0) {
-                    sidebar.innerHTML = '<div class="empty">No execution logs yet</div>';
+                    sidebar.innerHTML = `<div class="empty">${t('logs.no_execution_logs')}</div>`;
                     return;
                 }
                 sidebar.innerHTML = data.logs.map(log => {
-                    const graphName = log.graph_name ? escapeHtml(log.graph_name) : '(unnamed)';
+                    const graphName = log.graph_name ? escapeHtml(log.graph_name) : `(${t('logs.unnamed')})`;
                     const status = log.status || 'unknown';
                     const time = log.modified.replace('T', ' ').substring(0, 19);
                     const safeFilename = escapeHtml(log.filename);
@@ -254,13 +305,13 @@
                         </div>
                         <div class="filename" style="font-size:10px;color:var(--text-dim);margin-top:2px">${safeFilename}</div>
                         <div class="actions">
-                            <button onclick="event.stopPropagation();downloadLog('${safeFilenameAttr}')" title="Download">⬇ Download</button>
-                            <button class="delete" onclick="event.stopPropagation();deleteLog('${safeFilenameAttr}')" title="Delete">🗑 Delete</button>
+                            <button onclick="event.stopPropagation();downloadLog('${safeFilenameAttr}')" title="${t('logs.download')}">⬇ ${t('logs.download')}</button>
+                            <button class="delete" onclick="event.stopPropagation();deleteLog('${safeFilenameAttr}')" title="${t('logs.delete')}">🗑 ${t('logs.delete')}</button>
                         </div>
                     </div>`;
                 }).join('');
                 if (data.active && data.active.length > 0) {
-                    sidebar.innerHTML = '<div style="padding:8px 16px;color:var(--green);font-size:12px;">● Active:</div>' +
+                    sidebar.innerHTML = `<div style="padding:8px 16px;color:var(--green);font-size:12px;">● ${t('logs.active')}:</div>` +
                         data.active.map(a => `
                             <div class="sidebar-item" style="border-left:3px solid var(--green)">
                                 <div class="filename">${escapeHtml(a.filename || '')}</div>
@@ -269,7 +320,7 @@
                         `).join('') + sidebar.innerHTML;
                 }
             } catch (e) {
-                sidebar.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
+                sidebar.innerHTML = `<div class="empty">${t('logs.error')}: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -279,7 +330,7 @@
             if (ev && ev.currentTarget) ev.currentTarget.classList.add('active');
 
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Loading...</div>';
+            content.innerHTML = `<div class="loading">${t('logs.loading')}</div>`;
 
             try {
                 const data = await API.readExecutionLog(filename, 0, 0, null);
@@ -291,10 +342,10 @@
                 // Add download button
                 const dl = document.createElement('div');
                 dl.style.cssText = 'padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel)';
-                dl.innerHTML = `<button onclick="downloadLog('${escapeAttr(filename)}')" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:4px;cursor:pointer;">⬇ Download</button> <span style="color:var(--text-dim);font-size:12px;margin-left:8px">${escapeHtml(data.total_lines)} lines</span>`;
+                dl.innerHTML = `<button onclick="downloadLog('${escapeAttr(filename)}')" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:4px;cursor:pointer;">⬇ ${t('logs.download')}</button> <span style="color:var(--text-dim);font-size:12px;margin-left:8px">${escapeHtml(data.total_lines)} ${t('logs.lines')}</span>`;
                 content.insertBefore(dl, content.firstChild);
             } catch (e) {
-                content.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
+                content.innerHTML = `<div class="empty">${t('logs.error')}: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -309,15 +360,15 @@
             sidebar.innerHTML = `
                 <div class="sidebar-item active" onclick="loadMainLog()">
                     <div class="filename">canvas.log</div>
-                    <div class="meta">Main server log (all modules)</div>
+                    <div class="meta">${t('logs.main_server_log')}</div>
                 </div>
                 <div class="sidebar-item" onclick="loadMainLog('ERROR')">
                     <div class="filename">canvas.log (ERROR)</div>
-                    <div class="meta">Errors only</div>
+                    <div class="meta">${t('logs.errors_only')}</div>
                 </div>
                 <div class="sidebar-item" onclick="loadMainLog('WARNING')">
                     <div class="filename">canvas.log (WARNING+)</div>
-                    <div class="meta">Warnings and errors</div>
+                    <div class="meta">${t('logs.warnings_and_errors')}</div>
                 </div>
             `;
 
@@ -326,7 +377,7 @@
 
         async function loadMainLog(level = null) {
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Loading...</div>';
+            content.innerHTML = `<div class="loading">${t('logs.loading')}</div>`;
 
             try {
                 const data = await API.readMainLog(500, level);
@@ -336,7 +387,7 @@
                 }
                 renderLogLines(data.lines, content);
             } catch (e) {
-                content.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
+                content.innerHTML = `<div class="empty">${t('logs.error')}: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -350,17 +401,17 @@
             const sidebar = document.getElementById('sidebar');
             sidebar.innerHTML = `
                 <div style="padding:16px">
-                    <input type="text" id="search-input" placeholder="Search regex..." 
+                    <input type="text" id="search-input" placeholder="${t('logs.search_placeholder')}"
                         style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:4px;font-size:13px"
                         onkeypress="if(event.key==='Enter')doSearch()">
-                    <button onclick="doSearch()" style="width:100%;margin-top:8px;background:var(--accent);border:none;color:white;padding:8px;border-radius:4px;cursor:pointer;">Search</button>
+                    <button onclick="doSearch()" style="width:100%;margin-top:8px;background:var(--accent);border:none;color:white;padding:8px;border-radius:4px;cursor:pointer;">${t('logs.search')}</button>
                     <div style="color:var(--text-dim);font-size:11px;margin-top:12px;">
-                        Searches across all log files. Supports regex.
+                        ${t('logs.search_hint')}
                     </div>
                 </div>
             `;
 
-            document.getElementById('content').innerHTML = '<div class="empty">Enter a search query</div>';
+            document.getElementById('content').innerHTML = `<div class="empty">${t('logs.enter_search_query')}</div>`;
         }
 
         async function doSearch() {
@@ -368,11 +419,11 @@
             if (!query) return;
 
             const content = document.getElementById('content');
-            content.innerHTML = '<div class="loading">Searching...</div>';
+            content.innerHTML = `<div class="loading">${t('logs.searching')}</div>`;
 
             try {
                 const data = await API.searchLogs(query, null, 200);
-                let html = `<div style="padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);font-size:13px">${data.count} results for "${escapeHtml(query)}"</div>`;
+                let html = `<div style="padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);color:var(--text-dim);font-size:13px">${data.count} ${t('logs.results_for')} "${escapeHtml(query)}"</div>`;
                 html += '<div class="log-viewer">';
                 data.results.forEach(r => {
                     html += `<div class="log-line"><span class="ts">${r.filename}:${r.line_number}</span> ${escapeHtml(r.line)}</div>`;
@@ -380,7 +431,7 @@
                 html += '</div>';
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
+                content.innerHTML = `<div class="empty">${t('logs.error')}: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -405,16 +456,6 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function escapeAttr(text) {
-            return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
         async function downloadLog(filename) {
             const text = await API.downloadLog(filename);
             const blob = new Blob([text], { type: 'text/plain' });
@@ -427,32 +468,32 @@
         }
 
         async function deleteLog(filename) {
-            if (!confirm(`Delete log file "${filename}"?`)) return;
+            if (!confirm(t('logs.confirm_delete').replace('{filename}', filename))) return;
             try {
                 const result = await API.deleteExecutionLog(filename);
                 if (result.success) {
                     // Clear content if it was the current log
                     if (currentLogFile === filename) {
-                        document.getElementById('content').innerHTML = '<div class="empty">Select a log file to view</div>';
+                        document.getElementById('content').innerHTML = `<div class="empty">${t('logs.select_log')}</div>`;
                         currentLogFile = null;
                     }
                     refresh();
                 } else {
-                    alert('Delete failed: ' + result.message);
+                    alert(t('logs.delete_failed') + ': ' + result.message);
                 }
             } catch (e) {
-                alert('Delete failed: ' + e.message);
+                alert(t('logs.delete_failed') + ': ' + e.message);
             }
         }
 
         async function cleanupOldLogs() {
-            if (!confirm('Delete all logs older than 7 days (keeping max 100 files)?')) return;
+            if (!confirm(t('logs.confirm_cleanup'))) return;
             try {
                 const result = await API.cleanupLogs(7, 100);
-                alert(`Cleanup complete: deleted ${result.deleted_count} files, ${result.remaining_count} remaining.`);
+                alert(t('logs.cleanup_complete').replace('{deleted}', result.deleted_count).replace('{remaining}', result.remaining_count));
                 refresh();
             } catch (e) {
-                alert('Cleanup failed: ' + e.message);
+                alert(t('logs.cleanup_failed') + ': ' + e.message);
             }
         }
 
@@ -469,7 +510,37 @@
             else if (currentView === 'main') loadMainLog(document.getElementById('level-filter').value || null);
         }
 
+        // Language switcher
+        function initLangSwitcher() {
+            const switcher = document.getElementById('lang-switcher');
+            const btn = document.getElementById('btn-lang');
+            const label = document.getElementById('lang-label');
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                switcher.classList.toggle('open');
+            });
+            document.addEventListener('click', () => switcher.classList.remove('open'));
+            document.querySelectorAll('.lang-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    I18n.setLang(opt.dataset.lang);
+                    switcher.classList.remove('open');
+                });
+            });
+            I18n.on(() => updateLangUI());
+            updateLangUI();
+        }
+
+        function updateLangUI() {
+            const lang = I18n.getLang();
+            document.getElementById('lang-label').textContent = lang === 'zh' ? '中文' : 'EN';
+            document.documentElement.lang = lang;
+            I18n.applyToDOM();
+            // Re-render dynamic content
+            refresh();
+        }
+
         // Initial load
+        initLangSwitcher();
         loadStats();
         showExecutions();
         // Auto-refresh stats every 10s

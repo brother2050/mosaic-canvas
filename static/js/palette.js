@@ -121,11 +121,17 @@ const Palette = (() => {
         // Filter by search
         let filtered = catalog;
         if (query) {
-            filtered = catalog.filter(n =>
-                n.name.toLowerCase().includes(query) ||
-                n.description.toLowerCase().includes(query) ||
-                n.domain.toLowerCase().includes(query)
-            );
+            const q = query.toLowerCase();
+            filtered = catalog.filter(n => {
+                const zhName = I18n.nodeName(n.name);
+                const zhDesc = I18n.nodeDesc(n.name, n.description);
+                const zhDomain = I18n.domainLabel(n.domain);
+                const searchText = [
+                    n.name, n.description, n.domain,
+                    zhName, zhDesc, zhDomain,
+                ].join(' ').toLowerCase();
+                return searchText.includes(q);
+            });
         }
 
         // Filter by compatibility
@@ -189,7 +195,7 @@ const Palette = (() => {
                         <div class="palette-item-icon" style="background:${meta.color}">${meta.icon}</div>
                         <div class="palette-item-text">
                             <div class="palette-item-name">${I18n.nodeName(node.name)}${compatBadge}</div>
-                            <div class="palette-item-desc">${node.description || ''}</div>
+                            <div class="palette-item-desc">${I18n.nodeDesc(node.name, node.description) || ''}</div>
                         </div>
                     </div>`;
                 });

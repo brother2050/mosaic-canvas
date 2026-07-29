@@ -57,6 +57,35 @@
         }
         .stats span strong { color: var(--text); }
 
+        .lang-switcher {
+            position: relative;
+            display: inline-flex;
+        }
+        .lang-switcher .lang-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            flex-direction: column;
+            z-index: 100;
+            margin-top: 4px;
+        }
+        .lang-switcher.open .lang-dropdown { display: flex; }
+        .lang-switcher .lang-option {
+            background: none;
+            border: none;
+            color: var(--text);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: left;
+            border-radius: 3px;
+        }
+        .lang-switcher .lang-option:hover { background: var(--bg-hover); }
+
         .toolbar {
             display: flex;
             align-items: center;
@@ -262,41 +291,50 @@
 </head>
 <body>
     <header>
-        <h1>🖼️ Mosaic Canvas Resources</h1>
-        <a href="/">← Back to Canvas</a>
+        <h1 data-i18n="resources.title">🖼️ Mosaic Canvas Resources</h1>
+        <a href="/" data-i18n="resources.back_to_canvas">← Back to Canvas</a>
         <div class="stats" id="stats"></div>
+        <div class="lang-switcher" id="lang-switcher">
+            <button id="btn-lang" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;">
+                <span id="lang-label">EN</span>
+            </button>
+            <div class="lang-dropdown" id="lang-dropdown">
+                <button class="lang-option" data-lang="en">🇬🇧 English</button>
+                <button class="lang-option" data-lang="zh">🇨🇳 中文</button>
+            </div>
+        </div>
     </header>
 
     <div class="toolbar">
-        <button class="active" data-type="" onclick="filterType('')">All</button>
-        <button data-type="image" onclick="filterType('image')">🖼️ Images</button>
-        <button data-type="video" onclick="filterType('video')">🎬 Videos</button>
-        <button data-type="audio" onclick="filterType('audio')">🎵 Audio</button>
-        <button data-type="subtitle" onclick="filterType('subtitle')">📝 Subtitles</button>
-        <button data-type="other" onclick="filterType('other')">📄 Other</button>
-        <input type="text" id="search" placeholder="Search files..." oninput="applyFilter()">
+        <button class="active" data-type="" onclick="filterType('')" data-i18n="resources.all">All</button>
+        <button data-type="image" onclick="filterType('image')">🖼️ <span data-i18n="resources.images">Images</span></button>
+        <button data-type="video" onclick="filterType('video')">🎬 <span data-i18n="resources.videos">Videos</span></button>
+        <button data-type="audio" onclick="filterType('audio')">🎵 <span data-i18n="resources.audio">Audio</span></button>
+        <button data-type="subtitle" onclick="filterType('subtitle')">📝 <span data-i18n="resources.subtitles">Subtitles</span></button>
+        <button data-type="other" onclick="filterType('other')">📄 <span data-i18n="resources.other">Other</span></button>
+        <input type="text" id="search" data-i18n-placeholder="resources.search_placeholder" placeholder="Search files..." oninput="applyFilter()">
         <select id="sort-select" onchange="loadResources()">
-            <option value="modified-desc">Newest first</option>
-            <option value="modified-asc">Oldest first</option>
-            <option value="name-asc">Name A-Z</option>
-            <option value="name-desc">Name Z-A</option>
-            <option value="size-desc">Largest first</option>
-            <option value="size-asc">Smallest first</option>
+            <option value="modified-desc" data-i18n="resources.sort_newest">Newest first</option>
+            <option value="modified-asc" data-i18n="resources.sort_oldest">Oldest first</option>
+            <option value="name-asc" data-i18n="resources.sort_name_az">Name A-Z</option>
+            <option value="name-desc" data-i18n="resources.sort_name_za">Name Z-A</option>
+            <option value="size-desc" data-i18n="resources.sort_largest">Largest first</option>
+            <option value="size-asc" data-i18n="resources.sort_smallest">Smallest first</option>
         </select>
         <div class="spacer"></div>
         <div class="batch-actions" id="batch-actions">
             <span id="batch-count" style="color:var(--accent);font-size:12px;">0 selected</span>
-            <button onclick="downloadSelected()">⬇ Download Selected</button>
-            <button class="delete" onclick="deleteSelected()">🗑 Delete Selected</button>
-            <button onclick="clearSelection()">Cancel</button>
+            <button onclick="downloadSelected()" data-i18n="resources.download_selected">⬇ Download Selected</button>
+            <button class="delete" onclick="deleteSelected()" data-i18n="resources.delete_selected">🗑 Delete Selected</button>
+            <button onclick="clearSelection()" data-i18n="resources.cancel">Cancel</button>
         </div>
-        <button onclick="refresh()">🔄 Refresh</button>
-        <button onclick="cleanupOld()" title="Delete files older than 30 days">🧹 Cleanup</button>
+        <button onclick="refresh()" data-i18n="resources.refresh">🔄 Refresh</button>
+        <button onclick="cleanupOld()" data-i18n-title="resources.cleanup_title" data-i18n="resources.cleanup">🧹 Cleanup</button>
     </div>
 
     <div class="main">
         <div class="grid" id="grid">
-            <div class="loading">Loading...</div>
+            <div class="loading" data-i18n="resources.loading">Loading...</div>
         </div>
     </div>
 
@@ -308,6 +346,7 @@
         </div>
     </div>
 
+    <script src="/static/js/i18n.js"></script>
     <script src="/static/js/api.js"></script>
     <script>
         let currentType = '';
@@ -324,14 +363,16 @@
             return String(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
+        function t(key) { return I18n.t(key); }
+
         function formatTime(iso) {
             const d = new Date(iso);
             const now = new Date();
             const diff = (now - d) / 1000;
-            if (diff < 60) return 'just now';
-            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-            if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+            if (diff < 60) return t('resources.time_just_now');
+            if (diff < 3600) return Math.floor(diff/60) + t('resources.time_minutes_ago');
+            if (diff < 86400) return Math.floor(diff/3600) + t('resources.time_hours_ago');
+            if (diff < 604800) return Math.floor(diff/86400) + t('resources.time_days_ago');
             return d.toLocaleDateString();
         }
 
@@ -347,8 +388,8 @@
             try {
                 const stats = await API.getResourceStats();
                 const parts = [];
-                parts.push(`<span><strong>${stats.total_count}</strong> files</span>`);
-                parts.push(`<span><strong>${stats.total_size_human}</strong> total</span>`);
+                parts.push(`<span><strong>${stats.total_count}</strong> ${t('resources.files')}</span>`);
+                parts.push(`<span><strong>${stats.total_size_human}</strong> ${t('resources.total')}</span>`);
                 for (const [type, info] of Object.entries(stats.by_type_human || {})) {
                     parts.push(`<span>${getIcon(type)} <strong>${info.count}</strong> (${info.size_human})</span>`);
                 }
@@ -366,7 +407,7 @@
                 allResources = data.resources || [];
                 applyFilter();
             } catch (e) {
-                document.getElementById('grid').innerHTML = `<div class="empty">Error: ${escapeHtml(e.message)}</div>`;
+                document.getElementById('grid').innerHTML = `<div class="empty">${t('resources.error')}: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -380,7 +421,7 @@
                 document.getElementById('grid').innerHTML = `
                     <div class="empty" style="grid-column:1/-1">
                         <span class="icon">${currentType ? getIcon(currentType) : '📂'}</span>
-                        No resources found${search ? ' matching "' + escapeHtml(search) + '"' : ''}
+                        ${t('resources.no_resources')}${search ? ' ' + t('resources.matching').replace('{search}', escapeHtml(search)) : ''}
                     </div>`;
                 return;
             }
@@ -413,8 +454,8 @@
                         </div>
                     </div>
                     <div class="actions">
-                        <button data-action="download" data-url="${escapeAttr(r.url)}" data-filename="${escapeAttr(r.filename)}">⬇ Download</button>
-                        <button class="delete" data-action="delete" data-filename="${escapeAttr(r.filename)}">🗑 Delete</button>
+                        <button data-action="download" data-url="${escapeAttr(r.url)}" data-filename="${escapeAttr(r.filename)}">⬇ ${t('resources.download')}</button>
+                        <button class="delete" data-action="delete" data-filename="${escapeAttr(r.filename)}">🗑 ${t('resources.delete')}</button>
                     </div>
                 </div>`;
             }).join('');
@@ -464,7 +505,7 @@
             const countEl = document.getElementById('batch-count');
             if (selectedFiles.size > 0) {
                 batchEl.classList.add('visible');
-                countEl.textContent = `${selectedFiles.size} selected`;
+                countEl.textContent = `${selectedFiles.size} ${t('resources.selected')}`;
             } else {
                 batchEl.classList.remove('visible');
             }
@@ -477,7 +518,7 @@
         }
 
         async function deleteFile(filename) {
-            if (!confirm(`Delete "${filename}"?`)) return;
+            if (!confirm(t('resources.confirm_delete').replace('{filename}', filename))) return;
             try {
                 const result = await API.deleteResource(filename);
                 if (result.success) {
@@ -486,26 +527,26 @@
                     loadStats();
                     updateBatchActions();
                 } else {
-                    alert('Delete failed: ' + result.message);
+                    alert(t('resources.delete_failed') + ': ' + result.message);
                 }
             } catch (e) {
-                alert('Delete failed: ' + e.message);
+                alert(t('resources.delete_failed') + ': ' + e.message);
             }
         }
 
         async function deleteSelected() {
             if (selectedFiles.size === 0) return;
-            if (!confirm(`Delete ${selectedFiles.size} selected file(s)?`)) return;
+            if (!confirm(t('resources.confirm_delete_multiple').replace('{count}', selectedFiles.size))) return;
             try {
                 const result = await API.deleteResourcesBulk([...selectedFiles]);
-                alert(`Deleted ${result.deleted_count} file(s)` +
-                      (result.failed_count > 0 ? `, ${result.failed_count} failed` : ''));
+                alert(t('resources.deleted_count').replace('{count}', result.deleted_count) +
+                      (result.failed_count > 0 ? ', ' + t('resources.failed_count').replace('{count}', result.failed_count) : ''));
                 selectedFiles.clear();
                 updateBatchActions();
                 loadResources();
                 loadStats();
             } catch (e) {
-                alert('Bulk delete failed: ' + e.message);
+                alert(t('resources.bulk_delete_failed') + ': ' + e.message);
             }
         }
 
@@ -552,20 +593,49 @@
         }
 
         async function cleanupOld() {
-            if (!confirm('Delete all files older than 30 days (keeping max 500 files)?')) return;
+            if (!confirm(t('resources.confirm_cleanup'))) return;
             try {
                 const result = await API.cleanupResources(30, 500);
-                alert(`Cleanup complete: deleted ${result.deleted_count} files, ${result.remaining_count} remaining.`);
+                alert(t('resources.cleanup_complete').replace('{deleted}', result.deleted_count).replace('{remaining}', result.remaining_count));
                 loadResources();
                 loadStats();
             } catch (e) {
-                alert('Cleanup failed: ' + e.message);
+                alert(t('resources.cleanup_failed') + ': ' + e.message);
             }
         }
 
         function refresh() {
             loadStats();
             loadResources();
+        }
+
+        // Language switcher
+        function initLangSwitcher() {
+            const switcher = document.getElementById('lang-switcher');
+            const btn = document.getElementById('btn-lang');
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                switcher.classList.toggle('open');
+            });
+            document.addEventListener('click', () => switcher.classList.remove('open'));
+            document.querySelectorAll('.lang-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    I18n.setLang(opt.dataset.lang);
+                    switcher.classList.remove('open');
+                });
+            });
+            I18n.on(() => updateLangUI());
+            updateLangUI();
+        }
+
+        function updateLangUI() {
+            const lang = I18n.getLang();
+            document.getElementById('lang-label').textContent = lang === 'zh' ? '中文' : 'EN';
+            document.documentElement.lang = lang;
+            I18n.applyToDOM();
+            // Re-render dynamic content
+            loadStats();
+            applyFilter();
         }
 
         // Keyboard shortcuts
@@ -580,6 +650,7 @@
         });
 
         // Init
+        initLangSwitcher();
         loadStats();
         loadResources();
         setInterval(loadStats, 30000);

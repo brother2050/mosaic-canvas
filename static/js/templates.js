@@ -2120,6 +2120,265 @@ const Templates = (() => {
             ],
             input: { text: '{"positive_prompt": "a cute cat", "negative_prompt": "blurry, bad quality"}' },
         },
+
+        // ── Extended lip-sync / avatar / multi-engine / export templates ──
+        {
+            id: 'ex14-sadtalker-lipsync',
+            name: { en: 'SadTalker Lip Sync', zh: 'SadTalker 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait photo with audio using SadTalker 3DMM, then encode as MP4.',
+                zh: '使用 SadTalker 3DMM 模型用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'sadtalker' }, input_params: { pose_style: '0', still: 'false', expression_scale: '1.0', enhancer: 'gfpgan', size: '256' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex15-liveportrait-lipsync',
+            name: { en: 'LivePortrait Lip Sync', zh: 'LivePortrait 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait with audio using LivePortrait, then encode as MP4.',
+                zh: '使用 LivePortrait 用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'liveportrait' }, input_params: { relative_motion: 'true', animate_eyes: 'false', lip_zero: 'false' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex16-geneface-lipsync',
+            name: { en: 'GeneFace Lip Sync', zh: 'GeneFace 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait with audio using GeneFace, then encode as MP4.',
+                zh: '使用 GeneFace 用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'geneface' }, input_params: { torso: 'true', head_torso_threshold: '0.5' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex17-audio2face-driver',
+            name: { en: 'Audio2Face Avatar Driver', zh: 'Audio2Face 虚拟人驱动' },
+            icon: '🧑',
+            description: {
+                en: 'Drive an avatar with audio using Audio2Face, then encode as MP4.',
+                zh: '使用 Audio2Face 用音频驱动虚拟人形象生成视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'avatar-driver', label: '', params: { method: 'audio2face' }, input_params: { quality_preset: 'production' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex18-face-enhancer',
+            name: { en: 'Wav2Lip + Face Enhancer', zh: 'Wav2Lip + 面部增强' },
+            icon: '🧑',
+            description: {
+                en: 'Lip sync with Wav2Lip and enhance faces with GFPGAN, then encode as MP4.',
+                zh: '使用 Wav2Lip 进行唇形同步并用 GFPGAN 增强面部，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'wav2lip' }, input_params: { enhancer: 'gfpgan', face_restore_weight: '0.5' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex19-wav2lip-lipsync',
+            name: { en: 'Wav2Lip Lip Sync', zh: 'Wav2Lip 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait with audio using Wav2Lip, then encode as MP4.',
+                zh: '使用 Wav2Lip 用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'wav2lip' }, input_params: { face_enhancer: 'false', crop_size: '96' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex20-video-multi-engine',
+            name: { en: 'Multi-Engine Video Generation', zh: '多引擎视频生成' },
+            icon: '🎬',
+            description: {
+                en: 'Generate videos in parallel with WanVideo, HunyuanVideo, and LTXVideo, each encoded as MP4.',
+                zh: '并行使用 WanVideo、腾讯混元视频和 LTX视频生成视频，各自编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'wan-video', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'hunyuan-video', label: '', params: {}, input_params: { num_frames: '129' }, ...pos(0, 1) },
+                { id: 'n4', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 1) },
+                { id: 'n5', type: 'ltx-video', label: '', params: {}, input_params: { num_frames: '97' }, ...pos(0, 2) },
+                { id: 'n6', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 2) },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n3', target: 'n4' },
+                { id: 'e3', source: 'n5', target: 'n6' },
+            ],
+            input: { prompt: 'a cat playing with a ball of yarn, slow motion' },
+        },
+        {
+            id: 'ex21-subtitle-full',
+            name: { en: 'Subtitle Full Pipeline', zh: '字幕完整流程' },
+            icon: '📢',
+            description: {
+                en: 'Generate, align, translate subtitles, then export as SRT.',
+                zh: '生成、对齐、翻译字幕后导出为 SRT。',
+            },
+            nodes: [
+                { id: 'n1', type: 'subtitle-generator', label: '', params: {}, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'subtitle-aligner', label: '', params: {}, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'subtitle-translator', label: '', params: {}, input_params: { target_language: 'en' }, ...pos(2, 0) },
+                { id: 'n4', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'subtitle', formats: '["srt"]' }, ...pos(3, 0) },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e3', source: 'n3', target: 'n4' },
+            ],
+            input: { audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex22-export-modes',
+            name: { en: 'Multi Export Modes', zh: '多种导出模式' },
+            icon: '📤',
+            description: {
+                en: 'Generate a video then export via MP4 encode, livestream, and multi-format exporter in parallel.',
+                zh: '生成视频后通过 MP4 编码、直播推流和多格式导出并行输出。',
+            },
+            nodes: [
+                { id: 'n1', type: 'text-to-video', label: '', params: {}, input_params: { num_frames: '49' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'livestreamer', label: '', params: {}, input_params: { stream_url: 'rtmp://localhost/live/stream' }, ...pos(1, 1) },
+                { id: 'n4', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'video', formats: '["mp4"]' }, ...pos(1, 2) },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n1', target: 'n3' },
+                { id: 'e3', source: 'n1', target: 'n4' },
+            ],
+            input: { prompt: 'a cat playing with a ball of yarn, slow motion' },
+        },
+        {
+            id: 'ex23-rag-full',
+            name: { en: 'RAG Full Pipeline', zh: 'RAG 完整流程' },
+            icon: '📚',
+            description: {
+                en: 'Parse, index, retrieve, generate citations, then export as text.',
+                zh: '解析、索引、检索、生成引用后导出为文本。',
+            },
+            nodes: [
+                { id: 'n1', type: 'document-parser', label: '', params: {}, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'vector-indexer', label: '', params: {}, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'retriever', label: '', params: {}, input_params: {}, ...pos(2, 0) },
+                { id: 'n4', type: 'citation-generator', label: '', params: {}, input_params: {}, ...pos(3, 0) },
+                { id: 'n5', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(4, 0) },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+                { id: 'e3', source: 'n3', target: 'n4' },
+                { id: 'e4', source: 'n4', target: 'n5' },
+            ],
+            input: { file_path: '/path/to/document.pdf' },
+        },
+        {
+            id: 'ex24-hallo-lipsync',
+            name: { en: 'Hallo Lip Sync', zh: 'Hallo 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait with audio using Hallo, then encode as MP4.',
+                zh: '使用 Hallo 用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'hallo' }, input_params: { batch_size: '8', vae_dtype: 'bfloat16' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex25-tpsmn-lipsync',
+            name: { en: 'TPSMN Lip Sync', zh: 'TPSMN 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait with audio using TPSMN, then encode as MP4.',
+                zh: '使用 TPSMN 用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'tpsmn' }, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex26-anitalker-lipsync',
+            name: { en: 'AniTalker Lip Sync', zh: 'AniTalker 唇形同步' },
+            icon: '🧑',
+            description: {
+                en: 'Drive a portrait with audio using AniTalker, then encode as MP4.',
+                zh: '使用 AniTalker 用音频驱动人物照片生成说话视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'lip-syncer', label: '', params: { method: 'anitalker' }, input_params: { pose_style: '0' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex27-aniportrait-driver',
+            name: { en: 'AniPortrait Avatar Driver', zh: 'AniPortrait 虚拟人驱动' },
+            icon: '🧑',
+            description: {
+                en: 'Drive an avatar with audio using AniPortrait, then encode as MP4.',
+                zh: '使用 AniPortrait 用音频驱动虚拟人形象生成视频，然后编码为 MP4。',
+            },
+            nodes: [
+                { id: 'n1', type: 'avatar-driver', label: '', params: { method: 'aniportrait' }, input_params: { dtype: 'bfloat16' }, ...pos(0, 0) },
+                { id: 'n2', type: 'video-encoder', label: '', params: { format: 'mp4' }, input_params: {}, ...pos(1, 0) },
+            ],
+            edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+            input: { face_image: '/path/to/portrait.png', audio: '/path/to/audio.wav' },
+        },
+        {
+            id: 'ex28-funasr-asr-export',
+            name: { en: 'FunASR → Export', zh: 'FunASR 语音识别 → 导出' },
+            icon: '🎙️',
+            description: {
+                en: 'Transcribe audio with FunASR, map fields, then export as text.',
+                zh: '使用 FunASR 转录音频，字段映射后导出为文本。',
+            },
+            nodes: [
+                { id: 'n1', type: 'funasr-asr', label: '', params: {}, input_params: {}, ...pos(0, 0) },
+                { id: 'n2', type: 'field-mapper', label: '', params: { mapping: '{"text": "data"}', drop_fields: '[]' }, input_params: {}, ...pos(1, 0) },
+                { id: 'n3', type: 'multi-format-exporter', label: '', params: {}, input_params: { content_type: 'text', formats: '["txt"]' }, ...pos(2, 0) },
+            ],
+            edges: [
+                { id: 'e1', source: 'n1', target: 'n2' },
+                { id: 'e2', source: 'n2', target: 'n3' },
+            ],
+            input: { audio: '/path/to/audio.wav' },
+        },
     ];
 
     // Auto-categorize templates based on ID prefix

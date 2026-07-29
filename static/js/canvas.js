@@ -392,6 +392,12 @@ const Canvas = (() => {
             if (spacePressed) return; // Space = pan mode
             e.stopPropagation();
             e.preventDefault();
+            // Shift+click toggles multi-select for grouping
+            if (e.shiftKey) {
+                Store.toggleMultiSelect(node.id);
+                updateSelection();
+                return;
+            }
             startNodeDrag(node.id, e);
         });
 
@@ -732,14 +738,93 @@ const Canvas = (() => {
         edgeElements = {};
         Store.getNodes().forEach(node => renderNode(node));
         Store.getEdges().forEach(edge => renderEdge(edge));
+        renderGroups();
         updateSelection();
         const empty = document.getElementById('canvas-empty');
         if (empty) empty.classList.toggle('hidden', Store.getNodes().length > 0);
     }
 
+    function renderGroups() {
+        // Remove existing group containers
+        nodesLayer.querySelectorAll('.canvas-group-container').forEach(el => el.remove());
+        const groups = Store.getGroups();
+        groups.forEach(group => {
+            const groupNodes = group.nodeIds.map(id => Store.getNode(id)).filter(Boolean);
+            if (groupNodes.length === 0) return;
+
+            // Calculate bounding box
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            groupNodes.forEach(n => {
+                minX = Math.min(minX, n.x);
+                minY = Math.min(minY, n.y);
+                maxX = Math.max(maxX, n.x + NODE_W);
+                const entry = nodeElements[n.id];
+                const h = entry ? parseInt(entry.el.getAttribute('height')) || 80 : 80;
+                maxY = Math.max(maxY, n.y + h);
+            });
+
+            const padding = 20;
+            const headerH = 28;
+            const x = minX - padding;
+            const y = minY - padding - headerH;
+            const w = (maxX - minX) + padding * 2;
+            const h = (maxY - minY) + padding * 2 + headerH;
+
+            const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+            fo.setAttribute('x', x);
+            fo.setAttribute('y', y);
+            fo.setAttribute('width', w);
+            fo.setAttribute('height', h);
+            fo.style.pointerEvents = 'none';
+
+            const div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+            div.className = 'canvas-group-container';
+            div.dataset.groupId = group.id;
+            div.style.borderColor = group.color;
+            div.style.pointerEvents = 'none';
+
+            const nodeCount = groupNodes.length;
+            div.innerHTML = `
+                <div class="canvas-group-header" style="background:${group.color}20;border-bottom:1px solid ${group.color}40;pointer-events:all;">
+                    <span class="canvas-group-icon">${group.icon}</span>
+                    <span class="canvas-group-name">${escapeHtml(group.name)}</span>
+                    <span class="canvas-group-count">${nodeCount}</span>
+                    <div class="canvas-group-actions">
+                        <button class="canvas-group-btn" data-group-action="toggle" data-group-id="${group.id}" title="${group.collapsed ? I18n.t('module.expand') : I18n.t('module.collapse')}">
+                            ${group.collapsed ? '▶' : '▼'}
+                        </button>
+                        <button class="canvas-group-btn" data-group-action="ungroup" data-group-id="${group.id}" title="${I18n.t('module.ungroup')}">✕</button>
+                    </div>
+                </div>
+            `;
+
+            fo.appendChild(div);
+            // Insert before nodes so nodes render on top
+            nodesLayer.insertBefore(fo, nodesLayer.firstChild);
+
+            // Handle group button clicks
+            div.querySelectorAll('[data-group-action]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = btn.dataset.groupAction;
+                    const gid = btn.dataset.groupId;
+                    if (action === 'toggle') {
+                        Store.toggleGroupCollapse(gid);
+                        renderAll();
+                    } else if (action === 'ungroup') {
+                        Store.removeGroup(gid);
+                        renderAll();
+                    }
+                });
+            });
+        });
+    }
+
     function updateSelection() {
         Object.entries(nodeElements).forEach(([id, entry]) => {
             entry.div.classList.toggle('selected', id === Store.getSelectedNodeId());
+            // Multi-select highlight
+            entry.div.classList.toggle('multi-selected', Store.isMultiSelected(id));
             const status = Store.getNodeStatus(id);
             entry.div.classList.toggle('running', status === 'running');
             entry.div.classList.toggle('success', status === 'success');

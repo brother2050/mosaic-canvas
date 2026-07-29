@@ -383,6 +383,7 @@ const App = (function () {
             { key: 'Ctrl+D', desc: I18n.t('shortcut.ctrl_d') },
             { key: 'Ctrl+C', desc: I18n.t('shortcut.ctrl_c') },
             { key: 'Ctrl+V', desc: I18n.t('shortcut.ctrl_v') },
+            { key: 'Shift+Click', desc: I18n.t('module.create') + ' — ' + I18n.t('palette.compatible_only') },
         ];
         let html = '<table class="shortcuts-table">';
         shortcuts.forEach(s => {
@@ -390,6 +391,183 @@ const App = (function () {
         });
         html += '</table>';
         content.innerHTML = html;
+    }
+
+    // ---- Composite Module ----
+    let _moduleSelectedIds = [];
+
+    function showModuleModal(selectedIds) {
+        _moduleSelectedIds = selectedIds;
+        document.getElementById('module-name-input').value = '';
+        document.getElementById('module-desc-input').value = '';
+        document.getElementById('module-icon-select').value = '📦';
+        document.getElementById('module-color-select').value = '#6c8eef';
+        updateModuleSelectedInfo();
+        showModal('module-modal');
+        setTimeout(() => document.getElementById('module-name-input').focus(), 100);
+    }
+
+    function updateModuleSelectedInfo() {
+        const info = document.getElementById('module-selected-info');
+        if (!info) return;
+        const selectedIds = Store.getMultiSelectedIds();
+        const ids = selectedIds.length > 0 ? selectedIds : (Store.getSelectedNodeId() ? [Store.getSelectedNodeId()] : []);
+        if (ids.length === 0) {
+            info.textContent = I18n.t('module.no_selection');
+            return;
+        }
+        const nodeNames = ids.map(id => {
+            const node = Store.getNode(id);
+            return node ? I18n.nodeName(node.type) : '?';
+        });
+        info.innerHTML = `<strong>${I18n.t('module.nodes_count', { count: ids.length })}</strong>: ${nodeNames.map(escapeHtml).join(', ')}`;
+    }
+
+    async function saveModule() {
+        const name = document.getElementById('module-name-input').value.trim();
+        const desc = document.getElementById('module-desc-input').value.trim();
+        const icon = document.getElementById('module-icon-select').value;
+        const color = document.getElementById('module-color-select').value;
+        if (!name) {
+            toast(I18n.t('module.name'), 'warning');
+            return;
+        }
+        const selectedIds = _moduleSelectedIds.length > 0 ? _moduleSelectedIds : Store.getMultiSelectedIds();
+        if (selectedIds.length < 2) {
+            toast(I18n.t('module.no_selection'), 'warning');
+            return;
+        }
+
+        // Collect nodes and internal edges
+        const allNodes = Store.getNodes();
+        const allEdges = Store.getEdges();
+        const moduleNodes = selectedIds.map(id => {
+            const n = allNodes.find(n => n.id === id);
+            if (!n) return null;
+            return {
+                id: n.id, type: n.type, x: n.x, y: n.y,
+                params: { ...n.params },
+                input_params: { ...(n.input_params || {}) },
+                label: n.label || '',
+            };
+        }).filter(Boolean);
+
+        // Normalize positions relative to first node
+        if (moduleNodes.length > 0) {
+            const baseX = moduleNodes[0].x;
+            const baseY = moduleNodes[0].y;
+            moduleNodes.forEach(n => {
+                n.x = n.x - baseX;
+                n.y = n.y - baseY;
+            });
+        }
+
+        const moduleEdges = allEdges.filter(e =>
+            selectedIds.includes(e.source) && selectedIds.includes(e.target)
+        ).map(e => ({
+            id: e.id, source: e.source, target: e.target,
+            pass_fields: e.pass_fields || null,
+        }));
+
+        // Create a visual group on canvas
+        Store.createGroup(name, selectedIds, { color, icon });
+
+        // Save to server
+        const moduleData = {
+            name,
+            description: desc,
+            icon,
+            color,
+            nodes: moduleNodes,
+            edges: moduleEdges,
+        };
+        try {
+            await API.saveModule(moduleData);
+            toast(I18n.t('module.saved', { name }), 'success');
+            hideModal('module-modal');
+            Store.clearMultiSelect();
+            Canvas.renderAll();
+            renderModulesList();
+        } catch (err) {
+            toast(I18n.t('module.save_failed') + ': ' + err.message, 'error');
+        }
+    }
+
+    async function renderModulesList() {
+        const container = document.getElementById('modules-list');
+        if (!container) return;
+        try {
+            const result = await API.listModules();
+            const modules = result.modules || [];
+            if (modules.length === 0) {
+                container.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:13px;">${I18n.t('module.no_modules')}</div>`;
+                return;
+            }
+            container.innerHTML = modules.map(m => {
+                const date = new Date(m.saved_at * 1000);
+                const dateStr = date.toLocaleDateString();
+                return `<div class="module-item" data-filename="${escapeAttr(m.filename)}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+                    <span style="font-size:20px;">${m.icon || '📦'}</span>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:13px;font-weight:500;color:var(--text);">${escapeHtml(m.name)}</div>
+                        <div style="font-size:11px;color:var(--text-dim);">${I18n.t('module.nodes_count', {count: m.nodes_count})} · ${dateStr}</div>
+                        ${m.description ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${escapeHtml(m.description)}</div>` : ''}
+                    </div>
+                    <div style="display:flex;gap:4px;">
+                        <button class="btn btn-sm module-insert-btn" data-filename="${escapeAttr(m.filename)}" data-i18n-title="module.insert" style="padding:4px 8px;">${I18n.t('module.insert')}</button>
+                        <button class="btn btn-sm module-delete-btn" data-filename="${escapeAttr(m.filename)}" data-i18n-title="btn.delete" style="padding:4px 8px;color:var(--red);">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Bind insert buttons
+            container.querySelectorAll('.module-insert-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const filename = btn.dataset.filename;
+                    try {
+                        const moduleData = await API.loadModule(filename);
+                        // Use addGraph to insert module nodes into canvas
+                        const graph = {
+                            nodes: moduleData.nodes || [],
+                            edges: moduleData.edges || [],
+                            input: {},
+                            groups: [{
+                                name: moduleData.name,
+                                nodeIds: (moduleData.nodes || []).map(n => n.id),
+                                color: moduleData.color || '#6c8eef',
+                                icon: moduleData.icon || '📦',
+                                collapsed: false,
+                            }],
+                        };
+                        Store.addGraph(graph);
+                        Canvas.renderAll();
+                        toast(I18n.t('module.saved', { name: moduleData.name }), 'success');
+                    } catch (err) {
+                        toast(err.message, 'error');
+                    }
+                });
+            });
+
+            // Bind delete buttons
+            container.querySelectorAll('.module-delete-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const filename = btn.dataset.filename;
+                    const moduleName = btn.closest('.module-item').querySelector('div > div').textContent;
+                    if (!confirm(I18n.t('module.delete_confirm', { name: moduleName }))) return;
+                    try {
+                        await API.deleteModule(filename);
+                        toast(I18n.t('module.deleted'), 'success');
+                        renderModulesList();
+                    } catch (err) {
+                        toast(err.message, 'error');
+                    }
+                });
+            });
+        } catch (e) {
+            container.innerHTML = `<div style="padding:16px;color:var(--red);font-size:13px;">${I18n.t('resources.error')}: ${escapeHtml(e.message)}</div>`;
+        }
     }
 
     // ---- Toolbar ----
@@ -685,6 +863,42 @@ const App = (function () {
             if (e.key === 'Enter') saveAsTemplate();
         });
 
+        // -- Composite Module --
+        document.getElementById('btn-create-module').addEventListener('click', () => {
+            const selectedIds = Store.getMultiSelectedIds();
+            if (selectedIds.length < 2) {
+                // Also allow using single-selected node
+                const singleId = Store.getSelectedNodeId();
+                if (singleId) {
+                    selectedIds.push(singleId);
+                }
+            }
+            if (selectedIds.length < 2) {
+                toast(I18n.t('module.no_selection'), 'warning');
+                return;
+            }
+            showModuleModal(selectedIds);
+        });
+
+        document.getElementById('btn-save-module-confirm').addEventListener('click', saveModule);
+
+        document.getElementById('module-name-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveModule();
+        });
+
+        // Re-render module list when language changes
+        I18n.on(() => {
+            if (!document.getElementById('module-modal').style.display !== 'none') {
+                updateModuleSelectedInfo();
+            }
+            renderModulesList();
+        });
+
+        // Update module info when selection changes
+        Store.on('select', () => {
+            updateModuleSelectedInfo();
+        });
+
         // Shortcuts button
         document.getElementById('btn-shortcuts').addEventListener('click', () => {
             renderShortcuts();
@@ -743,6 +957,10 @@ const App = (function () {
                 const search = document.getElementById('palette-search-input');
                 if (search) {
                     search.parentElement.style.display = targetId === 'palette-list' ? 'flex' : 'none';
+                }
+                // Load modules list when switching to modules tab
+                if (targetId === 'modules-panel') {
+                    renderModulesList();
                 }
             });
         });

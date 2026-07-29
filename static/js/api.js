@@ -194,6 +194,30 @@ const API = (() => {
             });
         },
 
+        // -- Composite module persistence (save / load / list / delete) --
+
+        async listModules() {
+            return fetchJSON(`${baseUrl}/api/modules`);
+        },
+
+        async saveModule(moduleData) {
+            return fetchJSON(`${baseUrl}/api/modules`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(moduleData),
+            });
+        },
+
+        async loadModule(filename) {
+            return fetchJSON(`${baseUrl}/api/modules/${encodeURIComponent(filename)}`);
+        },
+
+        async deleteModule(filename) {
+            return fetchJSON(`${baseUrl}/api/modules/${encodeURIComponent(filename)}`, {
+                method: 'DELETE',
+            });
+        },
+
         /** Run pipeline via WebSocket with real-time progress callbacks.
          *  Returns an object with a promise and a cancel() method.
          */

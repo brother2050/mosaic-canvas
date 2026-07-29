@@ -50,6 +50,8 @@ const Store = (() => {
     let _running = false;
     let _nodeStatus = {};        // {nodeId: 'running'|'success'|'error'|'skipped'}
     let _clipboard = null;       // {type, params} — for copy/paste
+    let _selectedNodeIds = new Set(); // multi-select for grouping
+    let _groups = [];            // [{id, name, nodeIds: [], color, icon, collapsed}]
 
     const listeners = { change: [], select: [], status: [], lang: [] };
 
@@ -321,6 +323,13 @@ const Store = (() => {
                     return edge;
                 }),
                 input: { data: { ..._input } },
+                groups: _groups.length > 0 ? _groups.map(g => ({
+                    name: g.name,
+                    nodeIds: [...g.nodeIds],
+                    color: g.color,
+                    icon: g.icon,
+                    collapsed: g.collapsed,
+                })) : undefined,
             };
         },
         fromGraph(graph) {
@@ -337,6 +346,15 @@ const Store = (() => {
             _selectedNodeId = null;
             _selectedEdgeId = null;
             _nodeStatus = {};
+            // Restore groups with same node IDs
+            _groups = (graph.groups || []).map((g, i) => ({
+                id: `g${Date.now()}${i}`,
+                name: g.name || 'Module',
+                nodeIds: [...(g.nodeIds || [])],
+                color: g.color || '#6c8eef',
+                icon: g.icon || '📦',
+                collapsed: g.collapsed || false,
+            }));
             emit('change');
             emit('select');
             emit('status');
@@ -390,6 +408,24 @@ const Store = (() => {
                 _input = merged;
             }
 
+            // Import groups if present
+            if (graph.groups && graph.groups.length > 0) {
+                graph.groups.forEach((g) => {
+                    const mappedIds = (g.nodeIds || []).map(oldId => idMap[oldId]).filter(Boolean);
+                    if (mappedIds.length > 0) {
+                        const gid = `g${Date.now()}${Math.floor(Math.random() * 1000)}`;
+                        _groups.push({
+                            id: gid,
+                            name: g.name || 'Module',
+                            nodeIds: mappedIds,
+                            color: g.color || '#6c8eef',
+                            icon: g.icon || '📦',
+                            collapsed: g.collapsed || false,
+                        });
+                    }
+                });
+            }
+
             emit('change');
             return newNodes.map(n => n.id);
         },
@@ -401,9 +437,101 @@ const Store = (() => {
             _selectedEdgeId = null;
             _nodeStatus = {};
             _pipelineName = '';
+            _selectedNodeIds.clear();
+            _groups = [];
             emit('change');
             emit('select');
             emit('status');
+        },
+
+        // -- Multi-selection (for grouping) --
+        getMultiSelectedIds() { return [..._selectedNodeIds]; },
+        isMultiSelected(id) { return _selectedNodeIds.has(id); },
+        toggleMultiSelect(id) {
+            if (_selectedNodeIds.has(id)) _selectedNodeIds.delete(id);
+            else _selectedNodeIds.add(id);
+            emit('select');
+        },
+        clearMultiSelect() {
+            _selectedNodeIds.clear();
+            emit('select');
+        },
+        selectMultiple(ids) {
+            _selectedNodeIds = new Set(ids);
+            emit('select');
+        },
+
+        // -- Groups (composite modules on canvas) --
+        getGroups() { return _groups; },
+        getGroup(id) { return _groups.find(g => g.id === id); },
+        getGroupForNode(nodeId) {
+            return _groups.find(g => g.nodeIds.includes(nodeId));
+        },
+        createGroup(name, nodeIds, opts = {}) {
+            const id = `g${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            _groups.push({
+                id,
+                name: name || 'Module',
+                nodeIds: [...nodeIds],
+                color: opts.color || '#6c8eef',
+                icon: opts.icon || '📦',
+                collapsed: false,
+            });
+            emit('change');
+            return id;
+        },
+        removeGroup(id) {
+            _groups = _groups.filter(g => g.id !== id);
+            emit('change');
+        },
+        toggleGroupCollapse(id) {
+            const g = _groups.find(g => g.id === id);
+            if (g) {
+                g.collapsed = !g.collapsed;
+                emit('change');
+            }
+        },
+        renameGroup(id, name) {
+            const g = _groups.find(g => g.id === id);
+            if (g) {
+                g.name = name;
+                emit('change');
+            }
+        },
+        clearGroups() {
+            _groups = [];
+            emit('change');
+        },
+
+        /**
+         * Serialize groups into a saveable format.
+         * Groups store node IDs relative to the saved graph, so we
+         * serialize them as arrays of node IDs.
+         */
+        getGroupsForExport() {
+            return _groups.map(g => ({
+                name: g.name,
+                nodeIds: [...g.nodeIds],
+                color: g.color,
+                icon: g.icon,
+                collapsed: g.collapsed,
+            }));
+        },
+
+        /**
+         * Restore groups from a loaded graph.
+         * Maps the saved nodeIds to the actual node IDs in the current canvas.
+         */
+        setGroupsFromImport(groups, idMap) {
+            _groups = (groups || []).map((g, i) => ({
+                id: `g${Date.now()}${i}`,
+                name: g.name || 'Module',
+                nodeIds: (g.nodeIds || []).map(oldId => idMap[oldId] || oldId),
+                color: g.color || '#6c8eef',
+                icon: g.icon || '📦',
+                collapsed: g.collapsed || false,
+            }));
+            emit('change');
         },
 
         // -- Events --
