@@ -442,10 +442,11 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
     if obj is None or isinstance(obj, (bool, int, float)):
         return obj
     if isinstance(obj, str):
-        # Clean LLM-generated code fences from text outputs for display.
-        # E.g. "```json\n{...}\n```" → "{...}" so the UI shows clean content.
-        from mosaic_canvas.text_utils import clean_llm_output
-        obj = clean_llm_output(obj)
+        # Remove BOM characters from text outputs, but preserve code fences
+        # so the frontend can render fenced content (e.g. JSON) as code
+        # blocks with syntax highlighting and a copy button. The frontend's
+        # renderText() handles fence detection and rendering.
+        obj = obj.lstrip('\ufeff').strip()
         # Truncate very long strings to prevent oversized WebSocket messages
         # (e.g. chat responses with full message history)
         if len(obj) > 10000:

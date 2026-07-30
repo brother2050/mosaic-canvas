@@ -157,10 +157,8 @@ def clean_llm_output(text: str) -> str:
     if fence_match:
         inner = fence_match.group(1).strip()
         if inner:
-            # Check if the fenced content looks like structured data
-            # (starts with { or [ or is multi-line code)
-            if inner[0] in ('{', '[') or '\n' in inner:
-                return inner
+            # Always return the inner content without fences
+            return inner
 
     return cleaned.strip()
 

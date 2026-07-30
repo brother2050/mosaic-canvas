@@ -427,6 +427,10 @@ const Results = (() => {
     }
 
     function renderText(value) {
+        // Handle text descriptor objects from _serialize_output
+        if (value && typeof value === 'object' && value.value !== undefined) {
+            value = value.value;
+        }
         if (value === null || value === undefined) return '<span class="result-empty">—</span>';
         const text = String(value);
 
@@ -456,13 +460,20 @@ const Results = (() => {
         if (embeddedFence) {
             const lang = embeddedFence[1] || 'code';
             const code = embeddedFence[2].trim();
+            // If it's JSON, try to pretty-print it
+            let displayCode = code;
+            if (lang === 'json' || (code.startsWith('{') || code.startsWith('['))) {
+                try {
+                    displayCode = JSON.stringify(JSON.parse(code), null, 2);
+                } catch (e) { /* keep original */ }
+            }
             // Show the code block with context
             return `<div class="result-code-block">
                 <div class="result-code-header">
                     <span class="result-code-lang">${escapeHtml(lang)}</span>
                     <button class="result-code-copy" onclick="navigator.clipboard.writeText(${JSON.stringify(code).replace(/"/g, '&quot;')}).then(()=>{this.textContent='✓';setTimeout(()=>{this.textContent='⎘'},1500)})" title="Copy">⎘</button>
                 </div>
-                <pre class="result-text-long result-code-content">${escapeHtml(code)}</pre>
+                <pre class="result-text-long result-code-content">${escapeHtml(displayCode)}</pre>
             </div>`;
         }
 
