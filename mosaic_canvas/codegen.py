@@ -51,19 +51,13 @@ _JSON_FIELDS: frozenset[str] = frozenset({
 
 
 def _try_parse_json(value: Any) -> Any:
-    """Try to parse a string value as JSON. Return original on failure."""
-    if not isinstance(value, str):
-        return value
-    stripped = value.strip()
-    if not stripped:
-        return value
-    # Only attempt JSON parse if it looks like JSON (starts with [ or {)
-    if stripped[0] in ('[', '{'):
-        try:
-            return json.loads(stripped)
-        except (json.JSONDecodeError, ValueError):
-            return value
-    return value
+    """Try to parse a string value as JSON. Return original on failure.
+
+    Handles markdown code fences (```json ... ```, ``` ... ```) and
+    surrounding prose that LLMs often add around structured output.
+    """
+    from mosaic_canvas.text_utils import try_parse_json_lenient
+    return try_parse_json_lenient(value)
 
 
 def _format_param_value(value: Any, ui_type: str, param_name: str = "") -> str:

@@ -429,6 +429,43 @@ const Results = (() => {
     function renderText(value) {
         if (value === null || value === undefined) return '<span class="result-empty">—</span>';
         const text = String(value);
+
+        // Detect markdown code fences (```lang\n...\n``` or ```\n...\n```)
+        const fenceMatch = text.match(/^```([a-zA-Z0-9_+-]*)\s*\n([\s\S]*?)```\s*$/);
+        if (fenceMatch) {
+            const lang = fenceMatch[1] || 'code';
+            const code = fenceMatch[2].trim();
+            // If it's JSON, try to pretty-print it
+            let displayCode = code;
+            if (lang === 'json' || (code.startsWith('{') || code.startsWith('['))) {
+                try {
+                    displayCode = JSON.stringify(JSON.parse(code), null, 2);
+                } catch (e) { /* keep original */ }
+            }
+            return `<div class="result-code-block">
+                <div class="result-code-header">
+                    <span class="result-code-lang">${escapeHtml(lang)}</span>
+                    <button class="result-code-copy" onclick="navigator.clipboard.writeText(${JSON.stringify(code).replace(/"/g, '&quot;')}).then(()=>{this.textContent='✓';setTimeout(()=>{this.textContent='⎘'},1500)})" title="Copy">⎘</button>
+                </div>
+                <pre class="result-text-long result-code-content">${escapeHtml(displayCode)}</pre>
+            </div>`;
+        }
+
+        // Detect code fence embedded in prose (e.g. "Here is...:\n```json\n...\n```")
+        const embeddedFence = text.match(/```([a-zA-Z0-9_+-]*)\s*\n([\s\S]*?)```/);
+        if (embeddedFence) {
+            const lang = embeddedFence[1] || 'code';
+            const code = embeddedFence[2].trim();
+            // Show the code block with context
+            return `<div class="result-code-block">
+                <div class="result-code-header">
+                    <span class="result-code-lang">${escapeHtml(lang)}</span>
+                    <button class="result-code-copy" onclick="navigator.clipboard.writeText(${JSON.stringify(code).replace(/"/g, '&quot;')}).then(()=>{this.textContent='✓';setTimeout(()=>{this.textContent='⎘'},1500)})" title="Copy">⎘</button>
+                </div>
+                <pre class="result-text-long result-code-content">${escapeHtml(code)}</pre>
+            </div>`;
+        }
+
         // Long text: show in a scrollable <pre>, short text: inline
         if (text.length > 200) {
             return `<pre class="result-text-long">${escapeHtml(text)}</pre>`;

@@ -118,20 +118,13 @@ _JSON_FIELDS: frozenset[str] = frozenset({
 
 
 def _try_parse_json(value: Any) -> Any:
-    """Try to parse a string value as JSON. Return original on failure."""
-    if not isinstance(value, str):
-        return value
-    stripped = value.strip()
-    if not stripped:
-        return value
-    # Only attempt JSON parse if it looks like JSON (starts with [ or {)
-    if stripped[0] in ('[', '{'):
-        try:
-            import json
-            return json.loads(stripped)
-        except (json.JSONDecodeError, ValueError):
-            return value
-    return value
+    """Try to parse a string value as JSON. Return original on failure.
+
+    Handles markdown code fences (```json ... ```, ``` ... ```) and
+    surrounding prose that LLMs often add around structured output.
+    """
+    from mosaic_canvas.text_utils import try_parse_json_lenient
+    return try_parse_json_lenient(value)
 
 
 def coerce_param(value: Any, ui_type: str) -> Any:
@@ -449,6 +442,10 @@ def _transform_for_ui(obj: Any, depth: int = 0) -> Any:
     if obj is None or isinstance(obj, (bool, int, float)):
         return obj
     if isinstance(obj, str):
+        # Clean LLM-generated code fences from text outputs for display.
+        # E.g. "```json\n{...}\n```" → "{...}" so the UI shows clean content.
+        from mosaic_canvas.text_utils import clean_llm_output
+        obj = clean_llm_output(obj)
         # Truncate very long strings to prevent oversized WebSocket messages
         # (e.g. chat responses with full message history)
         if len(obj) > 10000:

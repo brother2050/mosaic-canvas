@@ -399,7 +399,7 @@ const Properties = (() => {
             'cache_keys': '["prompt", "model"]',
             'merge_keys': '["field1", "field2"]',
         };
-        return hints[fieldName] || 'Enter JSON value';
+        return hints[fieldName] || 'Enter JSON (code fences like ```json are OK)';
     }
 
     /**
