@@ -125,7 +125,18 @@ const App = (function () {
             });
             valInput.addEventListener('input', () => {
                 const data = { ...Store.getInput() };
-                data[originalKey] = valInput.value;
+                const val = valInput.value;
+                // Try to parse JSON-like strings so object/array values
+                // are stored as proper objects, not strings.
+                if (val && (val.startsWith('{') || val.startsWith('['))) {
+                    try {
+                        data[originalKey] = JSON.parse(val);
+                    } catch (_) {
+                        data[originalKey] = val;
+                    }
+                } else {
+                    data[originalKey] = val;
+                }
                 Store.setInput(data);
             });
             removeBtn.addEventListener('click', () => {
@@ -888,7 +899,8 @@ const App = (function () {
 
         // Re-render module list when language changes
         I18n.on(() => {
-            if (!document.getElementById('module-modal').style.display !== 'none') {
+            const moduleModal = document.getElementById('module-modal');
+            if (moduleModal && moduleModal.classList.contains('active')) {
                 updateModuleSelectedInfo();
             }
             renderModulesList();

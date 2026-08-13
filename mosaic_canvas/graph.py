@@ -49,13 +49,16 @@ class GraphNode:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "GraphNode":
+        if "id" not in d or "type" not in d:
+            missing = [k for k in ("id", "type") if k not in d]
+            raise ValueError(f"Node missing required field(s): {', '.join(missing)}")
         return cls(
             id=d["id"],
             type=d["type"],
             x=float(d.get("x", 0)),
             y=float(d.get("y", 0)),
-            params=dict(d.get("params", {})),
-            input_params=dict(d.get("input_params", {})),
+            params=dict(d.get("params", {}) or {}),
+            input_params=dict(d.get("input_params", {}) or {}),
             label=d.get("label", ""),
         )
 
@@ -83,6 +86,9 @@ class GraphEdge:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "GraphEdge":
+        missing = [k for k in ("id", "source", "target") if k not in d]
+        if missing:
+            raise ValueError(f"Edge missing required field(s): {', '.join(missing)}")
         return cls(
             id=d["id"],
             source=d["source"],
@@ -102,7 +108,12 @@ class PipelineInput:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "PipelineInput":
-        return cls(data=dict(d.get("data", {})))
+        if not isinstance(d, dict):
+            return cls()
+        data = d.get("data", {})
+        if not isinstance(data, dict):
+            data = {}
+        return cls(data=dict(data))
 
 
 @dataclass
@@ -124,11 +135,13 @@ class Graph:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Graph":
+        if not isinstance(d, dict):
+            return cls()
         return cls(
             name=d.get("name", "Untitled Pipeline"),
-            nodes=[GraphNode.from_dict(n) for n in d.get("nodes", [])],
-            edges=[GraphEdge.from_dict(e) for e in d.get("edges", [])],
-            input=PipelineInput.from_dict(d.get("input", {})),
+            nodes=[GraphNode.from_dict(n) for n in d.get("nodes", []) if isinstance(n, dict)],
+            edges=[GraphEdge.from_dict(e) for e in d.get("edges", []) if isinstance(e, dict)],
+            input=PipelineInput.from_dict(d.get("input", {}) or {}),
         )
 
     # -- Graph queries -----------------------------------------------------

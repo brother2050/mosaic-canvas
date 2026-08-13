@@ -231,7 +231,10 @@ const Canvas = (() => {
             minX = Math.min(minX, n.x);
             minY = Math.min(minY, n.y);
             maxX = Math.max(maxX, n.x + NODE_W);
-            maxY = Math.max(maxY, n.y + 100);
+            // Use actual measured height if available, otherwise fall back to 100
+            const entry = nodeElements[n.id];
+            const h = entry ? (parseInt(entry.el.getAttribute('height')) || entry.div.offsetHeight || 100) : 100;
+            maxY = Math.max(maxY, n.y + h);
         });
         const w = maxX - minX + 80;
         const h = maxY - minY + 80;
@@ -454,23 +457,39 @@ const Canvas = (() => {
         const node = Store.getNode(nodeId);
         if (!node) return null;
 
-        // Try to measure the actual port position from the DOM.
-        // The ports are positioned with CSS `top: 50%` so they sit at
-        // the vertical center of the node. We measure the node height
-        // to compute the exact center, falling back to portOffsetY.
         const entry = nodeElements[nodeId];
+
+        // Try to read the actual port element position from the DOM.
+        // This is the most accurate method — it accounts for CSS offsets
+        // (left: -8px / right: -8px), border, padding, and dynamic height.
+        if (entry && entry.div) {
+            const portEl = entry.div.querySelector(`.${type}-port`);
+            if (portEl) {
+                const portRect = portEl.getBoundingClientRect();
+                const vpRect = viewport.getBoundingClientRect();
+                // Convert screen coordinates back to canvas coordinates
+                const cx = (portRect.left + portRect.width / 2 - vpRect.left - panX) / scale;
+                const cy = (portRect.top + portRect.height / 2 - vpRect.top - panY) / scale;
+                return { x: cx, y: cy };
+            }
+        }
+
+        // Fallback: compute from node position and measured height.
+        // CSS: input port at left: -8px (center at -1px from node left edge),
+        //      output port at right: -8px (center at +1px from node right edge).
+        // We apply the 1px correction so lines connect to visual port centers.
         let halfHeight = portOffsetY;
         if (entry && entry.div) {
-            const h = entry.div.offsetHeight || entry.el.getAttribute('height');
+            const h = entry.div.offsetHeight || parseInt(entry.el.getAttribute('height')) || 80;
             if (h && h > 20) {
                 halfHeight = h / 2;
             }
         }
 
         if (type === 'input') {
-            return { x: node.x, y: node.y + halfHeight };
+            return { x: node.x - 1, y: node.y + halfHeight };
         } else {
-            return { x: node.x + NODE_W, y: node.y + halfHeight };
+            return { x: node.x + NODE_W + 1, y: node.y + halfHeight };
         }
     }
 
@@ -620,9 +639,14 @@ const Canvas = (() => {
             if (dragMoved && dragNodeId) {
                 Store.updateNode(dragNodeId, {});
             }
-            // Reset dragMoved after a tick so the click handler sees it
-            setTimeout(() => { dragMoved = false; }, 0);
+            // Reset dragMoved synchronously. The click event fires after
+            // mouseup in the same event cycle, so a synchronous reset
+            // ensures the click handler sees the correct state.
+            const wasMoved = dragMoved;
+            dragMoved = false;
             dragNodeId = null;
+            // If the node wasn't moved, the subsequent click event will
+            // fire selectNode() normally.
         } else if (mode === 'connecting') {
             // Use closest() to handle mouseup on port children or SVG overlaps
             const onPort = e.target && e.target.closest && e.target.closest('.input-port');
@@ -737,9 +761,15 @@ const Canvas = (() => {
         nodeElements = {};
         edgeElements = {};
         Store.getNodes().forEach(node => renderNode(node));
-        Store.getEdges().forEach(edge => renderEdge(edge));
-        renderGroups();
-        updateSelection();
+        // Defer edge rendering to the next frame so node DOM heights are
+        // measured first. Without this, getPortPos() falls back to the
+        // default portOffsetY (18px) and lines connect to the wrong Y.
+        requestAnimationFrame(() => {
+            Store.getEdges().forEach(edge => renderEdge(edge));
+            // Also update groups now that heights are known
+            renderGroups();
+            updateSelection();
+        });
         const empty = document.getElementById('canvas-empty');
         if (empty) empty.classList.toggle('hidden', Store.getNodes().length > 0);
     }

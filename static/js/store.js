@@ -53,6 +53,14 @@ const Store = (() => {
     let _selectedNodeIds = new Set(); // multi-select for grouping
     let _groups = [];            // [{id, name, nodeIds: [], color, icon, collapsed}]
 
+    // Monotonic counter for unique ID generation — prevents collisions
+    // when multiple nodes/edges are created in rapid succession.
+    let _idCounter = 0;
+    function _genId(prefix) {
+        _idCounter++;
+        return `${prefix}${Date.now()}${_idCounter}${Math.floor(Math.random() * 10000)}`;
+    }
+
     const listeners = { change: [], select: [], status: [], lang: [] };
 
     function emit(event) {
@@ -74,7 +82,7 @@ const Store = (() => {
         getNodes() { return _nodes; },
         getNode(id) { return _nodes.find(n => n.id === id); },
         addNode(type, x, y, params) {
-            const id = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const id = _genId('n');
             // Don't pre-fill defaults — let the node constructor use its own
             // defaults (including auto-resolution logic like device/dtype).
             // The properties panel shows defaults as badges/placeholders.
@@ -125,14 +133,21 @@ const Store = (() => {
         removeNode(id) {
             _nodes = _nodes.filter(n => n.id !== id);
             _edges = _edges.filter(e => e.source !== id && e.target !== id);
+            // Clean up group references to the removed node
+            _groups.forEach(g => {
+                g.nodeIds = g.nodeIds.filter(nid => nid !== id);
+            });
+            // Remove groups that have no nodes left
+            _groups = _groups.filter(g => g.nodeIds.length > 0);
             if (_selectedNodeId === id) _selectedNodeId = null;
+            _selectedNodeIds.delete(id);
             emit('change');
             emit('select');
         },
         duplicateNode(id) {
             const node = _nodes.find(n => n.id === id);
             if (!node) return null;
-            const newId = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const newId = _genId('n');
             _nodes.push({
                 id: newId,
                 type: node.type,
@@ -155,7 +170,7 @@ const Store = (() => {
         },
         pasteFromClipboard(x, y) {
             if (!_clipboard) return null;
-            const newId = `n${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const newId = _genId('n');
             _nodes.push({
                 id: newId,
                 type: _clipboard.type,
@@ -181,7 +196,7 @@ const Store = (() => {
             const typeCheck = Store.canConnect(source, target);
             if (!typeCheck.ok) return { error: 'type_mismatch', details: typeCheck.reason };
 
-            const id = `e${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const id = _genId('e');
             _edges.push({ id, source, target, pass_fields: null });
             emit('change');
             return { id };
@@ -348,7 +363,7 @@ const Store = (() => {
             _nodeStatus = {};
             // Restore groups with same node IDs
             _groups = (graph.groups || []).map((g, i) => ({
-                id: `g${Date.now()}${i}`,
+                id: _genId('g'),
                 name: g.name || 'Module',
                 nodeIds: [...(g.nodeIds || [])],
                 color: g.color || '#6c8eef',
@@ -379,7 +394,7 @@ const Store = (() => {
             const offsetX = (maxX > 0 ? maxX + 80 : 0);
 
             const newNodes = (graph.nodes || []).map((n, i) => {
-                const newId = `t${Date.now()}${Math.floor(Math.random() * 1e4)}_${i}`;
+                const newId = _genId('t');
                 idMap[n.id] = newId;
                 return {
                     ...n,
@@ -393,7 +408,7 @@ const Store = (() => {
             const newEdges = (graph.edges || []).filter(e => {
                 return idMap[e.source] && idMap[e.target];
             }).map((e, i) => ({
-                id: `te${Date.now()}${Math.floor(Math.random() * 1e4)}_${i}`,
+                id: _genId('te'),
                 source: idMap[e.source],
                 target: idMap[e.target],
                 pass_fields: e.pass_fields || null,
@@ -413,7 +428,7 @@ const Store = (() => {
                 graph.groups.forEach((g) => {
                     const mappedIds = (g.nodeIds || []).map(oldId => idMap[oldId]).filter(Boolean);
                     if (mappedIds.length > 0) {
-                        const gid = `g${Date.now()}${Math.floor(Math.random() * 1000)}`;
+                        const gid = _genId('g');
                         _groups.push({
                             id: gid,
                             name: g.name || 'Module',
@@ -468,7 +483,7 @@ const Store = (() => {
             return _groups.find(g => g.nodeIds.includes(nodeId));
         },
         createGroup(name, nodeIds, opts = {}) {
-            const id = `g${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            const id = _genId('g');
             _groups.push({
                 id,
                 name: name || 'Module',
@@ -524,7 +539,7 @@ const Store = (() => {
          */
         setGroupsFromImport(groups, idMap) {
             _groups = (groups || []).map((g, i) => ({
-                id: `g${Date.now()}${i}`,
+                id: _genId('g'),
                 name: g.name || 'Module',
                 nodeIds: (g.nodeIds || []).map(oldId => idMap[oldId] || oldId),
                 color: g.color || '#6c8eef',

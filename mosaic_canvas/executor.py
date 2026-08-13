@@ -114,6 +114,10 @@ _JSON_FIELDS: frozenset[str] = frozenset({
     "cases",
     # LoRA weights can be a JSON array of paths
     "lora_weights",
+    # Additional JSON fields used by helper nodes
+    "blueprint",
+    "cache_keys",
+    "merge_keys",
 })
 
 
